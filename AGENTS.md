@@ -1,85 +1,79 @@
-# Hermes Agent - Development Guide
+# Hermes Agent - 开发指南
 
-Instructions for AI coding assistants and developers working on the hermes-agent codebase.
+面向 AI 编码助手和开发者的 HermesAgent 代码库开发指南。
 
-## Development Environment
+## 开发环境
 
 ```bash
-# Prefer .venv; fall back to venv if that's what your checkout has.
-source .venv/bin/activate   # or: source venv/bin/activate
+# 优先使用 .venv；如果检出的是 venv 则回退到 venv。
+source .venv/bin/activate   # 或: source venv/bin/activate
 ```
 
-`scripts/run_tests.sh` probes `.venv` first, then `venv`, then
-`$HOME/.hermes/hermes-agent/venv` (for worktrees that share a venv with the
-main checkout).
+`scripts/run_tests.sh` 会依次探测 `.venv`、`venv`、`$HOME/.hermes/hermes-agent/venv`（用于与主检出共享 venv 的 worktree）。
 
-## Project Structure
+## 项目结构
 
-File counts shift constantly — don't treat the tree below as exhaustive.
-The canonical source is the filesystem. The notes call out the load-bearing
-entry points you'll actually edit.
+文件数量持续变化——不要将下面的树状图视为详尽清单。权威来源是文件系统。注释标注了你实际会编辑的关键入口点。
 
 ```
 hermes-agent/
-├── run_agent.py          # AIAgent class — core conversation loop (~12k LOC)
-├── model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
-├── toolsets.py           # Toolset definitions, _HERMES_CORE_TOOLS list
-├── cli.py                # HermesCLI class — interactive CLI orchestrator (~11k LOC)
-├── hermes_state.py       # SessionDB — SQLite session store (FTS5 search)
-├── hermes_constants.py   # get_hermes_home(), display_hermes_home() — profile-aware paths
-├── hermes_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
-├── batch_runner.py       # Parallel batch processing
-├── agent/                # Agent internals (provider adapters, memory, caching, compression, etc.)
-├── hermes_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
-├── tools/                # Tool implementations — auto-discovered via tools/registry.py
-│   └── environments/     # Terminal backends (local, docker, ssh, modal, daytona, singularity)
-├── gateway/              # Messaging gateway — run.py + session.py + platforms/
-│   ├── platforms/        # Adapter per platform (telegram, discord, slack, whatsapp,
+├── run_agent.py          # AIAgent 类——核心对话循环（~12k LOC）
+├── model_tools.py        # 工具编排，discover_builtin_tools()，handle_function_call()
+├── toolsets.py           # 工具集定义，_HERMES_CORE_TOOLS 列表
+├── cli.py                # HermesCLI 类——交互式 CLI 编排器（~11k LOC）
+├── hermes_state.py       # SessionDB——SQLite 会话存储（FTS5 搜索）
+├── hermes_constants.py   # get_hermes_home()，display_hermes_home()——profile 感知路径
+├── hermes_logging.py     # setup_logging()——agent.log / errors.log / gateway.log（profile 感知）
+├── batch_runner.py       # 并行批处理
+├── agent/                # Agent 内部模块（提供商适配器、记忆、缓存、压缩等）
+├── hermes_cli/           # CLI 子命令、设置向导、插件加载器、皮肤引擎
+├── tools/                # 工具实现——通过 tools/registry.py 自动发现
+│   └── environments/     # 终端后端（local, docker, ssh, modal, daytona, singularity）
+├── gateway/              # 消息网关——run.py + session.py + platforms/
+│   ├── platforms/        # 每平台适配器（telegram, discord, slack, whatsapp,
 │   │                     #   homeassistant, signal, matrix, mattermost, email, sms,
 │   │                     #   dingtalk, wecom, weixin, feishu, qqbot, bluebubbles,
-│   │                     #   webhook, api_server, ...). See ADDING_A_PLATFORM.md.
-│   └── builtin_hooks/    # Always-registered gateway hooks (boot-md, ...)
-├── plugins/              # Plugin system (see "Plugins" section below)
-│   ├── memory/           # Memory-provider plugins (honcho, mem0, supermemory, ...)
-│   ├── context_engine/   # Context-engine plugins
-│   └── <others>/         # Dashboard, image-gen, disk-cleanup, examples, ...
-├── optional-skills/      # Heavier/niche skills shipped but NOT active by default
-├── skills/               # Built-in skills bundled with the repo
-├── ui-tui/               # Ink (React) terminal UI — `hermes --tui`
+│   │                     #   webhook, api_server, ...）。参见 ADDING_A_PLATFORM.md。
+│   └── builtin_hooks/    # 始终注册的网关 hooks（boot-md, ...）
+├── plugins/              # 插件系统（见下方"插件"章节）
+│   ├── memory/           # 记忆提供者插件（honcho, mem0, supermemory, ...）
+│   ├── context_engine/   # 上下文引擎插件
+│   └── <others>/         # Dashboard、图像生成、磁盘清理、示例等
+├── optional-skills/      # 较重/小众的技能，随仓库发布但默认不激活
+├── skills/               # 随仓库捆绑的内置技能
+├── ui-tui/               # Ink (React) 终端 UI——`hermes --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
-├── tui_gateway/          # Python JSON-RPC backend for the TUI
-├── acp_adapter/          # ACP server (VS Code / Zed / JetBrains integration)
-├── cron/                 # Scheduler — jobs.py, scheduler.py
-├── environments/         # RL training environments (Atropos)
-├── scripts/              # run_tests.sh, release.py, auxiliary scripts
-├── website/              # Docusaurus docs site
-└── tests/                # Pytest suite (~15k tests across ~700 files as of Apr 2026)
+├── tui_gateway/          # TUI 的 Python JSON-RPC 后端
+├── acp_adapter/          # ACP 服务器（VS Code / Zed / JetBrains 集成）
+├── cron/                 # 调度器——jobs.py, scheduler.py
+├── environments/         # RL 训练环境（Atropos）
+├── scripts/              # run_tests.sh, release.py, 辅助脚本
+├── website/              # Docusaurus 文档站
+└── tests/                # Pytest 测试套件（截至 2026 年 4 月约 15k 测试，~700 文件）
 ```
 
-**User config:** `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys only).
-**Logs:** `~/.hermes/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
-`gateway.log` when running the gateway. Profile-aware via `get_hermes_home()`.
-Browse with `hermes logs [--follow] [--level ...] [--session ...]`.
+**用户配置：** `~/.hermes/config.yaml`（设置），`~/.hermes/.env`（仅 API 密钥）。
+**日志：** `~/.hermes/logs/`——`agent.log`（INFO+），`errors.log`（WARNING+），
+运行 Gateway 时还有 `gateway.log`。通过 `get_hermes_home()` 实现 profile 感知。
+使用 `hermes logs [--follow] [--level ...] [--session ...]` 浏览日志。
 
-## File Dependency Chain
+## 文件依赖链
 
 ```
-tools/registry.py  (no deps — imported by all tool files)
+tools/registry.py  （无依赖——被所有工具文件导入）
        ↑
-tools/*.py  (each calls registry.register() at import time)
+tools/*.py  （每个在导入时调用 registry.register()）
        ↑
-model_tools.py  (imports tools/registry + triggers tool discovery)
+model_tools.py  （导入 tools/registry + 触发工具发现）
        ↑
 run_agent.py, cli.py, batch_runner.py, environments/
 ```
 
 ---
 
-## AIAgent Class (run_agent.py)
+## AIAgent 类（run_agent.py）
 
-The real `AIAgent.__init__` takes ~60 parameters (credentials, routing, callbacks,
-session context, budget, credential pool, etc.). The signature below is the
-minimum subset you'll usually touch — read `run_agent.py` for the full list.
+`AIAgent.__init__` 实际接受约 60 个参数（凭据、路由、回调、会话上下文、预算、凭据池等）。下面的签名是你通常会接触到的最小子集——完整列表请阅读 `run_agent.py`。
 
 ```python
 class AIAgent:
@@ -88,33 +82,32 @@ class AIAgent:
         api_key: str = None,
         provider: str = None,
         api_mode: str = None,              # "chat_completions" | "codex_responses" | ...
-        model: str = "",                   # empty → resolved from config/provider later
-        max_iterations: int = 90,          # tool-calling iterations (shared with subagents)
+        model: str = "",                   # 空 → 稍后从 config/provider 解析
+        max_iterations: int = 90,          # 工具调用迭代次数（与子 Agent 共享）
         enabled_toolsets: list = None,
         disabled_toolsets: list = None,
         quiet_mode: bool = False,
         save_trajectories: bool = False,
-        platform: str = None,              # "cli", "telegram", etc.
+        platform: str = None,              # "cli", "telegram" 等
         session_id: str = None,
         skip_context_files: bool = False,
         skip_memory: bool = False,
         credential_pool=None,
-        # ... plus callbacks, thread/user/chat IDs, iteration_budget, fallback_model,
-        # checkpoints config, prefill_messages, service_tier, reasoning_config, etc.
+        # ... 加上回调、thread/user/chat ID、iteration_budget、fallback_model、
+        # checkpoints 配置、prefill_messages、service_tier、reasoning_config 等。
     ): ...
 
     def chat(self, message: str) -> str:
-        """Simple interface — returns final response string."""
+        """简单接口——返回最终响应字符串。"""
 
     def run_conversation(self, user_message: str, system_message: str = None,
                          conversation_history: list = None, task_id: str = None) -> dict:
-        """Full interface — returns dict with final_response + messages."""
+        """完整接口——返回包含 final_response + messages 的字典。"""
 ```
 
-### Agent Loop
+### Agent 循环
 
-The core loop is inside `run_conversation()` — entirely synchronous, with
-interrupt checks, budget tracking, and a one-turn grace call:
+核心循环位于 `run_conversation()` 内——完全同步，包含中断检查、预算跟踪和一次 grace call：
 
 ```python
 while (api_call_count < self.max_iterations and self.iteration_budget.remaining > 0) \
@@ -130,136 +123,136 @@ while (api_call_count < self.max_iterations and self.iteration_budget.remaining 
         return response.content
 ```
 
-Messages follow OpenAI format: `{"role": "system/user/assistant/tool", ...}`.
-Reasoning content is stored in `assistant_msg["reasoning"]`.
+消息遵循 OpenAI 格式：`{"role": "system/user/assistant/tool", ...}`。
+推理内容存储在 `assistant_msg["reasoning"]` 中。
 
 ---
 
-## CLI Architecture (cli.py)
+## CLI 架构（cli.py）
 
-- **Rich** for banner/panels, **prompt_toolkit** for input with autocomplete
-- **KawaiiSpinner** (`agent/display.py`) — animated faces during API calls, `┊` activity feed for tool results
-- `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
-- **Skin engine** (`hermes_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
-- `process_command()` is a method on `HermesCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
-- Skill slash commands: `agent/skill_commands.py` scans `~/.hermes/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
+- **Rich** 用于 banner/面板，**prompt_toolkit** 用于带自动补全的输入
+- **KawaiiSpinner**（`agent/display.py`）——API 调用时的动画面孔，`┊` 活动流显示工具结果
+- `cli.py` 中的 `load_cli_config()` 合并硬编码默认值 + 用户配置 YAML
+- **皮肤引擎**（`hermes_cli/skin_engine.py`）——数据驱动的 CLI 主题；启动时从 `display.skin` 配置键初始化；皮肤自定义 banner 颜色、spinner 面孔/动词/翅膀、工具前缀、响应框、品牌文本
+- `process_command()` 是 `HermesCLI` 的方法——通过 `resolve_command()` 从中央注册表解析规范命令名后分发
+- 技能斜杠命令：`agent/skill_commands.py` 扫描 `~/.hermes/skills/`，作为**用户消息**注入（非系统提示词）以保持 prompt caching
 
-### Slash Command Registry (`hermes_cli/commands.py`)
+### 斜杠命令注册表（`hermes_cli/commands.py`）
 
-All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandDef` objects. Every downstream consumer derives from this registry automatically:
+所有斜杠命令在中央 `COMMAND_REGISTRY` 列表中定义为 `CommandDef` 对象。每个下游消费者自动从该注册表派生：
 
-- **CLI** — `process_command()` resolves aliases via `resolve_command()`, dispatches on canonical name
-- **Gateway** — `GATEWAY_KNOWN_COMMANDS` frozenset for hook emission, `resolve_command()` for dispatch
-- **Gateway help** — `gateway_help_lines()` generates `/help` output
-- **Telegram** — `telegram_bot_commands()` generates the BotCommand menu
-- **Slack** — `slack_subcommand_map()` generates `/hermes` subcommand routing
-- **Autocomplete** — `COMMANDS` flat dict feeds `SlashCommandCompleter`
-- **CLI help** — `COMMANDS_BY_CATEGORY` dict feeds `show_help()`
+- **CLI**——`process_command()` 通过 `resolve_command()` 解析别名，按规范名分发
+- **Gateway**——`GATEWAY_KNOWN_COMMANDS` frozenset 用于 hook 发出，`resolve_command()` 用于分发
+- **Gateway 帮助**——`gateway_help_lines()` 生成 `/help` 输出
+- **Telegram**——`telegram_bot_commands()` 生成 BotCommand 菜单
+- **Slack**——`slack_subcommand_map()` 生成 `/hermes` 子命令路由
+- **自动补全**——`COMMANDS` 扁平字典供 `SlashCommandCompleter` 使用
+- **CLI 帮助**——`COMMANDS_BY_CATEGORY` 字典供 `show_help()` 使用
 
-### Adding a Slash Command
+### 添加斜杠命令
 
-1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `hermes_cli/commands.py`:
+1. 在 `hermes_cli/commands.py` 的 `COMMAND_REGISTRY` 中添加 `CommandDef` 条目：
 ```python
-CommandDef("mycommand", "Description of what it does", "Session",
+CommandDef("mycommand", "命令描述", "Session",
            aliases=("mc",), args_hint="[arg]"),
 ```
-2. Add handler in `HermesCLI.process_command()` in `cli.py`:
+2. 在 `cli.py` 的 `HermesCLI.process_command()` 中添加处理程序：
 ```python
 elif canonical == "mycommand":
     self._handle_mycommand(cmd_original)
 ```
-3. If the command is available in the gateway, add a handler in `gateway/run.py`:
+3. 如果命令在 Gateway 中可用，在 `gateway/run.py` 中添加处理程序：
 ```python
 if canonical == "mycommand":
     return await self._handle_mycommand(event)
 ```
-4. For persistent settings, use `save_config_value()` in `cli.py`
+4. 对于持久化设置，使用 `cli.py` 中的 `save_config_value()`
 
-**CommandDef fields:**
-- `name` — canonical name without slash (e.g. `"background"`)
-- `description` — human-readable description
-- `category` — one of `"Session"`, `"Configuration"`, `"Tools & Skills"`, `"Info"`, `"Exit"`
-- `aliases` — tuple of alternative names (e.g. `("bg",)`)
-- `args_hint` — argument placeholder shown in help (e.g. `"<prompt>"`, `"[name]"`)
-- `cli_only` — only available in the interactive CLI
-- `gateway_only` — only available in messaging platforms
-- `gateway_config_gate` — config dotpath (e.g. `"display.tool_progress_command"`); when set on a `cli_only` command, the command becomes available in the gateway if the config value is truthy. `GATEWAY_KNOWN_COMMANDS` always includes config-gated commands so the gateway can dispatch them; help/menus only show them when the gate is open.
+**CommandDef 字段：**
+- `name`——不带斜杠的规范名（如 `"background"`）
+- `description`——人类可读描述
+- `category`——`"Session"`、`"Configuration"`、`"Tools & Skills"`、`"Info"`、`"Exit"` 之一
+- `aliases`——替代名称元组（如 `("bg",)`）
+- `args_hint`——帮助中显示的参数占位符（如 `"<prompt>"`、`"[name]"`）
+- `cli_only`——仅在交互式 CLI 中可用
+- `gateway_only`——仅在消息平台中可用
+- `gateway_config_gate`——配置点路径（如 `"display.tool_progress_command"`）；当设置在 `cli_only` 命令上时，如果配置值为真，则该命令在 Gateway 中也可用。`GATEWAY_KNOWN_COMMANDS` 始终包含配置门控命令以便 Gateway 可以分发它们；帮助/菜单仅在门控打开时显示。
 
-**Adding an alias** requires only adding it to the `aliases` tuple on the existing `CommandDef`. No other file changes needed — dispatch, help text, Telegram menu, Slack mapping, and autocomplete all update automatically.
+**添加别名**只需在现有 `CommandDef` 的 `aliases` 元组中添加即可。无需修改其他文件——分发、帮助文本、Telegram 菜单、Slack 映射和自动补全都会自动更新。
 
 ---
 
-## TUI Architecture (ui-tui + tui_gateway)
+## TUI 架构（ui-tui + tui_gateway）
 
-The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `hermes --tui` or `HERMES_TUI=1`.
+TUI 是经典（prompt_toolkit）CLI 的完整替代品，通过 `hermes --tui` 或 `HERMES_TUI=1` 激活。
 
-### Process Model
+### 进程模型
 
 ```
 hermes --tui
   └─ Node (Ink)  ──stdio JSON-RPC──  Python (tui_gateway)
        │                                  └─ AIAgent + tools + sessions
-       └─ renders transcript, composer, prompts, activity
+       └─ 渲染对话、输入框、提示、活动
 ```
 
-TypeScript owns the screen. Python owns sessions, tools, model calls, and slash command logic.
+TypeScript 负责屏幕渲染。Python 负责会话、工具、模型调用和斜杠命令逻辑。
 
-### Transport
+### 传输
 
-Newline-delimited JSON-RPC over stdio. Requests from Ink, events from Python. See `tui_gateway/server.py` for the full method/event catalog.
+通过 stdio 的换行分隔 JSON-RPC。Ink 发送请求，Python 发送事件。完整的方法/事件目录请参见 `tui_gateway/server.py`。
 
-### Key Surfaces
+### 关键界面
 
-| Surface | Ink component | Gateway method |
-|---------|---------------|----------------|
-| Chat streaming | `app.tsx` + `messageLine.tsx` | `prompt.submit` → `message.delta/complete` |
-| Tool activity | `thinking.tsx` | `tool.start/progress/complete` |
-| Approvals | `prompts.tsx` | `approval.respond` ← `approval.request` |
-| Clarify/sudo/secret | `prompts.tsx`, `maskedPrompt.tsx` | `clarify/sudo/secret.respond` |
-| Session picker | `sessionPicker.tsx` | `session.list/resume` |
-| Slash commands | Local handler + fallthrough | `slash.exec` → `_SlashWorker`, `command.dispatch` |
-| Completions | `useCompletion` hook | `complete.slash`, `complete.path` |
-| Theming | `theme.ts` + `branding.tsx` | `gateway.ready` with skin data |
+| 界面 | Ink 组件 | Gateway 方法 |
+|------|---------|-------------|
+| 聊天流式 | `app.tsx` + `messageLine.tsx` | `prompt.submit` → `message.delta/complete` |
+| 工具活动 | `thinking.tsx` | `tool.start/progress/complete` |
+| 审批 | `prompts.tsx` | `approval.respond` ← `approval.request` |
+| 确认/sudo/密码 | `prompts.tsx`、`maskedPrompt.tsx` | `clarify/sudo/secret.respond` |
+| 会话选择器 | `sessionPicker.tsx` | `session.list/resume` |
+| 斜杠命令 | 本地处理 + 回退 | `slash.exec` → `_SlashWorker`、`command.dispatch` |
+| 补全 | `useCompletion` hook | `complete.slash`、`complete.path` |
+| 主题 | `theme.ts` + `branding.tsx` | `gateway.ready` 包含皮肤数据 |
 
-### Slash Command Flow
+### 斜杠命令流程
 
-1. Built-in client commands (`/help`, `/quit`, `/clear`, `/resume`, `/copy`, `/paste`, etc.) handled locally in `app.tsx`
-2. Everything else → `slash.exec` (runs in persistent `_SlashWorker` subprocess) → `command.dispatch` fallback
+1. 内置客户端命令（`/help`、`/quit`、`/clear`、`/resume`、`/copy`、`/paste` 等）在 `app.tsx` 中本地处理
+2. 其他所有命令 → `slash.exec`（在持久 `_SlashWorker` 子进程中运行）→ `command.dispatch` 回退
 
-### Dev Commands
+### 开发命令
 
 ```bash
 cd ui-tui
-npm install       # first time
-npm run dev       # watch mode (rebuilds hermes-ink + tsx --watch)
-npm start         # production
-npm run build     # full build (hermes-ink + tsc)
-npm run type-check # typecheck only (tsc --noEmit)
+npm install       # 首次安装
+npm run dev       # 监听模式（重建 hermes-ink + tsx --watch）
+npm start         # 生产模式
+npm run build     # 完整构建（hermes-ink + tsc）
+npm run type-check # 仅类型检查（tsc --noEmit）
 npm run lint      # eslint
 npm run fmt       # prettier
 npm test          # vitest
 ```
 
-### TUI in the Dashboard (`hermes dashboard` → `/chat`)
+### Dashboard 中的 TUI（`hermes dashboard` → `/chat`）
 
-The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
+Dashboard 嵌入的是真实的 `hermes --tui`——**不是**重写。参见 `hermes_cli/pty_bridge.py` + `hermes_cli/web_server.py` 中的 `@app.websocket("/api/pty")` 端点。
 
-- Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
-- `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
-- The server spawns whatever `hermes --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
-- Frames: raw PTY bytes each direction; resize via `\x1b[RESIZE:<cols>;<rows>]` intercepted on the server and applied with `TIOCSWINSZ`.
+- 浏览器加载 `web/src/pages/ChatPage.tsx`，挂载 xterm.js 的 `Terminal`，使用 WebGL 渲染器、`@xterm/addon-fit` 用于容器驱动的调整大小、`@xterm/addon-unicode11` 用于现代宽字符宽度。
+- `/api/pty?token=…` 升级为 WebSocket；认证使用与 REST 相同的临时 `_SESSION_TOKEN`，通过查询参数传递（浏览器在 WS 升级时无法设置 `Authorization`）。
+- 服务器通过 `ptyprocess`（POSIX PTY——WSL 可用，原生 Windows 不支持）生成与 `hermes --tui` 相同的进程。
+- 帧：双向原始 PTY 字节；通过 `\x1b[RESIZE:<cols>;<rows>]` 在服务器端拦截并应用 `TIOCSWINSZ` 进行调整大小。
 
-**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `hermes --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
+**不要在 React 中重新实现主要聊天体验。** 主对话流、输入框/编辑器（包括斜杠命令行为）和 PTY 支持的终端属于嵌入的 `hermes --tui`——你在 Ink 中添加的任何新内容都会自动出现在 Dashboard 中。如果你发现自己在为 Dashboard 重建对话流或编辑器，请停止并改为扩展 Ink。
 
-**Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
+**当不是第二个聊天界面时，允许在 TUI 周围构建结构化 React UI。** 侧边栏小部件、检查器、摘要、状态面板和类似的支持视图（如 `ChatSidebar`、`ModelPickerDialog`、`ToolCall`）在补充嵌入 TUI 时是合适的，而不是替换对话/编辑器/终端。保持它们的状态独立于 PTY 子进程的会话，并以非破坏性方式显示它们的故障，使终端窗格保持正常工作。
 
 ---
 
-## Adding New Tools
+## 添加新工具
 
-Requires changes in **2 files**:
+需要修改 **2 个文件**：
 
-**1. Create `tools/your_tool.py`:**
+**1. 创建 `tools/your_tool.py`：**
 ```python
 import json, os
 from tools.registry import registry
@@ -280,121 +273,109 @@ registry.register(
 )
 ```
 
-**2. Add to `toolsets.py`** — either `_HERMES_CORE_TOOLS` (all platforms) or a new toolset.
+**2. 添加到 `toolsets.py`**——添加到 `_HERMES_CORE_TOOLS`（所有平台）或新建工具集。
 
-Auto-discovery: any `tools/*.py` file with a top-level `registry.register()` call is imported automatically — no manual import list to maintain.
+自动发现：任何包含顶层 `registry.register()` 调用的 `tools/*.py` 文件都会被自动导入——无需维护手动导入列表。
 
-The registry handles schema collection, dispatch, availability checking, and error wrapping. All handlers MUST return a JSON string.
+注册表处理 schema 收集、分发、可用性检查和错误包装。所有处理程序必须返回 JSON 字符串。
 
-**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_hermes_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `HERMES_HOME`.
+**工具 schema 中的路径引用**：如果 schema 描述中提到文件路径（如默认输出目录），使用 `display_hermes_home()` 使其 profile 感知。Schema 在导入时生成，此时 `_apply_profile_override()` 已设置 `HERMES_HOME`。
 
-**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_hermes_home()` for the base directory — never `Path.home() / ".hermes"`. This ensures each profile gets its own state.
+**状态文件**：如果工具存储持久状态（缓存、日志、检查点），使用 `get_hermes_home()` 作为基础目录——永远不要使用 `Path.home() / ".hermes"`。这确保每个 profile 拥有自己的状态。
 
-**Agent-level tools** (todo, memory): intercepted by `run_agent.py` before `handle_function_call()`. See `tools/todo_tool.py` for the pattern.
+**Agent 级工具**（todo、memory）：在 `handle_function_call()` 之前被 `run_agent.py` 拦截。参见 `tools/todo_tool.py` 了解模式。
 
 ---
 
-## Adding Configuration
+## 添加配置
 
-### config.yaml options:
-1. Add to `DEFAULT_CONFIG` in `hermes_cli/config.py`
-2. Bump `_config_version` (check the current value at the top of `DEFAULT_CONFIG`)
-   ONLY if you need to actively migrate/transform existing user config
-   (renaming keys, changing structure). Adding a new key to an existing
-   section is handled automatically by the deep-merge and does NOT require
-   a version bump.
+### config.yaml 选项：
+1. 添加到 `hermes_cli/config.py` 的 `DEFAULT_CONFIG`
+2. 仅在需要主动迁移/转换现有用户配置时（重命名键、更改结构）才递增 `_config_version`（检查 `DEFAULT_CONFIG` 顶部的当前值）。向现有部分添加新键由深度合并自动处理，不需要版本递增。
 
-### .env variables (SECRETS ONLY — API keys, tokens, passwords):
-1. Add to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py` with metadata:
+### .env 变量（仅限密钥——API 密钥、令牌、密码）：
+1. 添加到 `hermes_cli/config.py` 的 `OPTIONAL_ENV_VARS` 并附带元数据：
 ```python
 "NEW_API_KEY": {
-    "description": "What it's for",
-    "prompt": "Display name",
+    "description": "用途说明",
+    "prompt": "显示名称",
     "url": "https://...",
     "password": True,
     "category": "tool",  # provider, tool, messaging, setting
 },
 ```
 
-Non-secret settings (timeouts, thresholds, feature flags, paths, display
-preferences) belong in `config.yaml`, not `.env`. If internal code needs an
-env var mirror for backward compatibility, bridge it from `config.yaml` to
-the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
+非密钥设置（超时、阈值、功能标志、路径、显示偏好）属于 `config.yaml`，而非 `.env`。如果内部代码需要 env var 镜像以保持向后兼容性，请在代码中从 `config.yaml` 桥接到 env var（参见 `gateway_timeout`、`terminal.cwd` → `TERMINAL_CWD`）。
 
-### Config loaders (three paths — know which one you're in):
+### 配置加载器（三条路径——知道你在哪条上）：
 
-| Loader | Used by | Location |
-|--------|---------|----------|
-| `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
-| `load_config()` | `hermes tools`, `hermes setup`, most CLI subcommands | `hermes_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
-| Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
+| 加载器 | 使用者 | 位置 |
+|--------|-------|------|
+| `load_cli_config()` | CLI 模式 | `cli.py`——合并 CLI 特定默认值 + 用户 YAML |
+| `load_config()` | `hermes tools`、`hermes setup`、大多数 CLI 子命令 | `hermes_cli/config.py`——合并 `DEFAULT_CONFIG` + 用户 YAML |
+| 直接 YAML 加载 | Gateway 运行时 | `gateway/run.py` + `gateway/config.py`——直接读取用户 YAML |
 
-If you add a new key and the CLI sees it but the gateway doesn't (or vice
-versa), you're on the wrong loader. Check `DEFAULT_CONFIG` coverage.
+如果你添加了新键但 CLI 能看到而 Gateway 看不到（或反之），说明你在错误的加载器上。检查 `DEFAULT_CONFIG` 覆盖范围。
 
-### Working directory:
-- **CLI** — uses the process's current directory (`os.getcwd()`).
-- **Messaging** — uses `terminal.cwd` from `config.yaml`. The gateway bridges this
-  to the `TERMINAL_CWD` env var for child tools. **`MESSAGING_CWD` has been
-  removed** — the config loader prints a deprecation warning if it's set in
-  `.env`. Same for `TERMINAL_CWD` in `.env`; the canonical setting is
-  `terminal.cwd` in `config.yaml`.
+### 工作目录：
+- **CLI**——使用进程的当前目录（`os.getcwd()`）。
+- **消息平台**——使用 `config.yaml` 中的 `terminal.cwd`。Gateway 将此桥接到子工具的 `TERMINAL_CWD` env var。**`MESSAGING_CWD` 已被移除**——如果在 `.env` 中设置了它，配置加载器会打印弃用警告。`.env` 中的 `TERMINAL_CWD` 同理；规范设置是 `config.yaml` 中的 `terminal.cwd`。
 
 ---
 
-## Skin/Theme System
+## 皮肤/主题系统
 
-The skin engine (`hermes_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
+皮肤引擎（`hermes_cli/skin_engine.py`）提供数据驱动的 CLI 视觉自定义。皮肤是**纯数据**——添加新皮肤无需修改代码。
 
-### Architecture
+### 架构
 
 ```
-hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
-~/.hermes/skins/*.yaml       # User-installed custom skins (drop-in)
+hermes_cli/skin_engine.py    # SkinConfig 数据类、内置皮肤、YAML 加载器
+~/.hermes/skins/*.yaml       # 用户安装的自定义皮肤（拖放即可）
 ```
 
-- `init_skin_from_config()` — called at CLI startup, reads `display.skin` from config
-- `get_active_skin()` — returns cached `SkinConfig` for the current skin
-- `set_active_skin(name)` — switches skin at runtime (used by `/skin` command)
-- `load_skin(name)` — loads from user skins first, then built-ins, then falls back to default
-- Missing skin values inherit from the `default` skin automatically
+- `init_skin_from_config()`——CLI 启动时调用，从配置读取 `display.skin`
+- `get_active_skin()`——返回当前皮肤的缓存 `SkinConfig`
+- `set_active_skin(name)`——运行时切换皮肤（`/skin` 命令使用）
+- `load_skin(name)`——优先加载用户皮肤，然后内置皮肤，最后回退到默认值
+- 缺失的皮肤值自动从 `default` 皮肤继承
 
-### What skins customize
+### 皮肤自定义内容
 
-| Element | Skin Key | Used By |
-|---------|----------|---------|
-| Banner panel border | `colors.banner_border` | `banner.py` |
-| Banner panel title | `colors.banner_title` | `banner.py` |
-| Banner section headers | `colors.banner_accent` | `banner.py` |
-| Banner dim text | `colors.banner_dim` | `banner.py` |
-| Banner body text | `colors.banner_text` | `banner.py` |
-| Response box border | `colors.response_border` | `cli.py` |
-| Spinner faces (waiting) | `spinner.waiting_faces` | `display.py` |
-| Spinner faces (thinking) | `spinner.thinking_faces` | `display.py` |
-| Spinner verbs | `spinner.thinking_verbs` | `display.py` |
-| Spinner wings (optional) | `spinner.wings` | `display.py` |
-| Tool output prefix | `tool_prefix` | `display.py` |
-| Per-tool emojis | `tool_emojis` | `display.py` → `get_tool_emoji()` |
-| Agent name | `branding.agent_name` | `banner.py`, `cli.py` |
-| Welcome message | `branding.welcome` | `cli.py` |
-| Response box label | `branding.response_label` | `cli.py` |
-| Prompt symbol | `branding.prompt_symbol` | `cli.py` |
+| 元素 | 皮肤键 | 使用者 |
+|------|--------|-------|
+| Banner 面板边框 | `colors.banner_border` | `banner.py` |
+| Banner 面板标题 | `colors.banner_title` | `banner.py` |
+| Banner 节标题 | `colors.banner_accent` | `banner.py` |
+| Banner 暗文本 | `colors.banner_dim` | `banner.py` |
+| Banner 正文 | `colors.banner_text` | `banner.py` |
+| 响应框边框 | `colors.response_border` | `cli.py` |
+| Spinner 面孔（等待） | `spinner.waiting_faces` | `display.py` |
+| Spinner 面孔（思考） | `spinner.thinking_faces` | `display.py` |
+| Spinner 动词 | `spinner.thinking_verbs` | `display.py` |
+| Spinner 翅膀（可选） | `spinner.wings` | `display.py` |
+| 工具输出前缀 | `tool_prefix` | `display.py` |
+| 每工具 emoji | `tool_emojis` | `display.py` → `get_tool_emoji()` |
+| Agent 名称 | `branding.agent_name` | `banner.py`、`cli.py` |
+| 欢迎消息 | `branding.welcome` | `cli.py` |
+| 响应框标签 | `branding.response_label` | `cli.py` |
+| 提示符号 | `branding.prompt_symbol` | `cli.py` |
 
-### Built-in skins
+### 内置皮肤
 
-- `default` — Classic Hermes gold/kawaii (the current look)
-- `ares` — Crimson/bronze war-god theme with custom spinner wings
-- `mono` — Clean grayscale monochrome
-- `slate` — Cool blue developer-focused theme
+- `default`——经典 Hermes 金色/可爱风格（当前外观）
+- `ares`——深红/青铜战神主题，带自定义 spinner 翅膀
+- `mono`——简洁灰度单色
+- `slate`——冷蓝色开发者主题
 
-### Adding a built-in skin
+### 添加内置皮肤
 
-Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`:
+在 `hermes_cli/skin_engine.py` 的 `_BUILTIN_SKINS` 字典中添加：
 
 ```python
 "mytheme": {
     "name": "mytheme",
-    "description": "Short description",
+    "description": "简短描述",
     "colors": { ... },
     "spinner": { ... },
     "branding": { ... },
@@ -402,13 +383,13 @@ Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`:
 },
 ```
 
-### User skins (YAML)
+### 用户皮肤（YAML）
 
-Users create `~/.hermes/skins/<name>.yaml`:
+用户创建 `~/.hermes/skins/<name>.yaml`：
 
 ```yaml
 name: cyberpunk
-description: Neon-soaked terminal theme
+description: 霓虹终端主题
 
 colors:
   banner_border: "#FF00FF"
@@ -416,247 +397,163 @@ colors:
   banner_accent: "#FF1493"
 
 spinner:
-  thinking_verbs: ["jacking in", "decrypting", "uploading"]
+  thinking_verbs: ["接入中", "解密中", "上传中"]
   wings:
     - ["⟨⚡", "⚡⟩"]
 
 branding:
-  agent_name: "Cyber Agent"
-  response_label: " ⚡ Cyber "
+  agent_name: "赛博 Agent"
+  response_label: " ⚡ 赛博 "
 
 tool_prefix: "▏"
 ```
 
-Activate with `/skin cyberpunk` or `display.skin: cyberpunk` in config.yaml.
+通过 `/skin cyberpunk` 或 config.yaml 中的 `display.skin: cyberpunk` 激活。
 
 ---
 
-## Plugins
+## 插件
 
-Hermes has two plugin surfaces. Both live under `plugins/` in the repo so
-repo-shipped plugins can be discovered alongside user-installed ones in
-`~/.hermes/plugins/` and pip-installed entry points.
+Hermes 有两个插件表面。它们都位于仓库的 `plugins/` 下，以便仓库发布的插件可以与 `~/.hermes/plugins/` 中的用户安装插件和 pip 安装的 entry points 一起被发现。
 
-### General plugins (`hermes_cli/plugins.py` + `plugins/<name>/`)
+### 通用插件（`hermes_cli/plugins.py` + `plugins/<name>/`）
 
-`PluginManager` discovers plugins from `~/.hermes/plugins/`, `./.hermes/plugins/`,
-and pip entry points. Each plugin exposes a `register(ctx)` function that
-can:
+`PluginManager` 从 `~/.hermes/plugins/`、`./.hermes/plugins/` 和 pip entry points 发现插件。每个插件暴露一个 `register(ctx)` 函数，可以：
 
-- Register Python-callback lifecycle hooks:
-  `pre_tool_call`, `post_tool_call`, `pre_llm_call`, `post_llm_call`,
-  `on_session_start`, `on_session_end`
-- Register new tools via `ctx.register_tool(...)`
-- Register CLI subcommands via `ctx.register_cli_command(...)` — the
-  plugin's argparse tree is wired into `hermes` at startup so
-  `hermes <pluginname> <subcmd>` works with no change to `main.py`
+- 注册 Python 回调生命周期 hooks：
+  `pre_tool_call`、`post_tool_call`、`pre_llm_call`、`post_llm_call`、
+  `on_session_start`、`on_session_end`
+- 通过 `ctx.register_tool(...)` 注册新工具
+- 通过 `ctx.register_cli_command(...)` 注册 CLI 子命令——插件的 argparse 树在启动时接入 `hermes`，使 `hermes <pluginname> <subcmd>` 无需修改 `main.py` 即可工作
 
-Hooks are invoked from `model_tools.py` (pre/post tool) and `run_agent.py`
-(lifecycle). **Discovery timing pitfall:** `discover_plugins()` only runs
-as a side effect of importing `model_tools.py`. Code paths that read plugin
-state without importing `model_tools.py` first must call `discover_plugins()`
-explicitly (it's idempotent).
+Hooks 从 `model_tools.py`（pre/post tool）和 `run_agent.py`（生命周期）调用。**发现时机陷阱：** `discover_plugins()` 仅作为导入 `model_tools.py` 的副作用运行。读取插件状态但未导入 `model_tools.py` 的代码路径必须显式调用 `discover_plugins()`（它是幂等的）。
 
-### Memory-provider plugins (`plugins/memory/<name>/`)
+### 记忆提供者插件（`plugins/memory/<name>/`）
 
-Separate discovery system for pluggable memory backends. Current built-in
-providers include **honcho, mem0, supermemory, byterover, hindsight,
-holographic, openviking, retaindb**.
+可插拔记忆后端的独立发现系统。当前内置提供者包括 **honcho、mem0、supermemory、byterover、hindsight、holographic、openviking、retaindb**。
 
-Each provider implements the `MemoryProvider` ABC (see `agent/memory_provider.py`)
-and is orchestrated by `agent/memory_manager.py`. Lifecycle hooks include
-`sync_turn(turn_messages)`, `prefetch(query)`, `shutdown()`, and optional
-`post_setup(hermes_home, config)` for setup-wizard integration.
+每个提供者实现 `MemoryProvider` ABC（参见 `agent/memory_provider.py`），由 `agent/memory_manager.py` 编排。生命周期 hooks 包括 `sync_turn(turn_messages)`、`prefetch(query)`、`shutdown()`，以及可选的 `post_setup(hermes_home, config)` 用于设置向导集成。
 
-**CLI commands via `plugins/memory/<name>/cli.py`:** if a memory plugin
-defines `register_cli(subparser)`, `discover_plugin_cli_commands()` finds
-it at argparse setup time and wires it into `hermes <plugin>`. The
-framework only exposes CLI commands for the **currently active** memory
-provider (read from `memory.provider` in config.yaml), so disabled
-providers don't clutter `hermes --help`.
+**通过 `plugins/memory/<name>/cli.py` 的 CLI 命令：** 如果记忆插件定义了 `register_cli(subparser)`，`discover_plugin_cli_commands()` 在 argparse 设置时发现它并接入 `hermes <plugin>`。框架仅为**当前激活的**记忆提供者（从 config.yaml 的 `memory.provider` 读取）暴露 CLI 命令，因此禁用的提供者不会使 `hermes --help` 变得杂乱。
 
-**Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
-If a plugin needs a capability the framework doesn't expose, expand the
-generic plugin surface (new hook, new ctx method) — never hardcode
-plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
-honcho argparse from `main.py` for exactly this reason.
+**规则：** 插件不得修改核心文件（`run_agent.py`、`cli.py`、`gateway/run.py`、`hermes_cli/main.py` 等）。如果插件需要框架未暴露的能力，请扩展通用插件表面（新 hook、新 ctx 方法）——永远不要将插件特定逻辑硬编码到核心中。
 
-### Dashboard / context-engine / image-gen plugin directories
+### Dashboard / 上下文引擎 / 图像生成插件目录
 
-`plugins/context_engine/`, `plugins/image_gen/`, `plugins/example-dashboard/`,
-etc. follow the same pattern (ABC + orchestrator + per-plugin directory).
-Context engines plug into `agent/context_engine.py`; image-gen providers
-into `agent/image_gen_provider.py`.
+`plugins/context_engine/`、`plugins/image_gen/`、`plugins/example-dashboard/` 等遵循相同模式（ABC + 编排器 + 每插件目录）。上下文引擎接入 `agent/context_engine.py`；图像生成提供者接入 `agent/image_gen_provider.py`。
 
 ---
 
-## Skills
+## 技能
 
-Two parallel surfaces:
+两个并行表面：
 
-- **`skills/`** — built-in skills shipped and loadable by default.
-  Organized by category directories (e.g. `skills/github/`, `skills/mlops/`).
-- **`optional-skills/`** — heavier or niche skills shipped with the repo but
-  NOT active by default. Installed explicitly via
-  `hermes skills install official/<category>/<skill>`. Adapter lives in
-  `tools/skills_hub.py` (`OptionalSkillSource`). Categories include
-  `autonomous-ai-agents`, `blockchain`, `communication`, `creative`,
-  `devops`, `email`, `health`, `mcp`, `migration`, `mlops`, `productivity`,
-  `research`, `security`, `web-development`.
+- **`skills/`**——内置技能，随仓库发布并默认可加载。按类别目录组织（如 `skills/github/`、`skills/mlops/`）。
+- **`optional-skills/`**——较重或小众的技能，随仓库发布但默认不激活。通过 `hermes skills install official/<category>/<skill>` 显式安装。适配器位于 `tools/skills_hub.py`（`OptionalSkillSource`）。类别包括 `autonomous-ai-agents`、`blockchain`、`communication`、`creative`、`devops`、`email`、`health`、`mcp`、`migration`、`mlops`、`productivity`、`research`、`security`、`web-development`。
 
-When reviewing skill PRs, check which directory they target — heavy-dep or
-niche skills belong in `optional-skills/`.
+审查技能 PR 时，检查它们的目标目录——重依赖或小众技能应放在 `optional-skills/` 中。
 
 ### SKILL.md frontmatter
 
-Standard fields: `name`, `description`, `version`, `platforms`
-(OS-gating list: `[macos]`, `[linux, macos]`, ...),
-`metadata.hermes.tags`, `metadata.hermes.category`,
-`metadata.hermes.config` (config.yaml settings the skill needs — stored
-under `skills.config.<key>`, prompted during setup, injected at load time).
+标准字段：`name`、`description`、`version`、`platforms`（操作系统门控列表：`[macos]`、`[linux, macos]` 等）、`metadata.hermes.tags`、`metadata.hermes.category`、`metadata.hermes.config`（技能所需的 config.yaml 设置——存储在 `skills.config.<key>` 下，设置时提示，加载时注入）。
 
 ---
 
-## Important Policies
+## 重要策略
 
-### Prompt Caching Must Not Break
+### Prompt Caching 不得被破坏
 
-Hermes-Agent ensures caching remains valid throughout a conversation. **Do NOT implement changes that would:**
-- Alter past context mid-conversation
-- Change toolsets mid-conversation
-- Reload memories or rebuild system prompts mid-conversation
+Hermes-Agent 确保缓存在整个对话中保持有效。**不要实施以下更改：**
+- 在对话中途修改过去的上下文
+- 在对话中途更改工具集
+- 在对话中途重新加载记忆或重建系统提示词
 
-Cache-breaking forces dramatically higher costs. The ONLY time we alter context is during context compression.
+缓存破坏会导致成本急剧上升。我们唯一修改上下文的时机是上下文压缩时。
 
-Slash commands that mutate system-prompt state (skills, tools, memory, etc.)
-must be **cache-aware**: default to deferred invalidation (change takes
-effect next session), with an opt-in `--now` flag for immediate
-invalidation. See `/skills install --now` for the canonical pattern.
+修改系统提示词状态的斜杠命令（技能、工具、记忆等）必须**缓存感知**：默认延迟失效（更改在下次会话生效），提供可选的 `--now` 标志用于立即失效。参见 `/skills install --now` 了解规范模式。
 
-### Background Process Notifications (Gateway)
+### 后台进程通知（Gateway）
 
-When `terminal(background=true, notify_on_complete=true)` is used, the gateway runs a watcher that
-detects process completion and triggers a new agent turn. Control verbosity of background process
-messages with `display.background_process_notifications`
-in config.yaml (or `HERMES_BACKGROUND_NOTIFICATIONS` env var):
+当使用 `terminal(background=true, notify_on_complete=true)` 时，Gateway 运行一个监视器检测进程完成并触发新的 Agent 回合。通过 config.yaml 中的 `display.background_process_notifications`（或 `HERMES_BACKGROUND_NOTIFICATIONS` env var）控制后台进程消息的详细程度：
 
-- `all` — running-output updates + final message (default)
-- `result` — only the final completion message
-- `error` — only the final message when exit code != 0
-- `off` — no watcher messages at all
+- `all`——运行时输出更新 + 最终消息（默认）
+- `result`——仅最终完成消息
+- `error`——仅退出码 != 0 时的最终消息
+- `off`——完全不显示监视器消息
 
 ---
 
-## Profiles: Multi-Instance Support
+## Profiles：多实例支持
 
-Hermes supports **profiles** — multiple fully isolated instances, each with its own
-`HERMES_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
+Hermes 支持 **profiles**——多个完全隔离的实例，每个拥有自己的 `HERMES_HOME` 目录（配置、API 密钥、记忆、会话、技能、Gateway 等）。
 
-The core mechanism: `_apply_profile_override()` in `hermes_cli/main.py` sets
-`HERMES_HOME` before any module imports. All `get_hermes_home()` references
-automatically scope to the active profile.
+核心机制：`hermes_cli/main.py` 中的 `_apply_profile_override()` 在任何模块导入之前设置 `HERMES_HOME`。所有 `get_hermes_home()` 引用自动限定到活动 profile。
 
-### Rules for profile-safe code
+### Profile 安全代码规则
 
-1. **Use `get_hermes_home()` for all HERMES_HOME paths.** Import from `hermes_constants`.
-   NEVER hardcode `~/.hermes` or `Path.home() / ".hermes"` in code that reads/writes state.
+1. **对所有 HERMES_HOME 路径使用 `get_hermes_home()`。** 从 `hermes_constants` 导入。永远不要在读写状态的代码中硬编码 `~/.hermes` 或 `Path.home() / ".hermes"`。
    ```python
-   # GOOD
+   # 正确
    from hermes_constants import get_hermes_home
    config_path = get_hermes_home() / "config.yaml"
 
-   # BAD — breaks profiles
+   # 错误——破坏 profiles
    config_path = Path.home() / ".hermes" / "config.yaml"
    ```
 
-2. **Use `display_hermes_home()` for user-facing messages.** Import from `hermes_constants`.
-   This returns `~/.hermes` for default or `~/.hermes/profiles/<name>` for profiles.
+2. **对面向用户的消息使用 `display_hermes_home()`。** 从 `hermes_constants` 导入。默认返回 `~/.hermes`，profile 返回 `~/.hermes/profiles/<name>`。
    ```python
-   # GOOD
+   # 正确
    from hermes_constants import display_hermes_home
-   print(f"Config saved to {display_hermes_home()}/config.yaml")
+   print(f"配置已保存到 {display_hermes_home()}/config.yaml")
 
-   # BAD — shows wrong path for profiles
-   print("Config saved to ~/.hermes/config.yaml")
+   # 错误——profile 时显示错误路径
+   print("配置已保存到 ~/.hermes/config.yaml")
    ```
 
-3. **Module-level constants are fine** — they cache `get_hermes_home()` at import time,
-   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_hermes_home()`,
-   not `Path.home() / ".hermes"`.
+3. **模块级常量没问题**——它们在导入时缓存 `get_hermes_home()`，此时 `_apply_profile_override()` 已设置 env var。只需使用 `get_hermes_home()`，而非 `Path.home() / ".hermes"`。
 
-4. **Tests that mock `Path.home()` must also set `HERMES_HOME`** — since code now uses
-   `get_hermes_home()` (reads env var), not `Path.home() / ".hermes"`:
+4. **模拟 `Path.home()` 的测试也必须设置 `HERMES_HOME`**——因为代码现在使用 `get_hermes_home()`（读取 env var），而非 `Path.home() / ".hermes"`：
    ```python
    with patch.object(Path, "home", return_value=tmp_path), \
         patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".hermes")}):
        ...
    ```
 
-5. **Gateway platform adapters should use token locks** — if the adapter connects with
-   a unique credential (bot token, API key), call `acquire_scoped_lock()` from
-   `gateway.status` in the `connect()`/`start()` method and `release_scoped_lock()` in
-   `disconnect()`/`stop()`. This prevents two profiles from using the same credential.
-   See `gateway/platforms/telegram.py` for the canonical pattern.
+5. **Gateway 平台适配器应使用令牌锁**——如果适配器使用唯一凭据（bot token、API key）连接，在 `connect()`/`start()` 方法中调用 `gateway.status` 的 `acquire_scoped_lock()`，在 `disconnect()`/`stop()` 中调用 `release_scoped_lock()`。这防止两个 profile 使用相同凭据。参见 `gateway/platforms/telegram.py` 了解规范模式。
 
-6. **Profile operations are HOME-anchored, not HERMES_HOME-anchored** — `_get_profiles_root()`
-   returns `Path.home() / ".hermes" / "profiles"`, NOT `get_hermes_home() / "profiles"`.
-   This is intentional — it lets `hermes -p coder profile list` see all profiles regardless
-   of which one is active.
+6. **Profile 操作是 HOME 锚定的，而非 HERMES_HOME 锚定的**——`_get_profiles_root()` 返回 `Path.home() / ".hermes" / "profiles"`，而非 `get_hermes_home() / "profiles"`。这是有意为之——它允许 `hermes -p coder profile list` 无论活动 profile 是哪个都能看到所有 profiles。
 
-## Known Pitfalls
+## 已知陷阱
 
-### DO NOT hardcode `~/.hermes` paths
-Use `get_hermes_home()` from `hermes_constants` for code paths. Use `display_hermes_home()`
-for user-facing print/log messages. Hardcoding `~/.hermes` breaks profiles — each profile
-has its own `HERMES_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
+### 不要硬编码 `~/.hermes` 路径
+代码路径使用 `hermes_constants` 的 `get_hermes_home()`。面向用户的打印/日志消息使用 `display_hermes_home()`。硬编码 `~/.hermes` 会破坏 profiles——每个 profile 有自己的 `HERMES_HOME` 目录。这是 PR #3575 中修复的 5 个 bug 的根源。
 
-### DO NOT introduce new `simple_term_menu` usage
-Existing call sites in `hermes_cli/main.py` remain for legacy fallback only;
-the preferred UI is curses (stdlib) because `simple_term_menu` has
-ghost-duplication rendering bugs in tmux/iTerm2 with arrow keys. New
-interactive menus must use `hermes_cli/curses_ui.py` — see
-`hermes_cli/tools_config.py` for the canonical pattern.
+### 不要引入新的 `simple_term_menu` 用法
+`hermes_cli/main.py` 中的现有调用点仅作为遗留回退保留；首选 UI 是 curses（stdlib），因为 `simple_term_menu` 在 tmux/iTerm2 中使用方向键时有幽灵复制渲染 bug。新的交互式菜单必须使用 `hermes_cli/curses_ui.py`——参见 `hermes_cli/tools_config.py` 了解规范模式。
 
-### DO NOT use `\033[K` (ANSI erase-to-EOL) in spinner/display code
-Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-padding: `f"\r{line}{' ' * pad}"`.
+### 不要在 spinner/display 代码中使用 `\033[K`（ANSI 擦除到行尾）
+在 `prompt_toolkit` 的 `patch_stdout` 下会泄露为字面 `?[K` 文本。使用空格填充：`f"\r{line}{' ' * pad}"`。
 
-### `_last_resolved_tool_names` is a process-global in `model_tools.py`
-`_run_single_child()` in `delegate_tool.py` saves and restores this global around subagent execution. If you add new code that reads this global, be aware it may be temporarily stale during child agent runs.
+### `_last_resolved_tool_names` 是 `model_tools.py` 中的进程全局变量
+`delegate_tool.py` 中的 `_run_single_child()` 在子 Agent 执行前后保存和恢复此全局变量。如果你添加了读取此全局变量的新代码，注意它在子 Agent 运行期间可能暂时过时。
 
-### DO NOT hardcode cross-tool references in schema descriptions
-Tool schema descriptions must not mention tools from other toolsets by name (e.g., `browser_navigate` saying "prefer web_search"). Those tools may be unavailable (missing API keys, disabled toolset), causing the model to hallucinate calls to non-existent tools. If a cross-reference is needed, add it dynamically in `get_tool_definitions()` in `model_tools.py` — see the `browser_navigate` / `execute_code` post-processing blocks for the pattern.
+### 不要在 schema 描述中硬编码跨工具引用
+工具 schema 描述不得按名称提及其他工具集的工具（如 `browser_navigate` 说"优先使用 web_search"）。这些工具可能不可用（缺少 API 密钥、禁用的工具集），导致模型幻觉调用不存在的工具。如果需要交叉引用，请在 `model_tools.py` 的 `get_tool_definitions()` 中动态添加——参见 `browser_navigate` / `execute_code` 后处理块了解模式。
 
-### The gateway has TWO message guards — both must bypass approval/control commands
-When an agent is running, messages pass through two sequential guards:
-(1) **base adapter** (`gateway/platforms/base.py`) queues messages in
-`_pending_messages` when `session_key in self._active_sessions`, and
-(2) **gateway runner** (`gateway/run.py`) intercepts `/stop`, `/new`,
-`/queue`, `/status`, `/approve`, `/deny` before they reach
-`running_agent.interrupt()`. Any new command that must reach the runner
-while the agent is blocked (e.g. approval prompts) MUST bypass BOTH
-guards and be dispatched inline, not via `_process_message_background()`
-(which races session lifecycle).
+### Gateway 有两个消息守卫——两者都必须绕过审批/控制命令
+当 Agent 运行时，消息通过两个连续守卫：(1) **base adapter**（`gateway/platforms/base.py`）在 `session_key in self._active_sessions` 时将消息排队到 `_pending_messages`，(2) **gateway runner**（`gateway/run.py`）在消息到达 `running_agent.interrupt()` 之前拦截 `/stop`、`/new`、`/queue`、`/status`、`/approve`、`/deny`。任何在 Agent 阻塞时必须到达 runner 的新命令（如审批提示）必须绕过两个守卫并内联分发，而非通过 `_process_message_background()`（它会与会话生命周期竞争）。
 
-### Squash merges from stale branches silently revert recent fixes
-Before squash-merging a PR, ensure the branch is up to date with `main`
-(`git fetch origin main && git reset --hard origin/main` in the worktree,
-then re-apply the PR's commits). A stale branch's version of an unrelated
-file will silently overwrite recent fixes on main when squashed. Verify
-with `git diff HEAD~1..HEAD` after merging — unexpected deletions are a
-red flag.
+### 从过时分支进行 squash merge 会静默撤销最近的修复
+在 squash merge PR 之前，确保分支与 `main` 保持同步（在 worktree 中 `git fetch origin main && git reset --hard origin/main`，然后重新应用 PR 的提交）。过时分支的不相关文件版本在 squash 时会静默覆盖 main 上的最近修复。合并后用 `git diff HEAD~1..HEAD` 验证——意外删除是危险信号。
 
-### Don't wire in dead code without E2E validation
-Unused code that was never shipped was dead for a reason. Before wiring an
-unused module into a live code path, E2E test the real resolution chain
-with actual imports (not mocks) against a temp `HERMES_HOME`.
+### 不要在没有 E2E 验证的情况下接入死代码
+未发布的未使用代码之所以是死的，是有原因的。在将未使用模块接入活跃代码路径之前，使用真实导入（非模拟）针对临时 `HERMES_HOME` 进行 E2E 测试。
 
-### Tests must not write to `~/.hermes/`
-The `_isolate_hermes_home` autouse fixture in `tests/conftest.py` redirects `HERMES_HOME` to a temp dir. Never hardcode `~/.hermes/` paths in tests.
+### 测试不得写入 `~/.hermes/`
+`tests/conftest.py` 中的 `_isolate_hermes_home` autouse fixture 将 `HERMES_HOME` 重定向到临时目录。永远不要在测试中硬编码 `~/.hermes/` 路径。
 
-**Profile tests**: When testing profile features, also mock `Path.home()` so that
-`_get_profiles_root()` and `_get_default_hermes_home()` resolve within the temp dir.
-Use the pattern from `tests/hermes_cli/test_profiles.py`:
+**Profile 测试**：测试 profile 功能时，还要模拟 `Path.home()` 以便 `_get_profiles_root()` 和 `_get_default_hermes_home()` 在临时目录内解析。使用 `tests/hermes_cli/test_profiles.py` 中的模式：
 ```python
 @pytest.fixture
 def profile_env(tmp_path, monkeypatch):
@@ -669,96 +566,80 @@ def profile_env(tmp_path, monkeypatch):
 
 ---
 
-## Testing
+## 测试
 
-**ALWAYS use `scripts/run_tests.sh`** — do not call `pytest` directly. The script enforces
-hermetic environment parity with CI (unset credential vars, TZ=UTC, LANG=C.UTF-8,
-4 xdist workers matching GHA ubuntu-latest). Direct `pytest` on a 16+ core
-developer machine with API keys set diverges from CI in ways that have caused
-multiple "works locally, fails in CI" incidents (and the reverse).
+**始终使用 `scripts/run_tests.sh`**——不要直接调用 `pytest`。该脚本强制与 CI 保持环境一致性（清除凭据变量、TZ=UTC、LANG=C.UTF-8、4 个 xdist workers 匹配 GHA ubuntu-latest）。在 16+ 核开发者机器上直接 `pytest` 且设置了 API 密钥会与 CI 产生差异，已导致多次"本地通过、CI 失败"的事故（反之亦然）。
 
 ```bash
-scripts/run_tests.sh                                  # full suite, CI-parity
-scripts/run_tests.sh tests/gateway/                   # one directory
-scripts/run_tests.sh tests/agent/test_foo.py::test_x  # one test
-scripts/run_tests.sh -v --tb=long                     # pass-through pytest flags
+scripts/run_tests.sh                                  # 完整套件，CI 一致性
+scripts/run_tests.sh tests/gateway/                   # 单个目录
+scripts/run_tests.sh tests/agent/test_foo.py::test_x  # 单个测试
+scripts/run_tests.sh -v --tb=long                     # 透传 pytest 标志
 ```
 
-### Why the wrapper (and why the old "just call pytest" doesn't work)
+### 为什么需要包装器（以及为什么旧的"直接调用 pytest"不再有效）
 
-Five real sources of local-vs-CI drift the script closes:
+脚本解决了五个真实的本地 vs CI 差异源：
 
-| | Without wrapper | With wrapper |
+| | 无包装器 | 有包装器 |
 |---|---|---|
-| Provider API keys | Whatever is in your env (auto-detects pool) | All `*_API_KEY`/`*_TOKEN`/etc. unset |
-| HOME / `~/.hermes/` | Your real config+auth.json | Temp dir per test |
-| Timezone | Local TZ (PDT etc.) | UTC |
-| Locale | Whatever is set | C.UTF-8 |
-| xdist workers | `-n auto` = all cores (20+ on a workstation) | `-n 4` matching CI |
+| 提供商 API 密钥 | 你环境中的任何值（自动检测池） | 所有 `*_API_KEY`/`*_TOKEN` 等被清除 |
+| HOME / `~/.hermes/` | 你的真实 config+auth.json | 每个测试使用临时目录 |
+| 时区 | 本地 TZ（PDT 等） | UTC |
+| Locale | 任意设置 | C.UTF-8 |
+| xdist workers | `-n auto` = 所有核心（工作站上 20+） | `-n 4` 匹配 CI |
 
-`tests/conftest.py` also enforces points 1-4 as an autouse fixture so ANY pytest
-invocation (including IDE integrations) gets hermetic behavior — but the wrapper
-is belt-and-suspenders.
+`tests/conftest.py` 还作为 autouse fixture 强制执行第 1-4 点，因此任何 pytest 调用（包括 IDE 集成）都会获得一致行为——但包装器是双重保险。
 
-### Running without the wrapper (only if you must)
+### 不使用包装器运行（仅在必须时）
 
-If you can't use the wrapper (e.g. on Windows or inside an IDE that shells
-pytest directly), at minimum activate the venv and pass `-n 4`:
+如果你无法使用包装器（如在 Windows 或直接调用 pytest 的 IDE 中），至少激活 venv 并传递 `-n 4`：
 
 ```bash
-source .venv/bin/activate   # or: source venv/bin/activate
+source .venv/bin/activate   # 或: source venv/bin/activate
 python -m pytest tests/ -q -n 4
 ```
 
-Worker count above 4 will surface test-ordering flakes that CI never sees.
+Worker 数量超过 4 会暴露 CI 从未看到的测试排序问题。
 
-Always run the full suite before pushing changes.
+推送更改前始终运行完整套件。
 
-### Don't write change-detector tests
+### 不要编写变更检测测试
 
-A test is a **change-detector** if it fails whenever data that is **expected
-to change** gets updated — model catalogs, config version numbers,
-enumeration counts, hardcoded lists of provider models. These tests add no
-behavioral coverage; they just guarantee that routine source updates break
-CI and cost engineering time to "fix."
+如果测试在**预期会变化**的数据更新时失败——模型目录、配置版本号、枚举计数、提供商模型的硬编码列表——那么它就是**变更检测测试**。这些测试不增加行为覆盖；它们只保证常规源更新会破坏 CI 并花费工程时间来"修复"。
 
-**Do not write:**
+**不要写：**
 
 ```python
-# catalog snapshot — breaks every model release
+# 目录快照——每次模型发布都破坏
 assert "gemini-2.5-pro" in _PROVIDER_MODELS["gemini"]
 assert "MiniMax-M2.7" in models
 
-# config version literal — breaks every schema bump
+# 配置版本字面量——每次 schema 升级都破坏
 assert DEFAULT_CONFIG["_config_version"] == 21
 
-# enumeration count — breaks every time a skill/provider is added
+# 枚举计数——每次添加技能/提供商都破坏
 assert len(_PROVIDER_MODELS["huggingface"]) == 8
 ```
 
-**Do write:**
+**应该写：**
 
 ```python
-# behavior: does the catalog plumbing work at all?
+# 行为：目录管道是否正常工作？
 assert "gemini" in _PROVIDER_MODELS
 assert len(_PROVIDER_MODELS["gemini"]) >= 1
 
-# behavior: does migration bump the user's version to current latest?
+# 行为：迁移是否将用户版本升级到最新？
 assert raw["_config_version"] == DEFAULT_CONFIG["_config_version"]
 
-# invariant: no plan-only model leaks into the legacy list
+# 不变量：仅 plan 模型不得泄露到遗留列表
 assert not (set(moonshot_models) & coding_plan_only_models)
 
-# invariant: every model in the catalog has a context-length entry
+# 不变量：目录中的每个模型都有上下文长度条目
 for m in _PROVIDER_MODELS["huggingface"]:
     assert m.lower() in DEFAULT_CONTEXT_LENGTHS_LOWER
 ```
 
-The rule: if the test reads like a snapshot of current data, delete it. If
-it reads like a contract about how two pieces of data must relate, keep it.
-When a PR adds a new provider/model and you want a test, make the test
-assert the relationship (e.g. "catalog entries all have context lengths"),
-not the specific names.
+规则：如果测试读起来像当前数据的快照，删除它。如果读起来像两条数据之间必须保持的关系契约，保留它。当 PR 添加新提供商/模型且你想要测试时，让测试断言关系（如"目录条目都有上下文长度"），而非具体名称。
 
-Reviewers should reject new change-detector tests; authors should convert
-them into invariants before re-requesting review.
+审查者应拒绝新的变更检测测试；作者应在重新请求审查前将其转换为不变量。

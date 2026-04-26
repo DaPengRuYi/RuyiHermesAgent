@@ -1,53 +1,53 @@
 ---
 sidebar_position: 8
-title: "Code Execution"
-description: "Programmatic Python execution with RPC tool access — collapse multi-step workflows into a single turn"
+title: "代码执行"
+description: "具有 RPC 工具访问的编程式 Python 执行——将多步骤工作流折叠为单轮"
 ---
 
-# Code Execution (Programmatic Tool Calling)
+# 代码执行（编程式工具调用）
 
-The `execute_code` tool lets the agent write Python scripts that call Hermes tools programmatically, collapsing multi-step workflows into a single LLM turn. The script runs in a child process on the agent host, communicating with Hermes over a Unix domain socket RPC.
+`execute_code` 工具让代理编写 Python 脚本以编程方式调用 Hermes 工具，通过沙箱化 RPC 执行将多步骤工作流折叠为单个 LLM 轮次。脚本在代理主机上的子进程中运行，通过 Unix 域套接字 RPC 与 Hermes 通信。
 
-## How It Works
+## 工作原理
 
-1. The agent writes a Python script using `from hermes_tools import ...`
-2. Hermes generates a `hermes_tools.py` stub module with RPC functions
-3. Hermes opens a Unix domain socket and starts an RPC listener thread
-4. The script runs in a child process — tool calls travel over the socket back to Hermes
-5. Only the script's `print()` output is returned to the LLM; intermediate tool results never enter the context window
+1. 代理使用 `from hermes_tools import ...` 编写 Python 脚本
+2. Hermes 生成带有 RPC 函数的 `hermes_tools.py` 存根模块
+3. Hermes 打开 Unix 域套接字并启动 RPC 监听线程
+4. 脚本在子进程中运行——工具调用通过套接字传回 Hermes
+5. 仅脚本的 `print()` 输出返回给 LLM；中间工具结果永不进入上下文窗口
 
 ```python
-# The agent can write scripts like:
+# 代理可以编写这样的脚本：
 from hermes_tools import web_search, web_extract
 
 results = web_search("Python 3.13 features", limit=5)
 for r in results["data"]["web"]:
     content = web_extract([r["url"]])
-    # ... filter and process ...
+    # ... 过滤和处理 ...
 print(summary)
 ```
 
-**Available tools inside scripts:** `web_search`, `web_extract`, `read_file`, `write_file`, `search_files`, `patch`, `terminal` (foreground only).
+**脚本内可用的工具：** `web_search`、`web_extract`、`read_file`、`write_file`、`search_files`、`patch`、`terminal`（仅前台）。
 
-## When the Agent Uses This
+## 代理何时使用此工具
 
-The agent uses `execute_code` when there are:
+代理在以下情况下使用 `execute_code`：
 
-- **3+ tool calls** with processing logic between them
-- Bulk data filtering or conditional branching
-- Loops over results
+- **3+ 次工具调用** 之间有处理逻辑
+- 批量数据过滤或条件分支
+- 对结果的循环
 
-The key benefit: intermediate tool results never enter the context window — only the final `print()` output comes back, dramatically reducing token usage.
+关键好处：中间工具结果永不进入上下文窗口——仅最终 `print()` 输出返回，大幅减少令牌使用。
 
-## Practical Examples
+## 实际示例
 
-### Data Processing Pipeline
+### 数据处理管道
 
 ```python
 from hermes_tools import search_files, read_file
 import json
 
-# Find all config files and extract database settings
+# 查找所有配置文件并提取数据库设置
 matches = search_files("database", path=".", file_glob="*.yaml", limit=20)
 configs = []
 for match in matches.get("matches", []):
@@ -57,13 +57,13 @@ for match in matches.get("matches", []):
 print(json.dumps(configs, indent=2))
 ```
 
-### Multi-Step Web Research
+### 多步骤网页研究
 
 ```python
 from hermes_tools import web_search, web_extract
 import json
 
-# Search, extract, and summarize in one turn
+# 搜索、提取和总结在一轮中完成
 results = web_search("Rust async runtime comparison 2025", limit=5)
 summaries = []
 for r in results["data"]["web"]:
@@ -79,12 +79,12 @@ for r in results["data"]["web"]:
 print(json.dumps(summaries, indent=2))
 ```
 
-### Bulk File Refactoring
+### 批量文件重构
 
 ```python
 from hermes_tools import search_files, read_file, patch
 
-# Find all Python files using deprecated API and fix them
+# 查找所有使用已弃用 API 的 Python 文件并修复它们
 matches = search_files("old_api_call", path="src/", file_glob="*.py")
 fixed = 0
 for match in matches.get("matches", []):
@@ -100,17 +100,17 @@ for match in matches.get("matches", []):
 print(f"Fixed {fixed} files out of {len(matches.get('matches', []))} matches")
 ```
 
-### Build and Test Pipeline
+### 构建和测试管道
 
 ```python
 from hermes_tools import terminal, read_file
 import json
 
-# Run tests, parse results, and report
+# 运行测试、解析结果并报告
 result = terminal("cd /project && python -m pytest --tb=short -q 2>&1", timeout=120)
 output = result.get("output", "")
 
-# Parse test output
+# 解析测试输出
 passed = output.count(" passed")
 failed = output.count(" failed")
 errors = output.count(" error")
@@ -126,89 +126,89 @@ report = {
 print(json.dumps(report, indent=2))
 ```
 
-## Execution Mode
+## 执行模式
 
-`execute_code` has two execution modes controlled by `code_execution.mode` in `~/.hermes/config.yaml`:
+`execute_code` 有两种执行模式，通过 `~/.hermes/config.yaml` 中的 `code_execution.mode` 控制：
 
-| Mode | Working directory | Python interpreter |
-|------|-------------------|--------------------|
-| **`project`** (default) | The session's working directory (same as `terminal()`) | Active `VIRTUAL_ENV` / `CONDA_PREFIX` python, falling back to Hermes's own python |
-| `strict` | A temp staging directory isolated from the user's project | `sys.executable` (Hermes's own python) |
+| 模式 | 工作目录 | Python 解释器 |
+|------|---------|--------------|
+| **`project`**（默认） | 会话的工作目录（与 `terminal()` 相同） | 活动的 `VIRTUAL_ENV` / `CONDA_PREFIX` python，回退到 Hermes 自己的 python |
+| `strict` | 与用户项目隔离的临时暂存目录 | `sys.executable`（Hermes 自己的 python） |
 
-**When to leave it on `project`:** you want `import pandas`, `from my_project import foo`, or relative paths like `open(".env")` to work the same way they do in `terminal()`. This is almost always what you want.
+**何时保持 `project`：** 你希望 `import pandas`、`from my_project import foo` 或 `open(".env")` 等相对路径与 `terminal()` 中的工作方式相同。这几乎总是你想要的。
 
-**When to flip to `strict`:** you need maximum reproducibility — you want the same interpreter every session regardless of which venv the user activated, and you want scripts quarantined from the project tree (no risk of accidentally reading project files through a relative path).
+**何时切换到 `strict`：** 你需要最大可重复性——你希望每个会话使用相同的解释器，无论用户激活了哪个 venv，且你希望脚本与项目树隔离（没有通过相对路径意外读取项目文件的风险）。
 
 ```yaml
 # ~/.hermes/config.yaml
 code_execution:
-  mode: project   # or "strict"
+  mode: project   # 或 "strict"
 ```
 
-Fallback behavior in `project` mode: if `VIRTUAL_ENV` / `CONDA_PREFIX` is unset, broken, or points at a Python older than 3.8, the resolver falls back cleanly to `sys.executable` — it never leaves the agent without a working interpreter.
+`project` 模式下的回退行为：如果 `VIRTUAL_ENV` / `CONDA_PREFIX` 未设置、损坏或指向早于 3.8 的 Python，解析器干净地回退到 `sys.executable`——它永远不会让代理没有可用的解释器。
 
-Security-critical invariants are identical across both modes:
+两种模式下安全关键不变量相同：
 
-- environment scrubbing (API keys, tokens, credentials stripped)
-- tool whitelist (scripts cannot call `execute_code` recursively, `delegate_task`, or MCP tools)
-- resource limits (timeout, stdout cap, tool-call cap)
+- 环境清理（API 密钥、令牌、凭据被剥离）
+- 工具白名单（脚本无法递归调用 `execute_code`、`delegate_task` 或 MCP 工具）
+- 资源限制（超时、stdout 上限、工具调用上限）
 
-Switching mode changes where scripts run and which interpreter runs them, not what credentials they can see or which tools they can call.
+切换模式改变脚本运行的位置和运行它们的解释器，而不是它们可以看到哪些凭据或可以调用哪些工具。
 
-## Resource Limits
+## 资源限制
 
-| Resource | Limit | Notes |
-|----------|-------|-------|
-| **Timeout** | 5 minutes (300s) | Script is killed with SIGTERM, then SIGKILL after 5s grace |
-| **Stdout** | 50 KB | Output truncated with `[output truncated at 50KB]` notice |
-| **Stderr** | 10 KB | Included in output on non-zero exit for debugging |
-| **Tool calls** | 50 per execution | Error returned when limit reached |
+| 资源 | 限制 | 注意 |
+|------|------|------|
+| **超时** | 5 分钟（300s） | 脚本被 SIGTERM 终止，5 秒宽限后 SIGKILL |
+| **Stdout** | 50 KB | 输出截断，带有 `[output truncated at 50KB]` 通知 |
+| **Stderr** | 10 KB | 非零退出时包含在输出中用于调试 |
+| **工具调用** | 每次执行 50 次 | 达到限制时返回错误 |
 
-All limits are configurable via `config.yaml`:
+所有限制可通过 `config.yaml` 配置：
 
 ```yaml
-# In ~/.hermes/config.yaml
+# 在 ~/.hermes/config.yaml 中
 code_execution:
-  mode: project      # project (default) | strict
-  timeout: 300       # Max seconds per script (default: 300)
-  max_tool_calls: 50 # Max tool calls per execution (default: 50)
+  mode: project      # project（默认）| strict
+  timeout: 300       # 每个脚本的最大秒数（默认：300）
+  max_tool_calls: 50 # 每次执行的最大工具调用次数（默认：50）
 ```
 
-## How Tool Calls Work Inside Scripts
+## 脚本内工具调用如何工作
 
-When your script calls a function like `web_search("query")`:
+当你的脚本调用 `web_search("query")` 等函数时：
 
-1. The call is serialized to JSON and sent over a Unix domain socket to the parent process
-2. The parent dispatches through the standard `handle_function_call` handler
-3. The result is sent back over the socket
-4. The function returns the parsed result
+1. 调用被序列化为 JSON 并通过 Unix 域套接字发送到父进程
+2. 父进程通过标准 `handle_function_call` 处理器调度
+3. 结果通过套接字发回
+4. 函数返回解析后的结果
 
-This means tool calls inside scripts behave identically to normal tool calls — same rate limits, same error handling, same capabilities. The only restriction is that `terminal()` is foreground-only (no `background` or `pty` parameters).
+这意味着脚本内的工具调用行为与正常工具调用完全相同——相同的速率限制、相同的错误处理、相同的能力。唯一的限制是 `terminal()` 仅前台（无 `background` 或 `pty` 参数）。
 
-## Error Handling
+## 错误处理
 
-When a script fails, the agent receives structured error information:
+当脚本失败时，代理接收结构化错误信息：
 
-- **Non-zero exit code**: stderr is included in the output so the agent sees the full traceback
-- **Timeout**: Script is killed and the agent sees `"Script timed out after 300s and was killed."`
-- **Interruption**: If the user sends a new message during execution, the script is terminated and the agent sees `[execution interrupted — user sent a new message]`
-- **Tool call limit**: When the 50-call limit is hit, subsequent tool calls return an error message
+- **非零退出码**：stderr 包含在输出中，以便代理看到完整的回溯
+- **超时**：脚本被终止，代理看到 `"Script timed out after 300s and was killed."`
+- **中断**：如果用户在执行期间发送新消息，脚本被终止，代理看到 `[execution interrupted — user sent a new message]`
+- **工具调用限制**：达到 50 次调用限制时，后续工具调用返回错误消息
 
-The response always includes `status` (success/error/timeout/interrupted), `output`, `tool_calls_made`, and `duration_seconds`.
+响应始终包含 `status`（success/error/timeout/interrupted）、`output`、`tool_calls_made` 和 `duration_seconds`。
 
-## Security
+## 安全
 
-:::danger Security Model
-The child process runs with a **minimal environment**. API keys, tokens, and credentials are stripped by default. The script accesses tools exclusively via the RPC channel — it cannot read secrets from environment variables unless explicitly allowed.
+:::danger 安全模型
+子进程以**最小环境**运行。API 密钥、令牌和凭据默认被剥离。脚本通过 RPC 通道专门访问工具——除非明确允许，否则无法从环境变量读取密钥。
 :::
 
-Environment variables containing `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `PASSWD`, or `AUTH` in their names are excluded. Only safe system variables (`PATH`, `HOME`, `LANG`, `SHELL`, `PYTHONPATH`, `VIRTUAL_ENV`, etc.) are passed through.
+名称中包含 `KEY`、`TOKEN`、`SECRET`、`PASSWORD`、`CREDENTIAL`、`PASSWD` 或 `AUTH` 的环境变量被排除。仅安全系统变量（`PATH`、`HOME`、`LANG`、`SHELL`、`PYTHONPATH`、`VIRTUAL_ENV` 等）被传递。
 
-### Skill Environment Variable Passthrough
+### 技能环境变量透传
 
-When a skill declares `required_environment_variables` in its frontmatter, those variables are **automatically passed through** to both `execute_code` and `terminal` child processes after the skill is loaded. This lets skills use their declared API keys without weakening the security posture for arbitrary code.
+当技能在其前置中声明 `required_environment_variables` 时，这些变量在技能加载后**自动透传**到 `execute_code` 和 `terminal` 子进程。这让技能可以使用其声明的 API 密钥，而不削弱任意代码的安全态势。
 
-For non-skill use cases, you can explicitly allowlist variables in `config.yaml`:
+对于非技能用例，你可以在 `config.yaml` 中明确允许列表变量：
 
 ```yaml
 terminal:
@@ -217,24 +217,24 @@ terminal:
     - ANOTHER_TOKEN
 ```
 
-See the [Security guide](/docs/user-guide/security#environment-variable-passthrough) for full details.
+详见[安全指南](/docs/user-guide/security#environment-variable-passthrough)。
 
-Hermes always writes the script and the auto-generated `hermes_tools.py` RPC stub into a temp staging directory that is cleaned up after execution. In `strict` mode the script also *runs* there; in `project` mode it runs in the session's working directory (the staging directory stays on `PYTHONPATH` so imports still resolve). The child process runs in its own process group so it can be cleanly killed on timeout or interruption.
+Hermes 始终将脚本和自动生成的 `hermes_tools.py` RPC 存根写入临时暂存目录，执行后清理。在 `strict` 模式下脚本也在那里*运行*；在 `project` 模式下它在会话的工作目录中运行（暂存目录保留在 `PYTHONPATH` 上以便导入仍然解析）。子进程在自己的进程组中运行，以便在超时或中断时可以干净地终止。
 
 ## execute_code vs terminal
 
-| Use Case | execute_code | terminal |
-|----------|-------------|----------|
-| Multi-step workflows with tool calls between | ✅ | ❌ |
-| Simple shell command | ❌ | ✅ |
-| Filtering/processing large tool outputs | ✅ | ❌ |
-| Running a build or test suite | ❌ | ✅ |
-| Looping over search results | ✅ | ❌ |
-| Interactive/background processes | ❌ | ✅ |
-| Needs API keys in environment | ⚠️ Only via [passthrough](/docs/user-guide/security#environment-variable-passthrough) | ✅ (most pass through) |
+| 用例 | execute_code | terminal |
+|------|-------------|----------|
+| 工具调用之间有逻辑的多步骤工作流 | ✅ | ❌ |
+| 简单 shell 命令 | ❌ | ✅ |
+| 过滤/处理大型工具输出 | ✅ | ❌ |
+| 运行构建或测试套件 | ❌ | ✅ |
+| 循环搜索结果 | ✅ | ❌ |
+| 交互式/后台进程 | ❌ | ✅ |
+| 需要环境中的 API 密钥 | ⚠️ 仅通过[透传](/docs/user-guide/security#environment-variable-passthrough) | ✅（大多数透传） |
 
-**Rule of thumb:** Use `execute_code` when you need to call Hermes tools programmatically with logic between calls. Use `terminal` for running shell commands, builds, and processes.
+**经验法则：** 当你需要以编程方式在调用之间带有逻辑地调用 Hermes 工具时使用 `execute_code`。使用 `terminal` 运行 shell 命令、构建和进程。
 
-## Platform Support
+## 平台支持
 
-Code execution requires Unix domain sockets and is available on **Linux and macOS only**. It is automatically disabled on Windows — the agent falls back to regular sequential tool calls.
+代码执行需要 Unix 域套接字，**仅在 Linux 和 macOS 上可用**。在 Windows 上自动禁用——代理回退到常规顺序工具调用。

@@ -1,14 +1,14 @@
 ---
 sidebar_position: 7
-title: "Subagent Delegation"
-description: "Spawn isolated child agents for parallel workstreams with delegate_task"
+title: "子代理委托"
+description: "通过 delegate_task 生成隔离的子代理用于并行工作流"
 ---
 
-# Subagent Delegation
+# 子代理委托
 
-The `delegate_task` tool spawns child AIAgent instances with isolated context, restricted toolsets, and their own terminal sessions. Each child gets a fresh conversation and works independently — only its final summary enters the parent's context.
+`delegate_task` 工具生成具有隔离上下文、受限工具集和独立终端会话的子 AIAgent 实例。每个子代理获得全新对话并独立工作——只有其最终摘要进入父级的上下文。
 
-## Single Task
+## 单个任务
 
 ```python
 delegate_task(
@@ -18,9 +18,9 @@ delegate_task(
 )
 ```
 
-## Parallel Batch
+## 并行批次
 
-Up to 3 concurrent subagents by default (configurable, no hard ceiling):
+默认最多 3 个并发子代理（可配置，无硬上限）：
 
 ```python
 delegate_task(tasks=[
@@ -30,19 +30,19 @@ delegate_task(tasks=[
 ])
 ```
 
-## How Subagent Context Works
+## 子代理上下文如何工作
 
-:::warning Critical: Subagents Know Nothing
-Subagents start with a **completely fresh conversation**. They have zero knowledge of the parent's conversation history, prior tool calls, or anything discussed before delegation. The subagent's only context comes from the `goal` and `context` fields the parent agent populates when it calls `delegate_task`.
+:::warning 关键：子代理一无所知
+子代理以**完全全新的对话**开始。它们对父级的对话历史、先前的工具调用或委托前讨论的任何内容零了解。子代理的唯一上下文来自父代理调用 `delegate_task` 时填充的 `goal` 和 `context` 字段。
 :::
 
-This means the parent agent must pass **everything** the subagent needs in the call:
+这意味着父代理必须在调用中传递子代理需要的**所有内容**：
 
 ```python
-# BAD - subagent has no idea what "the error" is
+# 不好 - 子代理不知道 "the error" 是什么
 delegate_task(goal="Fix the error")
 
-# GOOD - subagent has all context it needs
+# 好 - 子代理拥有所有需要的上下文
 delegate_task(
     goal="Fix the TypeError in api/handlers.py",
     context="""The file api/handlers.py has a TypeError on line 47:
@@ -53,13 +53,13 @@ delegate_task(
 )
 ```
 
-The subagent receives a focused system prompt built from your goal and context, instructing it to complete the task and provide a structured summary of what it did, what it found, any files modified, and any issues encountered.
+子代理接收从你的目标和上下文构建的专注系统提示，指示其完成任务并提供结构化摘要，包括它做了什么、发现了什么、修改了哪些文件以及遇到的任何问题。
 
-## Practical Examples
+## 实际示例
 
-### Parallel Research
+### 并行研究
 
-Research multiple topics simultaneously and collect summaries:
+同时研究多个主题并收集摘要：
 
 ```python
 delegate_task(tasks=[
@@ -81,9 +81,9 @@ delegate_task(tasks=[
 ])
 ```
 
-### Code Review + Fix
+### 代码审查 + 修复
 
-Delegate a review-and-fix workflow to a fresh context:
+将审查并修复工作流委托给新上下文：
 
 ```python
 delegate_task(
@@ -97,9 +97,9 @@ delegate_task(
 )
 ```
 
-### Multi-File Refactoring
+### 多文件重构
 
-Delegate a large refactoring task that would flood the parent's context:
+委托会淹没父级上下文的大型重构任务：
 
 ```python
 delegate_task(
@@ -117,118 +117,118 @@ delegate_task(
 )
 ```
 
-## Batch Mode Details
+## 批量模式详情
 
-When you provide a `tasks` array, subagents run in **parallel** using a thread pool:
+当你提供 `tasks` 数组时，子代理使用线程池**并行**运行：
 
-- **Maximum concurrency:** 3 tasks by default (configurable via `delegation.max_concurrent_children` or the `DELEGATION_MAX_CONCURRENT_CHILDREN` env var; floor of 1, no hard ceiling). Batches larger than the limit return a tool error rather than being silently truncated.
-- **Thread pool:** Uses `ThreadPoolExecutor` with the configured concurrency limit as max workers
-- **Progress display:** In CLI mode, a tree-view shows tool calls from each subagent in real-time with per-task completion lines. In gateway mode, progress is batched and relayed to the parent's progress callback
-- **Result ordering:** Results are sorted by task index to match input order regardless of completion order
-- **Interrupt propagation:** Interrupting the parent (e.g., sending a new message) interrupts all active children
+- **最大并发：** 默认 3 个任务（通过 `delegation.max_concurrent_children` 或 `DELEGATION_MAX_CONCURRENT_CHILDREN` 环境变量配置；下限为 1，无硬上限）。超过限制的批次返回工具错误而非静默截断。
+- **线程池：** 使用 `ThreadPoolExecutor`，配置的并发限制作为最大工作线程数
+- **进度显示：** 在 CLI 模式下，树视图实时显示每个子代理的工具调用，带有每任务完成行。在网关模式下，进度被批量中继到父级的进度回调
+- **结果排序：** 按任务索引排序以匹配输入顺序，无论完成顺序如何
+- **中断传播：** 中断父级（例如发送新消息）会中断所有活跃子级
 
-Single-task delegation runs directly without thread pool overhead.
+单任务委托直接运行，无线程池开销。
 
-## Model Override
+## 模型覆盖
 
-You can configure a different model for subagents via `config.yaml` — useful for delegating simple tasks to cheaper/faster models:
+你可以通过 `config.yaml` 为子代理配置不同的模型——适用于将简单任务委托给更便宜/更快的模型：
 
 ```yaml
-# In ~/.hermes/config.yaml
+# 在 ~/.hermes/config.yaml 中
 delegation:
-  model: "google/gemini-flash-2.0"    # Cheaper model for subagents
-  provider: "openrouter"              # Optional: route subagents to a different provider
+  model: "google/gemini-flash-2.0"    # 子代理使用更便宜的模型
+  provider: "openrouter"              # 可选：将子代理路由到不同提供商
 ```
 
-If omitted, subagents use the same model as the parent.
+如果省略，子代理使用与父级相同的模型。
 
-## Toolset Selection Tips
+## 工具集选择提示
 
-The `toolsets` parameter controls what tools the subagent has access to. Choose based on the task:
+`toolsets` 参数控制子代理可以访问哪些工具。根据任务选择：
 
-| Toolset Pattern | Use Case |
-|----------------|----------|
-| `["terminal", "file"]` | Code work, debugging, file editing, builds |
-| `["web"]` | Research, fact-checking, documentation lookup |
-| `["terminal", "file", "web"]` | Full-stack tasks (default) |
-| `["file"]` | Read-only analysis, code review without execution |
-| `["terminal"]` | System administration, process management |
+| 工具集模式 | 用例 |
+|-----------|------|
+| `["terminal", "file"]` | 代码工作、调试、文件编辑、构建 |
+| `["web"]` | 研究、事实核查、文档查找 |
+| `["terminal", "file", "web"]` | 全栈任务（默认） |
+| `["file"]` | 只读分析、代码审查不执行 |
+| `["terminal"]` | 系统管理、进程管理 |
 
-Certain toolsets are blocked for subagents regardless of what you specify:
-- `delegation` — blocked for leaf subagents (the default). Retained for `role="orchestrator"` children, bounded by `max_spawn_depth` — see [Depth Limit and Nested Orchestration](#depth-limit-and-nested-orchestration) below.
-- `clarify` — subagents cannot interact with the user
-- `memory` — no writes to shared persistent memory
-- `code_execution` — children should reason step-by-step
-- `send_message` — no cross-platform side effects (e.g., sending Telegram messages)
+某些工具集无论你指定什么都会被阻止：
+- `delegation` — 叶子子代理被阻止（默认）。对 `role="orchestrator"` 子级保留，受 `max_spawn_depth` 限制——参见下面的[深度限制和嵌套编排](#深度限制和嵌套编排)。
+- `clarify` — 子代理不能与用户交互
+- `memory` — 不写入共享持久内存
+- `code_execution` — 子级应该逐步推理
+- `send_message` — 无跨平台副作用（例如发送 Telegram 消息）
 
-## Max Iterations
+## 最大迭代次数
 
-Each subagent has an iteration limit (default: 50) that controls how many tool-calling turns it can take:
+每个子代理有迭代限制（默认：50），控制它可以进行多少轮工具调用：
 
 ```python
 delegate_task(
     goal="Quick file check",
     context="Check if /etc/nginx/nginx.conf exists and print its first 10 lines",
-    max_iterations=10  # Simple task, don't need many turns
+    max_iterations=10  # 简单任务，不需要很多轮
 )
 ```
 
-## Depth Limit and Nested Orchestration
+## 深度限制和嵌套编排
 
-By default, delegation is **flat**: a parent (depth 0) spawns children (depth 1), and those children cannot delegate further. This prevents runaway recursive delegation.
+默认情况下，委托是**扁平的**：父级（深度 0）生成子级（深度 1），这些子级不能再委托。这防止了失控的递归委托。
 
-For multi-stage workflows (research → synthesis, or parallel orchestration over sub-problems), a parent can spawn **orchestrator** children that *can* delegate their own workers:
+对于多阶段工作流（研究 → 综合，或子问题的并行编排），父级可以生成**编排者**子级，它们*可以*委托自己的工作者：
 
 ```python
 delegate_task(
     goal="Survey three code review approaches and recommend one",
-    role="orchestrator",  # Allows this child to spawn its own workers
+    role="orchestrator",  # 允许此子级生成自己的工作者
     context="...",
 )
 ```
 
-- `role="leaf"` (default): child cannot delegate further — identical to the flat-delegation behavior.
-- `role="orchestrator"`: child retains the `delegation` toolset. Gated by `delegation.max_spawn_depth` (default **1** = flat, so `role="orchestrator"` is a no-op at defaults). Raise `max_spawn_depth` to 2 to allow orchestrator children to spawn leaf grandchildren; 3 for three levels (cap).
-- `delegation.orchestrator_enabled: false`: global kill switch that forces every child to `leaf` regardless of the `role` parameter.
+- `role="leaf"`（默认）：子级不能再委托——与扁平委托行为相同。
+- `role="orchestrator"`：子级保留 `delegation` 工具集。受 `delegation.max_spawn_depth`（默认 **1** = 托平，因此 `role="orchestrator"` 在默认值下无效）限制。将 `max_spawn_depth` 提升到 2 允许编排者子级生成叶子孙级；3 表示三级（上限）。
+- `delegation.orchestrator_enabled: false`：全局开关，强制每个子级为 `leaf`，无论 `role` 参数如何。
 
-**Cost warning:** With `max_spawn_depth: 3` and `max_concurrent_children: 3`, the tree can reach 3×3×3 = 27 concurrent leaf agents. Each extra level multiplies spend — raise `max_spawn_depth` intentionally.
+**成本警告：** 当 `max_spawn_depth: 3` 且 `max_concurrent_children: 3` 时，树可以达到 3×3×3 = 27 个并发叶子代理。每增加一级都会倍增开销——请有意地提升 `max_spawn_depth`。
 
-## Key Properties
+## 关键属性
 
-- Each subagent gets its **own terminal session** (separate from the parent)
-- **Nested delegation is opt-in** — only `role="orchestrator"` children can delegate further, and only when `max_spawn_depth` is raised from its default of 1 (flat). Disable globally with `orchestrator_enabled: false`.
-- Leaf subagents **cannot** call: `delegate_task`, `clarify`, `memory`, `send_message`, `execute_code`. Orchestrator subagents retain `delegate_task` but still cannot use the other four.
-- **Interrupt propagation** — interrupting the parent interrupts all active children (including grandchildren under orchestrators)
-- Only the final summary enters the parent's context, keeping token usage efficient
-- Subagents inherit the parent's **API key, provider configuration, and credential pool** (enabling key rotation on rate limits)
+- 每个子代理获得自己的**终端会话**（与父级分离）
+- **嵌套委托是选择启用的** — 只有 `role="orchestrator"` 子级可以进一步委托，且仅当 `max_spawn_depth` 从默认值 1（扁平）提升时。通过 `orchestrator_enabled: false` 全局禁用。
+- 叶子子代理**不能**调用：`delegate_task`、`clarify`、`memory`、`send_message`、`execute_code`。编排者子代理保留 `delegate_task` 但仍然不能使用其他四个。
+- **中断传播** — 中断父级会中断所有活跃子级（包括编排者下的孙级）
+- 只有最终摘要进入父级的上下文，保持令牌使用高效
+- 子代理继承父级的 **API 密钥、提供商配置和凭据池**（支持在速率限制时轮换密钥）
 
-## Delegation vs execute_code
+## 委托 vs execute_code
 
-| Factor | delegate_task | execute_code |
-|--------|--------------|-------------|
-| **Reasoning** | Full LLM reasoning loop | Just Python code execution |
-| **Context** | Fresh isolated conversation | No conversation, just script |
-| **Tool access** | All non-blocked tools with reasoning | 7 tools via RPC, no reasoning |
-| **Parallelism** | 3 concurrent subagents by default (configurable) | Single script |
-| **Best for** | Complex tasks needing judgment | Mechanical multi-step pipelines |
-| **Token cost** | Higher (full LLM loop) | Lower (only stdout returned) |
-| **User interaction** | None (subagents can't clarify) | None |
+| 因素 | delegate_task | execute_code |
+|------|--------------|-------------|
+| **推理** | 完整的 LLM 推理循环 | 仅 Python 代码执行 |
+| **上下文** | 全新隔离对话 | 无对话，仅脚本 |
+| **工具访问** | 所有非阻止工具带推理 | 7 个工具通过 RPC，无推理 |
+| **并行性** | 默认 3 个并发子代理（可配置） | 单个脚本 |
+| **最适合** | 需要判断的复杂任务 | 机械式多步骤管道 |
+| **令牌成本** | 较高（完整 LLM 循环） | 较低（仅返回 stdout） |
+| **用户交互** | 无（子代理不能澄清） | 无 |
 
-**Rule of thumb:** Use `delegate_task` when the subtask requires reasoning, judgment, or multi-step problem solving. Use `execute_code` when you need mechanical data processing or scripted workflows.
+**经验法则：** 当子任务需要推理、判断或多步问题解决时使用 `delegate_task`。当你需要机械式数据处理或脚本化工作流时使用 `execute_code`。
 
-## Configuration
+## 配置
 
 ```yaml
-# In ~/.hermes/config.yaml
+# 在 ~/.hermes/config.yaml 中
 delegation:
-  max_iterations: 50                        # Max turns per child (default: 50)
-  # max_concurrent_children: 3              # Parallel children per batch (default: 3)
-  # max_spawn_depth: 1                      # Tree depth (1-3, default 1 = flat). Raise to 2 to allow orchestrator children to spawn leaves; 3 for three levels.
-  # orchestrator_enabled: true              # Disable to force all children to leaf role.
-  model: "google/gemini-3-flash-preview"             # Optional provider/model override
-  provider: "openrouter"                             # Optional built-in provider
+  max_iterations: 50                        # 每个子级最大轮次（默认：50）
+  # max_concurrent_children: 3              # 每批并行子级数（默认：3）
+  # max_spawn_depth: 1                      # 树深度（1-3，默认 1 = 扁平）。提升到 2 允许编排者子级生成叶子；3 表示三级。
+  # orchestrator_enabled: true              # 禁用以强制所有子级为叶子角色。
+  model: "google/gemini-3-flash-preview"             # 可选提供商/模型覆盖
+  provider: "openrouter"                             # 可选内置提供商
 
-# Or use a direct custom endpoint instead of provider:
+# 或使用直接自定义端点代替提供商：
 delegation:
   model: "qwen2.5-coder"
   base_url: "http://localhost:1234/v1"
@@ -236,5 +236,5 @@ delegation:
 ```
 
 :::tip
-The agent handles delegation automatically based on the task complexity. You don't need to explicitly ask it to delegate — it will do so when it makes sense.
+代理会根据任务复杂度自动处理委托。你不需要明确要求它委托——它会在合适的时候这样做。
 :::

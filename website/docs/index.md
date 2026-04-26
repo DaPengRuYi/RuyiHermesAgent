@@ -1,57 +1,54 @@
 ---
 slug: /
 sidebar_position: 0
-title: "Hermes Agent Documentation"
-description: "The self-improving AI agent built by Nous Research. A built-in learning loop that creates skills from experience, improves them during use, and remembers across sessions."
+title: "Hermes Agent 文档"
+description: "自改进 AI Agent 框架。内置闭环学习系统，从经验中创建技能，在使用中改进，跨会话记忆。"
 hide_table_of_contents: true
 displayed_sidebar: docs
 ---
 
 # Hermes Agent
 
-The self-improving AI agent built by [Nous Research](https://nousresearch.com). The only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, and builds a deepening model of who you are across sessions.
+自改进 AI Agent 框架，由 [Nous Research](https://nousresearch.com) 原创开发，[大鹏 AI 教育](https://github.com/DaPengRuYi)团队二次开发。唯一内置闭环学习系统的 Agent——从经验中创建技能，在使用中改进，主动持久化记忆，跨会话构建越来越深入的用户画像。
 
 <div style={{display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap'}}>
-  <a href="/docs/getting-started/installation" style={{display: 'inline-block', padding: '0.6rem 1.2rem', backgroundColor: '#FFD700', color: '#07070d', borderRadius: '8px', fontWeight: 600, textDecoration: 'none'}}>Get Started →</a>
-  <a href="https://github.com/NousResearch/hermes-agent" style={{display: 'inline-block', padding: '0.6rem 1.2rem', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '8px', textDecoration: 'none'}}>View on GitHub</a>
+  <a href="/docs/getting-started/installation" style={{display: 'inline-block', padding: '0.6rem 1.2rem', backgroundColor: '#FFD700', color: '#07070d', borderRadius: '8px', fontWeight: 600, textDecoration: 'none'}}>快速开始 →</a>
+  <a href="https://github.com/DaPengRuYi/HermesAgent" style={{display: 'inline-block', padding: '0.6rem 1.2rem', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '8px', textDecoration: 'none'}}>查看 GitHub</a>
 </div>
 
-## What is Hermes Agent?
+## 什么是 Hermes Agent？
 
-It's not a coding copilot tethered to an IDE or a chatbot wrapper around a single API. It's an **autonomous agent** that gets more capable the longer it runs. It lives wherever you put it — a $5 VPS, a GPU cluster, or serverless infrastructure (Daytona, Modal) that costs nearly nothing when idle. Talk to it from Telegram while it works on a cloud VM you never SSH into yourself. It's not tied to your laptop.
+它不是绑定在 IDE 上的编码副驾驶，也不是围绕单个 API 的聊天机器人包装器。它是一个**自主 Agent**，运行时间越长越强大。它驻留在你放置的任何地方——$5 的 VPS、GPU 集群或 serverless 基础设施（Daytona、Modal），空闲时成本几乎为零。在云端 VM 上运行它，同时通过 Telegram/飞书/钉钉与它对话——不必绑定在你的笔记本上。
 
-## Quick Links
+## 快速链接
 
 | | |
 |---|---|
-| 🚀 **[Installation](/docs/getting-started/installation)** | Install in 60 seconds on Linux, macOS, or WSL2 |
-| 📖 **[Quickstart Tutorial](/docs/getting-started/quickstart)** | Your first conversation and key features to try |
-| 🗺️ **[Learning Path](/docs/getting-started/learning-path)** | Find the right docs for your experience level |
-| ⚙️ **[Configuration](/docs/user-guide/configuration)** | Config file, providers, models, and options |
-| 💬 **[Messaging Gateway](/docs/user-guide/messaging)** | Set up Telegram, Discord, Slack, or WhatsApp |
-| 🔧 **[Tools & Toolsets](/docs/user-guide/features/tools)** | 47 built-in tools and how to configure them |
-| 🧠 **[Memory System](/docs/user-guide/features/memory)** | Persistent memory that grows across sessions |
-| 📚 **[Skills System](/docs/user-guide/features/skills)** | Procedural memory the agent creates and reuses |
-| 🔌 **[MCP Integration](/docs/user-guide/features/mcp)** | Connect to MCP servers, filter their tools, and extend Hermes safely |
-| 🧭 **[Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)** | Practical MCP setup patterns, examples, and tutorials |
-| 🎙️ **[Voice Mode](/docs/user-guide/features/voice-mode)** | Real-time voice interaction in CLI, Telegram, Discord, and Discord VC |
-| 🗣️ **[Use Voice Mode with Hermes](/docs/guides/use-voice-mode-with-hermes)** | Hands-on setup and usage patterns for Hermes voice workflows |
-| 🎭 **[Personality & SOUL.md](/docs/user-guide/features/personality)** | Define Hermes' default voice with a global SOUL.md |
-| 📄 **[Context Files](/docs/user-guide/features/context-files)** | Project context files that shape every conversation |
-| 🔒 **[Security](/docs/user-guide/security)** | Command approval, authorization, container isolation |
-| 💡 **[Tips & Best Practices](/docs/guides/tips)** | Quick wins to get the most out of Hermes |
-| 🏗️ **[Architecture](/docs/developer-guide/architecture)** | How it works under the hood |
-| ❓ **[FAQ & Troubleshooting](/docs/reference/faq)** | Common questions and solutions |
+| 🚀 **[安装](/docs/getting-started/installation)** | 在 Linux、macOS 或 WSL2 上 60 秒安装 |
+| 📖 **[快速入门教程](/docs/getting-started/quickstart)** | 你的第一次对话和要尝试的关键功能 |
+| 🗺️ **[学习路径](/docs/getting-started/learning-path)** | 根据你的经验水平找到合适的文档 |
+| ⚙️ **[配置](/docs/user-guide/configuration)** | 配置文件、提供商、模型和选项 |
+| 💬 **[消息网关](/docs/user-guide/messaging)** | 设置 Telegram、Discord、Slack 或 WhatsApp |
+| 🔧 **[工具与工具集](/docs/user-guide/features/tools)** | 47 个内置工具及配置方法 |
+| 🧠 **[记忆系统](/docs/user-guide/features/memory)** | 跨会话持续增长的持久化记忆 |
+| 📚 **[技能系统](/docs/user-guide/features/skills)** | Agent 创建和复用的程序记忆 |
+| 🔌 **[MCP 集成](/docs/user-guide/features/mcp)** | 连接 MCP 服务器，过滤工具，安全扩展 Hermes |
+| 🎙️ **[语音模式](/docs/user-guide/features/voice-mode)** | CLI、Telegram、Discord 中的实时语音交互 |
+| 🎭 **[人格与 SOUL.md](/docs/user-guide/features/personality)** | 用全局 SOUL.md 定义 Hermes 的默认声音 |
+| 📄 **[上下文文件](/docs/user-guide/features/context-files)** | 塑造每次对话的项目上下文文件 |
+| 🔒 **[安全](/docs/user-guide/security)** | 命令审批、授权、容器隔离 |
+| 💡 **[技巧与最佳实践](/docs/guides/tips)** | 充分利用 Hermes 的快速技巧 |
+| 🏗️ **[架构](/docs/developer-guide/architecture)** | 底层工作原理 |
+| ❓ **[FAQ 与故障排除](/docs/reference/faq)** | 常见问题和解决方案 |
 
-## Key Features
+## 核心特性
 
-- **A closed learning loop** — Agent-curated memory with periodic nudges, autonomous skill creation, skill self-improvement during use, FTS5 cross-session recall with LLM summarization, and [Honcho](https://github.com/plastic-labs/honcho) dialectic user modeling
-- **Runs anywhere, not just your laptop** — 6 terminal backends: local, Docker, SSH, Daytona, Singularity, Modal. Daytona and Modal offer serverless persistence — your environment hibernates when idle, costing nearly nothing
-- **Lives where you do** — CLI, Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS, DingTalk, Feishu, WeCom, BlueBubbles, Home Assistant — 15+ platforms from one gateway
-- **Built by model trainers** — Created by [Nous Research](https://nousresearch.com), the lab behind Hermes, Nomos, and Psyche. Works with [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai), OpenAI, or any endpoint
-- **Scheduled automations** — Built-in cron with delivery to any platform
-- **Delegates & parallelizes** — Spawn isolated subagents for parallel workstreams. Programmatic Tool Calling via `execute_code` collapses multi-step pipelines into single inference calls
-- **Open standard skills** — Compatible with [agentskills.io](https://agentskills.io). Skills are portable, shareable, and community-contributed via the Skills Hub
-- **Full web control** — Search, extract, browse, vision, image generation, TTS
-- **MCP support** — Connect to any MCP server for extended tool capabilities
-- **Research-ready** — Batch processing, trajectory export, RL training with Atropos. Built by [Nous Research](https://nousresearch.com) — the lab behind Hermes, Nomos, and Psyche models
+- **闭环学习**——Agent 自主管理记忆，定期持久化知识，自主创建技能，技能在使用中自我改进，FTS5 跨会话搜索 + LLM 摘要，Honcho 辩证用户建模
+- **随处运行**——6 种终端后端：本地、Docker、SSH、Daytona、Singularity、Modal。Daytona 和 Modal 提供 serverless 持久化——环境空闲时休眠，几乎零成本
+- **无处不在**——CLI、Telegram、Discord、Slack、WhatsApp、Signal、Matrix、飞书、钉钉、企业微信——单个 Gateway 支持 15+ 平台
+- **定时自动化**——内置 Cron，支持投递到任意平台
+- **委派与并行**——生成隔离的子 Agent 处理并行工作流。通过 `execute_code` 的编程工具调用将多步管道折叠为单次推理
+- **开放标准技能**——兼容 agentskills.io。技能可移植、可共享、可社区贡献
+- **完整 Web 控制**——搜索、提取、浏览、视觉、图像生成、TTS
+- **MCP 支持**——连接任意 MCP 服务器扩展工具能力
+- **研究就绪**——批处理、轨迹导出、Atropos RL 训练

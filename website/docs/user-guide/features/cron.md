@@ -1,30 +1,30 @@
 ---
 sidebar_position: 5
-title: "Scheduled Tasks (Cron)"
-description: "Schedule automated tasks with natural language, manage them with one cron tool, and attach one or more skills"
+title: "定时任务（Cron）"
+description: "使用自然语言调度自动任务，通过一个 cron 工具管理，附加一个或多个技能"
 ---
 
-# Scheduled Tasks (Cron)
+# 定时任务（Cron）
 
-Schedule tasks to run automatically with natural language or cron expressions. Hermes exposes cron management through a single `cronjob` tool with action-style operations instead of separate schedule/list/remove tools.
+使用自然语言或 cron 表达式调度任务自动运行。Hermes 通过一个统一的 `cronjob` 工具暴露 cron 管理，采用操作式而非单独的 schedule/list/remove 工具。
 
-## What cron can do now
+## Cron 现在能做什么
 
-Cron jobs can:
+Cron 任务可以：
 
-- schedule one-shot or recurring tasks
-- pause, resume, edit, trigger, and remove jobs
-- attach zero, one, or multiple skills to a job
-- deliver results back to the origin chat, local files, or configured platform targets
-- run in fresh agent sessions with the normal static tool list
+- 调度一次性或重复任务
+- 暂停、恢复、编辑、触发和移除任务
+- 为任务附加零个、一个或多个技能
+- 将结果投递回来源聊天、本地文件或配置的平台目标
+- 在新的代理会话中运行，使用正常的静态工具列表
 
 :::warning
-Cron-run sessions cannot recursively create more cron jobs. Hermes disables cron management tools inside cron executions to prevent runaway scheduling loops.
+Cron 运行的会话不能递归创建更多 cron 任务。Hermes 在 cron 执行中禁用 cron 管理工具，以防止失控的调度循环。
 :::
 
-## Creating scheduled tasks
+## 创建定时任务
 
-### In chat with `/cron`
+### 在聊天中使用 `/cron`
 
 ```bash
 /cron add 30m "Remind me to check the build"
@@ -33,7 +33,7 @@ Cron-run sessions cannot recursively create more cron jobs. Hermes disables cron
 /cron add "every 1h" "Use both skills and combine the result" --skill blogwatcher --skill maps
 ```
 
-### From the standalone CLI
+### 从独立 CLI
 
 ```bash
 hermes cron create "every 2h" "Check server status"
@@ -44,21 +44,21 @@ hermes cron create "every 1h" "Use both skills and combine the result" \
   --name "Skill combo"
 ```
 
-### Through natural conversation
+### 通过自然对话
 
-Ask Hermes normally:
+正常询问 Hermes：
 
 ```text
 Every morning at 9am, check Hacker News for AI news and send me a summary on Telegram.
 ```
 
-Hermes will use the unified `cronjob` tool internally.
+Hermes 会在内部使用统一的 `cronjob` 工具。
 
-## Skill-backed cron jobs
+## 技能支持的 cron 任务
 
-A cron job can load one or more skills before it runs the prompt.
+Cron 任务可以在运行提示之前加载一个或多个技能。
 
-### Single skill
+### 单个技能
 
 ```python
 cronjob(
@@ -70,9 +70,9 @@ cronjob(
 )
 ```
 
-### Multiple skills
+### 多个技能
 
-Skills are loaded in order. The prompt becomes the task instruction layered on top of those skills.
+按顺序加载技能。提示成为叠加在这些技能之上的任务指令。
 
 ```python
 cronjob(
@@ -84,21 +84,21 @@ cronjob(
 )
 ```
 
-This is useful when you want a scheduled agent to inherit reusable workflows without stuffing the full skill text into the cron prompt itself.
+当你希望调度代理继承可重用工作流而不将完整技能文本塞入 cron 提示本身时，这很有用。
 
-## Running a job inside a project directory
+## 在项目目录中运行任务
 
-Cron jobs default to running detached from any repo — no `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` is loaded, and the terminal / file / code-exec tools run from whatever working directory the gateway started in. Pass `--workdir` (CLI) or `workdir=` (tool call) to change that:
+Cron 任务默认与任何仓库分离运行——不加载 `AGENTS.md`、`CLAUDE.md` 或 `.cursorrules`，终端/文件/代码执行工具从网关启动时的工作目录运行。传递 `--workdir`（CLI）或 `workdir=`（工具调用）来更改：
 
 ```bash
-# Standalone CLI
+# 独立 CLI
 hermes cron create --schedule "every 1d at 09:00" \
   --workdir /home/me/projects/acme \
   --prompt "Audit open PRs, summarize CI health, and post to #eng"
 ```
 
 ```python
-# From a chat, via the cronjob tool
+# 从聊天中，通过 cronjob 工具
 cronjob(
     action="create",
     schedule="every 1d at 09:00",
@@ -107,22 +107,22 @@ cronjob(
 )
 ```
 
-When `workdir` is set:
+当设置了 `workdir` 时：
 
-- `AGENTS.md`, `CLAUDE.md`, and `.cursorrules` from that directory are injected into the system prompt (same discovery order as the interactive CLI)
-- `terminal`, `read_file`, `write_file`, `patch`, `search_files`, and `execute_code` all use that directory as their working directory (via `TERMINAL_CWD`)
-- The path must be an absolute directory that exists — relative paths and missing directories are rejected at create / update time
-- Pass `--workdir ""` (or `workdir=""` via the tool) on edit to clear it and restore the old behaviour
+- 该目录的 `AGENTS.md`、`CLAUDE.md` 和 `.cursorrules` 被注入系统提示（与交互式 CLI 相同的发现顺序）
+- `terminal`、`read_file`、`write_file`、`patch`、`search_files` 和 `execute_code` 都使用该目录作为工作目录（通过 `TERMINAL_CWD`）
+- 路径必须是存在的绝对目录——相对路径和缺失的目录在创建/更新时被拒绝
+- 编辑时传递 `--workdir ""`（或通过工具传递 `workdir=""`）清除它并恢复旧行为
 
-:::note Serialization
-Jobs with a `workdir` run sequentially on the scheduler tick, not in the parallel pool. This is deliberate — `TERMINAL_CWD` is process-global, so two workdir jobs running at the same time would corrupt each other's cwd. Workdir-less jobs still run in parallel as before.
+:::note 序列化
+带 `workdir` 的任务在调度器滴答时顺序运行，而非并行池中。这是有意的——`TERMINAL_CWD` 是进程全局的，两个 workdir 任务同时运行会相互破坏 cwd。无 workdir 的任务仍然像以前一样并行运行。
 :::
 
-## Editing jobs
+## 编辑任务
 
-You do not need to delete and recreate jobs just to change them.
+你不需要删除并重新创建任务来更改它们。
 
-### Chat
+### 聊天
 
 ```bash
 /cron edit <job_id> --schedule "every 4h"
@@ -132,7 +132,7 @@ You do not need to delete and recreate jobs just to change them.
 /cron edit <job_id> --clear-skills
 ```
 
-### Standalone CLI
+### 独立 CLI
 
 ```bash
 hermes cron edit <job_id> --schedule "every 4h"
@@ -143,18 +143,18 @@ hermes cron edit <job_id> --remove-skill blogwatcher
 hermes cron edit <job_id> --clear-skills
 ```
 
-Notes:
+注意：
 
-- repeated `--skill` replaces the job's attached skill list
-- `--add-skill` appends to the existing list without replacing it
-- `--remove-skill` removes specific attached skills
-- `--clear-skills` removes all attached skills
+- 重复的 `--skill` 替换任务附加的技能列表
+- `--add-skill` 追加到现有列表而不替换
+- `--remove-skill` 移除特定附加的技能
+- `--clear-skills` 移除所有附加的技能
 
-## Lifecycle actions
+## 生命周期操作
 
-Cron jobs now have a fuller lifecycle than just create/remove.
+Cron 任务现在比仅创建/移除有更完整的生命周期。
 
-### Chat
+### 聊天
 
 ```bash
 /cron list
@@ -164,7 +164,7 @@ Cron jobs now have a fuller lifecycle than just create/remove.
 /cron remove <job_id>
 ```
 
-### Standalone CLI
+### 独立 CLI
 
 ```bash
 hermes cron list
@@ -176,73 +176,73 @@ hermes cron status
 hermes cron tick
 ```
 
-What they do:
+它们的作用：
 
-- `pause` — keep the job but stop scheduling it
-- `resume` — re-enable the job and compute the next future run
-- `run` — trigger the job on the next scheduler tick
-- `remove` — delete it entirely
+- `pause` — 保留任务但停止调度
+- `resume` — 重新启用任务并计算下一次未来运行
+- `run` — 在下一个调度器滴答触发任务
+- `remove` — 完全删除
 
-## How it works
+## 工作原理
 
-**Cron execution is handled by the gateway daemon.** The gateway ticks the scheduler every 60 seconds, running any due jobs in isolated agent sessions.
+**Cron 执行由网关守护进程处理。** 网关每 60 秒触发一次调度器，在隔离的代理会话中运行所有到期任务。
 
 ```bash
-hermes gateway install     # Install as a user service
-sudo hermes gateway install --system   # Linux: boot-time system service for servers
-hermes gateway             # Or run in foreground
+hermes gateway install     # 安装为用户服务
+sudo hermes gateway install --system   # Linux：服务器启动时系统服务
+hermes gateway             # 或前台运行
 
 hermes cron list
 hermes cron status
 ```
 
-### Gateway scheduler behavior
+### 网关调度器行为
 
-On each tick Hermes:
+每次滴答时 Hermes：
 
-1. loads jobs from `~/.hermes/cron/jobs.json`
-2. checks `next_run_at` against the current time
-3. starts a fresh `AIAgent` session for each due job
-4. optionally injects one or more attached skills into that fresh session
-5. runs the prompt to completion
-6. delivers the final response
-7. updates run metadata and the next scheduled time
+1. 从 `~/.hermes/cron/jobs.json` 加载任务
+2. 检查 `next_run_at` 与当前时间
+3. 为每个到期任务启动新的 `AIAgent` 会话
+4. 可选地向该新会话注入一个或多个附加技能
+5. 运行提示直到完成
+6. 投递最终响应
+7. 更新运行元数据和下次调度时间
 
-A file lock at `~/.hermes/cron/.tick.lock` prevents overlapping scheduler ticks from double-running the same job batch.
+`~/.hermes/cron/.tick.lock` 的文件锁防止重叠的调度器滴答重复运行同一批任务。
 
-## Delivery options
+## 投递选项
 
-When scheduling jobs, you specify where the output goes:
+调度任务时，你指定输出去向：
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `"origin"` | Back to where the job was created | Default on messaging platforms |
-| `"local"` | Save to local files only (`~/.hermes/cron/output/`) | Default on CLI |
-| `"telegram"` | Telegram home channel | Uses `TELEGRAM_HOME_CHANNEL` |
-| `"telegram:123456"` | Specific Telegram chat by ID | Direct delivery |
-| `"telegram:-100123:17585"` | Specific Telegram topic | `chat_id:thread_id` format |
-| `"discord"` | Discord home channel | Uses `DISCORD_HOME_CHANNEL` |
-| `"discord:#engineering"` | Specific Discord channel | By channel name |
-| `"slack"` | Slack home channel | |
-| `"whatsapp"` | WhatsApp home | |
+| 选项 | 描述 | 示例 |
+|------|------|------|
+| `"origin"` | 回到任务创建的地方 | 消息平台上的默认值 |
+| `"local"` | 仅保存到本地文件（`~/.hermes/cron/output/`） | CLI 上的默认值 |
+| `"telegram"` | Telegram 主频道 | 使用 `TELEGRAM_HOME_CHANNEL` |
+| `"telegram:123456"` | 按 ID 指定 Telegram 聊天 | 直接投递 |
+| `"telegram:-100123:17585"` | 指定 Telegram 话题 | `chat_id:thread_id` 格式 |
+| `"discord"` | Discord 主频道 | 使用 `DISCORD_HOME_CHANNEL` |
+| `"discord:#engineering"` | 指定 Discord 频道 | 按频道名称 |
+| `"slack"` | Slack 主频道 | |
+| `"whatsapp"` | WhatsApp 主频道 | |
 | `"signal"` | Signal | |
-| `"matrix"` | Matrix home room | |
-| `"mattermost"` | Mattermost home channel | |
-| `"email"` | Email | |
-| `"sms"` | SMS via Twilio | |
+| `"matrix"` | Matrix 主房间 | |
+| `"mattermost"` | Mattermost 主频道 | |
+| `"email"` | 电子邮件 | |
+| `"sms"` | 通过 Twilio 的短信 | |
 | `"homeassistant"` | Home Assistant | |
-| `"dingtalk"` | DingTalk | |
-| `"feishu"` | Feishu/Lark | |
-| `"wecom"` | WeCom | |
-| `"weixin"` | Weixin (WeChat) | |
-| `"bluebubbles"` | BlueBubbles (iMessage) | |
-| `"qqbot"` | QQ Bot (Tencent QQ) | |
+| `"dingtalk"` | 钉钉 | |
+| `"feishu"` | 飞书 | |
+| `"wecom"` | 企业微信 | |
+| `"weixin"` | 微信 | |
+| `"bluebubbles"` | BlueBubbles（iMessage） | |
+| `"qqbot"` | QQ 机器人（腾讯 QQ） | |
 
-The agent's final response is automatically delivered. You do not need to call `send_message` in the cron prompt.
+代理的最终响应会自动投递。你不需要在 cron 提示中调用 `send_message`。
 
-### Response wrapping
+### 响应包装
 
-By default, delivered cron output is wrapped with a header and footer so the recipient knows it came from a scheduled task:
+默认情况下，投递的 cron 输出会带有页眉和页脚包装，以便收件人知道它来自定时任务：
 
 ```
 Cronjob Response: Morning feeds
@@ -253,7 +253,7 @@ Cronjob Response: Morning feeds
 Note: The agent cannot see this message, and therefore cannot respond to it.
 ```
 
-To deliver the raw agent output without the wrapper, set `cron.wrap_response` to `false`:
+要投递不带包装的原始代理输出，将 `cron.wrap_response` 设为 `false`：
 
 ```yaml
 # ~/.hermes/config.yaml
@@ -261,85 +261,85 @@ cron:
   wrap_response: false
 ```
 
-### Silent suppression
+### 静默抑制
 
-If the agent's final response starts with `[SILENT]`, delivery is suppressed entirely. The output is still saved locally for audit (in `~/.hermes/cron/output/`), but no message is sent to the delivery target.
+如果代理的最终响应以 `[SILENT]` 开头，投递被完全抑制。输出仍保存在本地用于审计（在 `~/.hermes/cron/output/` 中），但不会向投递目标发送消息。
 
-This is useful for monitoring jobs that should only report when something is wrong:
+这对于仅在出问题时报告的监控任务很有用：
 
 ```text
 Check if nginx is running. If everything is healthy, respond with only [SILENT].
 Otherwise, report the issue.
 ```
 
-Failed jobs always deliver regardless of the `[SILENT]` marker — only successful runs can be silenced.
+失败的任务无论 `[SILENT]` 标记如何都会投递——只有成功的运行可以被静默。
 
-## Script timeout
+## 脚本超时
 
-Pre-run scripts (attached via the `script` parameter) have a default timeout of 120 seconds. If your scripts need longer — for example, to include randomized delays that avoid bot-like timing patterns — you can increase this:
+预运行脚本（通过 `script` 参数附加）默认超时 120 秒。如果你的脚本需要更长时间——例如包含避免机器人式时间模式的随机延迟——你可以增加：
 
 ```yaml
 # ~/.hermes/config.yaml
 cron:
-  script_timeout_seconds: 300   # 5 minutes
+  script_timeout_seconds: 300   # 5 分钟
 ```
 
-Or set the `HERMES_CRON_SCRIPT_TIMEOUT` environment variable. The resolution order is: env var → config.yaml → 120s default.
+或设置 `HERMES_CRON_SCRIPT_TIMEOUT` 环境变量。解析顺序为：环境变量 → config.yaml → 120 秒默认值。
 
-## Provider recovery
+## 提供商恢复
 
-Cron jobs inherit your configured fallback providers and credential pool rotation. If the primary API key is rate-limited or the provider returns an error, the cron agent can:
+Cron 任务继承你配置的故障转移提供商和凭据池轮换。如果主要 API 密钥被限速或提供商返回错误，cron 代理可以：
 
-- **Fall back to an alternate provider** if you have `fallback_providers` (or the legacy `fallback_model`) configured in `config.yaml`
-- **Rotate to the next credential** in your [credential pool](/docs/user-guide/configuration#credential-pool-strategies) for the same provider
+- **回退到备用提供商**，如果你在 `config.yaml` 中配置了 `fallback_providers`（或旧版 `fallback_model`）
+- **轮换到下一个凭据**，在同一提供商的[凭据池](/docs/user-guide/configuration#credential-pool-strategies)中
 
-This means cron jobs that run at high frequency or during peak hours are more resilient — a single rate-limited key won't fail the entire run.
+这意味着高频运行或在高峰时段运行的 cron 任务更具弹性——单个限速密钥不会使整个运行失败。
 
-## Schedule formats
+## 调度格式
 
-The agent's final response is automatically delivered — you do **not** need to include `send_message` in the cron prompt for that same destination. If a cron run calls `send_message` to the exact target the scheduler will already deliver to, Hermes skips that duplicate send and tells the model to put the user-facing content in the final response instead. Use `send_message` only for additional or different targets.
+代理的最终响应会自动投递——你**不需要**在 cron 提示中为同一目标包含 `send_message`。如果 cron 运行调用 `send_message` 到调度器已经投递的完全相同的目标，Hermes 会跳过该重复发送，并告诉模型将用户可见内容放在最终响应中。仅对额外或不同的目标使用 `send_message`。
 
-### Relative delays (one-shot)
+### 相对延迟（一次性）
 
 ```text
-30m     → Run once in 30 minutes
-2h      → Run once in 2 hours
-1d      → Run once in 1 day
+30m     → 30 分钟后运行一次
+2h      → 2 小时后运行一次
+1d      → 1 天后运行一次
 ```
 
-### Intervals (recurring)
+### 间隔（重复）
 
 ```text
-every 30m    → Every 30 minutes
-every 2h     → Every 2 hours
-every 1d     → Every day
+every 30m    → 每 30 分钟
+every 2h     → 每 2 小时
+every 1d     → 每天
 ```
 
-### Cron expressions
+### Cron 表达式
 
 ```text
-0 9 * * *       → Daily at 9:00 AM
-0 9 * * 1-5     → Weekdays at 9:00 AM
-0 */6 * * *     → Every 6 hours
-30 8 1 * *      → First of every month at 8:30 AM
-0 0 * * 0       → Every Sunday at midnight
+0 9 * * *       → 每天上午 9:00
+0 9 * * 1-5     → 工作日上午 9:00
+0 */6 * * *     → 每 6 小时
+30 8 1 * *      → 每月 1 日上午 8:30
+0 0 * * 0       → 每周日午夜
 ```
 
-### ISO timestamps
+### ISO 时间戳
 
 ```text
-2026-03-15T09:00:00    → One-time at March 15, 2026 9:00 AM
+2026-03-15T09:00:00    → 一次性在 2026 年 3 月 15 日上午 9:00
 ```
 
-## Repeat behavior
+## 重复行为
 
-| Schedule type | Default repeat | Behavior |
-|--------------|----------------|----------|
-| One-shot (`30m`, timestamp) | 1 | Runs once |
-| Interval (`every 2h`) | forever | Runs until removed |
-| Cron expression | forever | Runs until removed |
+| 调度类型 | 默认重复 | 行为 |
+|----------|---------|------|
+| 一次性（`30m`、时间戳） | 1 | 运行一次 |
+| 间隔（`every 2h`） | 永远 | 运行直到移除 |
+| Cron 表达式 | 永远 | 运行直到移除 |
 
-You can override it:
+你可以覆盖它：
 
 ```python
 cronjob(
@@ -350,9 +350,9 @@ cronjob(
 )
 ```
 
-## Managing jobs programmatically
+## 编程式管理任务
 
-The agent-facing API is one tool:
+代理面向的 API 是一个工具：
 
 ```python
 cronjob(action="create", ...)
@@ -364,26 +364,26 @@ cronjob(action="run", job_id="...")
 cronjob(action="remove", job_id="...")
 ```
 
-For `update`, pass `skills=[]` to remove all attached skills.
+对于 `update`，传递 `skills=[]` 移除所有附加的技能。
 
-## Job storage
+## 任务存储
 
-Jobs are stored in `~/.hermes/cron/jobs.json`. Output from job runs is saved to `~/.hermes/cron/output/{job_id}/{timestamp}.md`.
+任务存储在 `~/.hermes/cron/jobs.json` 中。任务运行的输出保存到 `~/.hermes/cron/output/{job_id}/{timestamp}.md`。
 
-Jobs may store `model` and `provider` as `null`. When those fields are omitted, Hermes resolves them at execution time from the global configuration. They only appear in the job record when a per-job override is set.
+任务可能将 `model` 和 `provider` 存储为 `null`。当这些字段被省略时，Hermes 在执行时从全局配置解析它们。它们仅在设置了每任务覆盖时出现在任务记录中。
 
-The storage uses atomic file writes so interrupted writes do not leave a partially written job file behind.
+存储使用原子文件写入，因此中断的写入不会留下部分写入的任务文件。
 
-## Self-contained prompts still matter
+## 自包含提示仍然重要
 
-:::warning Important
-Cron jobs run in a completely fresh agent session. The prompt must contain everything the agent needs that is not already provided by attached skills.
+:::warning 重要
+Cron 任务在完全新的代理会话中运行。提示必须包含代理需要的所有内容，这些内容未由附加技能提供。
 :::
 
-**BAD:** `"Check on that server issue"`
+**不好：** `"Check on that server issue"`
 
-**GOOD:** `"SSH into server 192.168.1.100 as user 'deploy', check if nginx is running with 'systemctl status nginx', and verify https://example.com returns HTTP 200."`
+**好：** `"SSH into server 192.168.1.100 as user 'deploy', check if nginx is running with 'systemctl status nginx', and verify https://example.com returns HTTP 200."`
 
-## Security
+## 安全
 
-Scheduled task prompts are scanned for prompt-injection and credential-exfiltration patterns at creation and update time. Prompts containing invisible Unicode tricks, SSH backdoor attempts, or obvious secret-exfiltration payloads are blocked.
+定时任务提示在创建和更新时会扫描提示注入和凭据泄露模式。包含不可见 Unicode 技巧、SSH 后门尝试或明显密钥泄露载荷的提示会被阻止。

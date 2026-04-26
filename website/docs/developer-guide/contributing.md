@@ -1,43 +1,43 @@
 ---
 sidebar_position: 4
-title: "Contributing"
-description: "How to contribute to Hermes Agent — dev setup, code style, PR process"
+title: "贡献指南"
+description: "如何为 Hermes Agent 做贡献 — 开发设置、代码风格、PR 流程"
 ---
 
-# Contributing
+# 贡献指南
 
-Thank you for contributing to Hermes Agent! This guide covers setting up your dev environment, understanding the codebase, and getting your PR merged.
+感谢你为 Hermes Agent 做贡献！本指南涵盖设置开发环境、理解代码库和合并 PR。
 
-## Contribution Priorities
+## 贡献优先级
 
-We value contributions in this order:
+我们按以下顺序重视贡献：
 
-1. **Bug fixes** — crashes, incorrect behavior, data loss
-2. **Cross-platform compatibility** — macOS, different Linux distros, WSL2
-3. **Security hardening** — shell injection, prompt injection, path traversal
-4. **Performance and robustness** — retry logic, error handling, graceful degradation
-5. **New skills** — broadly useful ones (see [Creating Skills](creating-skills.md))
-6. **New tools** — rarely needed; most capabilities should be skills
-7. **Documentation** — fixes, clarifications, new examples
+1. **Bug 修复** — 崩溃、错误行为、数据丢失
+2. **跨平台兼容性** — macOS、不同 Linux 发行版、WSL2
+3. **安全加固** — shell 注入、提示词注入、路径遍历
+4. **性能和健壮性** — 重试逻辑、错误处理、优雅降级
+5. **新技能** — 广泛有用的（参见[创建技能](creating-skills.md)）
+6. **新工具** — 很少需要；大多数功能应该是技能
+7. **文档** — 修复、澄清、新示例
 
-## Common contribution paths
+## 常见贡献路径
 
-- Building a new tool? Start with [Adding Tools](./adding-tools.md)
-- Building a new skill? Start with [Creating Skills](./creating-skills.md)
-- Building a new inference provider? Start with [Adding Providers](./adding-providers.md)
+- 构建新工具？从[添加工具](./adding-tools.md)开始
+- 构建新技能？从[创建技能](./creating-skills.md)开始
+- 构建新推理提供商？从[添加提供商](./adding-providers.md)开始
 
-## Development Setup
+## 开发设置
 
-### Prerequisites
+### 前置条件
 
-| Requirement | Notes |
-|-------------|-------|
-| **Git** | With `--recurse-submodules` support, and the `git-lfs` extension installed |
-| **Python 3.11+** | uv will install it if missing |
-| **uv** | Fast Python package manager ([install](https://docs.astral.sh/uv/)) |
-| **Node.js 20+** | Optional — needed for browser tools and WhatsApp bridge (matches root `package.json` engines) |
+| 要求 | 说明 |
+|------|------|
+| **Git** | 支持 `--recurse-submodules`，并安装了 `git-lfs` 扩展 |
+| **Python 3.11+** | 如果缺失，uv 会安装它 |
+| **uv** | 快速 Python 包管理器（[安装](https://docs.astral.sh/uv/)） |
+| **Node.js 20+** | 可选 — 浏览器工具和 WhatsApp 桥接需要（匹配根目录 `package.json` engines） |
 
-### Clone and Install
+### 克隆和安装
 
 ```bash
 git clone --recurse-submodules https://github.com/NousResearch/hermes-agent.git
@@ -55,7 +55,7 @@ uv pip install -e "./tinker-atropos"
 npm install
 ```
 
-### Configure for Development
+### 配置开发环境
 
 ```bash
 mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills}
@@ -66,7 +66,7 @@ touch ~/.hermes/.env
 echo 'OPENROUTER_API_KEY=sk-or-v1-your-key' >> ~/.hermes/.env
 ```
 
-### Run
+### 运行
 
 ```bash
 # Symlink for global access
@@ -78,27 +78,27 @@ hermes doctor
 hermes chat -q "Hello"
 ```
 
-### Run Tests
+### 运行测试
 
 ```bash
 pytest tests/ -v
 ```
 
-## Code Style
+## 代码风格
 
-- **PEP 8** with practical exceptions (no strict line length enforcement)
-- **Comments**: Only when explaining non-obvious intent, trade-offs, or API quirks
-- **Error handling**: Catch specific exceptions. Use `logger.warning()`/`logger.error()` with `exc_info=True` for unexpected errors
-- **Cross-platform**: Never assume Unix (see below)
-- **Profile-safe paths**: Never hardcode `~/.hermes` — use `get_hermes_home()` from `hermes_constants` for code paths and `display_hermes_home()` for user-facing messages. See [AGENTS.md](https://github.com/NousResearch/hermes-agent/blob/main/AGENTS.md#profiles-multi-instance-support) for full rules.
+- **PEP 8**，有实际例外（不严格限制行长度）
+- **注释**：仅在解释不明显的意图、权衡或 API 怪癖时使用
+- **错误处理**：捕获特定异常。对意外错误使用 `logger.warning()`/`logger.error()` 配合 `exc_info=True`
+- **跨平台**：永远不要假设 Unix（见下文）
+- **配置文件安全路径**：永远不要硬编码 `~/.hermes` — 代码路径使用 `hermes_constants` 中的 `get_hermes_home()`，面向用户的消息使用 `display_hermes_home()`。完整规则请参阅 AGENTS.md。
 
-## Cross-Platform Compatibility
+## 跨平台兼容性
 
-Hermes officially supports Linux, macOS, and WSL2. Native Windows is **not supported**, but the codebase includes some defensive coding patterns to avoid hard crashes in edge cases. Key rules:
+Hermes 官方支持 Linux、macOS 和 WSL2。原生 Windows **不受支持**，但代码库包含一些防御性编码模式以避免在边缘情况下硬崩溃。关键规则：
 
-### 1. `termios` and `fcntl` are Unix-only
+### 1. `termios` 和 `fcntl` 仅限 Unix
 
-Always catch both `ImportError` and `NotImplementedError`:
+始终捕获 `ImportError` 和 `NotImplementedError`：
 
 ```python
 try:
@@ -112,9 +112,9 @@ except (ImportError, NotImplementedError):
     idx = int(input("Choice: ")) - 1
 ```
 
-### 2. File encoding
+### 2. 文件编码
 
-Some environments may save `.env` files in non-UTF-8 encodings:
+某些环境可能以非 UTF-8 编码保存 `.env` 文件：
 
 ```python
 try:
@@ -123,9 +123,9 @@ except UnicodeDecodeError:
     load_dotenv(env_path, encoding="latin-1")
 ```
 
-### 3. Process management
+### 3. 进程管理
 
-`os.setsid()`, `os.killpg()`, and signal handling differ across platforms:
+`os.setsid()`、`os.killpg()` 和信号处理在不同平台上有所不同：
 
 ```python
 import platform
@@ -133,101 +133,100 @@ if platform.system() != "Windows":
     kwargs["preexec_fn"] = os.setsid
 ```
 
-### 4. Path separators
+### 4. 路径分隔符
 
-Use `pathlib.Path` instead of string concatenation with `/`.
+使用 `pathlib.Path` 而非字符串拼接 `/`。
 
-## Security Considerations
+## 安全考虑
 
-Hermes has terminal access. Security matters.
+Hermes 有终端访问权限。安全很重要。
 
-### Existing Protections
+### 现有保护
 
-| Layer | Implementation |
-|-------|---------------|
-| **Sudo password piping** | Uses `shlex.quote()` to prevent shell injection |
-| **Dangerous command detection** | Regex patterns in `tools/approval.py` with user approval flow |
-| **Cron prompt injection** | Scanner blocks instruction-override patterns |
-| **Write deny list** | Protected paths resolved via `os.path.realpath()` to prevent symlink bypass |
-| **Skills guard** | Security scanner for hub-installed skills |
-| **Code execution sandbox** | Child process runs with API keys stripped |
-| **Container hardening** | Docker: all capabilities dropped, no privilege escalation, PID limits |
+| 层级 | 实现 |
+|------|------|
+| **Sudo 密码管道** | 使用 `shlex.quote()` 防止 shell 注入 |
+| **危险命令检测** | `tools/approval.py` 中的正则表达式模式，带用户审批流程 |
+| **定时任务提示词注入** | 扫描器阻止指令覆盖模式 |
+| **写入拒绝列表** | 通过 `os.path.realpath()` 解析受保护路径以防止符号链接绕过 |
+| **技能守卫** | 中心安装技能的安全扫描器 |
+| **代码执行沙箱** | 子进程运行时剥离 API 密钥 |
+| **容器加固** | Docker：丢弃所有能力，无权限提升，PID 限制 |
 
-### Contributing Security-Sensitive Code
+### 贡献安全敏感代码
 
-- Always use `shlex.quote()` when interpolating user input into shell commands
-- Resolve symlinks with `os.path.realpath()` before access control checks
-- Don't log secrets
-- Catch broad exceptions around tool execution
-- Test on all platforms if your change touches file paths or processes
+- 在 shell 命令中插入用户输入时始终使用 `shlex.quote()`
+- 在访问控制检查前使用 `os.path.realpath()` 解析符号链接
+- 不要记录密钥
+- 在工具执行周围捕获广泛的异常
+- 如果你的更改涉及文件路径或进程，请在所有平台上测试
 
-## Pull Request Process
+## 拉取请求流程
 
-### Branch Naming
+### 分支命名
 
 ```
-fix/description        # Bug fixes
-feat/description       # New features
-docs/description       # Documentation
-test/description       # Tests
-refactor/description   # Code restructuring
+fix/description        # Bug 修复
+feat/description       # 新功能
+docs/description       # 文档
+test/description       # 测试
+refactor/description   # 代码重构
 ```
 
-### Before Submitting
+### 提交前
 
-1. **Run tests**: `pytest tests/ -v`
-2. **Test manually**: Run `hermes` and exercise the code path you changed
-3. **Check cross-platform impact**: Consider macOS and different Linux distros
-4. **Keep PRs focused**: One logical change per PR
+1. **运行测试**：`pytest tests/ -v`
+2. **手动测试**：运行 `hermes` 并执行你更改的代码路径
+3. **检查跨平台影响**：考虑 macOS 和不同 Linux 发行版
+4. **保持 PR 聚焦**：每个 PR 一个逻辑变更
 
-### PR Description
+### PR 描述
 
-Include:
-- **What** changed and **why**
-- **How to test** it
-- **What platforms** you tested on
-- Reference any related issues
+包含：
+- **什么**改变了以及**为什么**
+- **如何测试**
+- 在**什么平台**上测试过
+- 引用任何相关 issue
 
-### Commit Messages
+### 提交消息
 
-We use [Conventional Commits](https://www.conventionalcommits.org/):
+我们使用[约定式提交](https://www.conventionalcommits.org/)：
 
 ```
 <type>(<scope>): <description>
 ```
 
-| Type | Use for |
-|------|---------|
-| `fix` | Bug fixes |
-| `feat` | New features |
-| `docs` | Documentation |
-| `test` | Tests |
-| `refactor` | Code restructuring |
-| `chore` | Build, CI, dependency updates |
+| 类型 | 用途 |
+|------|------|
+| `fix` | Bug 修复 |
+| `feat` | 新功能 |
+| `docs` | 文档 |
+| `test` | 测试 |
+| `refactor` | 代码重构 |
+| `chore` | 构建、CI、依赖更新 |
 
-Scopes: `cli`, `gateway`, `tools`, `skills`, `agent`, `install`, `whatsapp`, `security`
+范围：`cli`、`gateway`、`tools`、`skills`、`agent`、`install`、`whatsapp`、`security`
 
-Examples:
+示例：
 ```
 fix(cli): prevent crash in save_config_value when model is a string
 feat(gateway): add WhatsApp multi-user session isolation
 fix(security): prevent shell injection in sudo password piping
 ```
 
-## Reporting Issues
+## 报告问题
 
-- Use [GitHub Issues](https://github.com/NousResearch/hermes-agent/issues)
-- Include: OS, Python version, Hermes version (`hermes version`), full error traceback
-- Include steps to reproduce
-- Check existing issues before creating duplicates
-- For security vulnerabilities, please report privately
+- 使用 GitHub Issues
+- 包含：操作系统、Python 版本、Hermes 版本（`hermes version`）、完整错误追踪
+- 包含复现步骤
+- 创建重复 issue 前检查现有 issue
+- 对于安全漏洞，请私下报告
 
-## Community
+## 社区
 
-- **Discord**: [discord.gg/NousResearch](https://discord.gg/NousResearch)
-- **GitHub Discussions**: For design proposals and architecture discussions
-- **Skills Hub**: Upload specialized skills and share with the community
+- **GitHub Discussions**：用于设计提案和架构讨论
+- **技能中心**：上传专业技能并与社区分享
 
-## License
+## 许可证
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](https://github.com/NousResearch/hermes-agent/blob/main/LICENSE).
+通过贡献，你同意你的贡献将在 [MIT 许可证](https://github.com/NousResearch/hermes-agent/blob/main/LICENSE) 下获得许可。

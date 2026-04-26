@@ -1,24 +1,22 @@
-# Optional Skills
+# 可选技能
 
-Official skills maintained by Nous Research that are **not activated by default**.
+由 Nous Research 维护的**默认未激活**的官方技能。
 
-These skills ship with the hermes-agent repository but are not copied to
-`~/.hermes/skills/` during setup. They are discoverable via the Skills Hub:
+这些技能随 hermes-agent 仓库发布，但设置期间不会复制到 `~/.hermes/skills/`。它们可通过技能中心发现：
 
 ```bash
-hermes skills browse               # browse all skills, official shown first
-hermes skills browse --source official  # browse only official optional skills
-hermes skills search <query>       # finds optional skills labeled "official"
-hermes skills install <identifier> # copies to ~/.hermes/skills/ and activates
+hermes skills browse               # 浏览所有技能，官方技能优先显示
+hermes skills browse --source official  # 仅浏览官方可选技能
+hermes skills search <query>       # 查找标记为 "official" 的可选技能
+hermes skills install <identifier> # 复制到 ~/.hermes/skills/ 并激活
 ```
 
-## Why optional?
+## 为什么是可选的？
 
-Some skills are useful but not broadly needed by every user:
+一些技能有用但并非每个用户都需要：
 
-- **Niche integrations** — specific paid services, specialized tools
-- **Experimental features** — promising but not yet proven
-- **Heavyweight dependencies** — require significant setup (API keys, installs)
+- **小众集成**——特定付费服务、专业工具
+- **实验性功能**——有前景但尚未验证
+- **重量级依赖**——需要大量设置（API 密钥、安装）
 
-By keeping them optional, we keep the default skill set lean while still
-providing curated, tested, official skills for users who want them.
+通过保持它们的可选性，我们保持默认技能集精简，同时为需要的用户提供精选的、经过测试的官方技能。

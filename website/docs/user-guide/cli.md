@@ -1,136 +1,136 @@
 ---
 sidebar_position: 1
-title: "CLI Interface"
-description: "Master the Hermes Agent terminal interface — commands, keybindings, personalities, and more"
+title: "命令行界面"
+description: "掌握 Hermes Agent 终端界面——命令、快捷键、个性设置等"
 ---
 
-# CLI Interface
+# 命令行界面
 
-Hermes Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
+Hermes Agent 的命令行界面是一个完整的终端用户界面（TUI）——而非网页界面。它支持多行编辑、斜杠命令自动补全、对话历史、中断与重定向，以及流式工具输出。专为终端用户打造。
 
 :::tip
-Hermes also ships a modern TUI with modal overlays, mouse selection, and non-blocking input. Launch it with `hermes --tui` — see the [TUI](tui.md) guide.
+Hermes 还提供了一个现代 TUI，支持模态覆盖层、鼠标选择和非阻塞输入。使用 `hermes --tui` 启动——参见 [TUI](tui.md) 指南。
 :::
 
-## Running the CLI
+## 运行命令行
 
 ```bash
-# Start an interactive session (default)
+# 启动交互式会话（默认）
 hermes
 
-# Single query mode (non-interactive)
-hermes chat -q "Hello"
+# 单次查询模式（非交互式）
+hermes chat -q "你好"
 
-# With a specific model
+# 使用指定模型
 hermes chat --model "anthropic/claude-sonnet-4"
 
-# With a specific provider
-hermes chat --provider nous        # Use Nous Portal
-hermes chat --provider openrouter  # Force OpenRouter
+# 使用指定提供商
+hermes chat --provider nous        # 使用 Nous Portal
+hermes chat --provider openrouter  # 强制使用 OpenRouter
 
-# With specific toolsets
+# 使用指定工具集
 hermes chat --toolsets "web,terminal,skills"
 
-# Start with one or more skills preloaded
+# 启动时预加载一个或多个技能
 hermes -s hermes-agent-dev,github-auth
-hermes chat -s github-pr-workflow -q "open a draft PR"
+hermes chat -s github-pr-workflow -q "打开一个草稿 PR"
 
-# Resume previous sessions
-hermes --continue             # Resume the most recent CLI session (-c)
-hermes --resume <session_id>  # Resume a specific session by ID (-r)
+# 恢复之前的会话
+hermes --continue             # 恢复最近的 CLI 会话（-c）
+hermes --resume <session_id>  # 按 ID 恢复指定会话（-r）
 
-# Verbose mode (debug output)
+# 详细模式（调试输出）
 hermes chat --verbose
 
-# Isolated git worktree (for running multiple agents in parallel)
-hermes -w                         # Interactive mode in worktree
-hermes -w -q "Fix issue #123"     # Single query in worktree
+# 隔离的 git 工作树（用于并行运行多个代理）
+hermes -w                         # 工作树中的交互模式
+hermes -w -q "修复问题 #123"       # 工作树中的单次查询
 ```
 
-## Interface Layout
+## 界面布局
 
-<img className="docs-terminal-figure" src="/img/docs/cli-layout.svg" alt="Stylized preview of the Hermes CLI layout showing the banner, conversation area, and fixed input prompt." />
-<p className="docs-figure-caption">The Hermes CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
+<img className="docs-terminal-figure" src="/img/docs/cli-layout.svg" alt="Hermes CLI 布局的风格化预览，展示横幅、对话区域和固定输入提示符。" />
+<p className="docs-figure-caption">Hermes CLI 横幅、对话流和固定输入提示符，以稳定的文档图形呈现，而非脆弱的文本艺术。</p>
 
-The welcome banner shows your model, terminal backend, working directory, available tools, and installed skills at a glance.
+欢迎横幅显示你的模型、终端后端、工作目录、可用工具和已安装的技能一览。
 
-### Status Bar
+### 状态栏
 
-A persistent status bar sits above the input area, updating in real time:
+输入区域上方有一个持久状态栏，实时更新：
 
 ```
  ⚕ claude-sonnet-4-20250514 │ 12.4K/200K │ [██████░░░░] 6% │ $0.06 │ 15m
 ```
 
-| Element | Description |
-|---------|-------------|
-| Model name | Current model (truncated if longer than 26 chars) |
-| Token count | Context tokens used / max context window |
-| Context bar | Visual fill indicator with color-coded thresholds |
-| Cost | Estimated session cost (or `n/a` for unknown/zero-priced models) |
-| Duration | Elapsed session time |
+| 元素 | 描述 |
+|------|------|
+| 模型名称 | 当前模型（超过 26 个字符时截断） |
+| 令牌数 | 已用上下文令牌 / 最大上下文窗口 |
+| 上下文条 | 带颜色编码阈值的视觉填充指示器 |
+| 费用 | 预估会话费用（对于未知/零价格模型显示 `n/a`） |
+| 时长 | 会话已用时间 |
 
-The bar adapts to terminal width — full layout at ≥ 76 columns, compact at 52–75, minimal (model + duration only) below 52.
+状态栏会适应终端宽度——≥ 76 列时完整布局，52–75 列时紧凑布局，低于 52 列时最小化（仅模型 + 时长）。
 
-**Context color coding:**
+**上下文颜色编码：**
 
-| Color | Threshold | Meaning |
-|-------|-----------|---------|
-| Green | < 50% | Plenty of room |
-| Yellow | 50–80% | Getting full |
-| Orange | 80–95% | Approaching limit |
-| Red | ≥ 95% | Near overflow — consider `/compress` |
+| 颜色 | 阈值 | 含义 |
+|------|------|------|
+| 绿色 | < 50% | 空间充足 |
+| 黄色 | 50–80% | 逐渐填满 |
+| 橙色 | 80–95% | 接近限制 |
+| 红色 | ≥ 95% | 即将溢出——考虑使用 `/compress` |
 
-Use `/usage` for a detailed breakdown including per-category costs (input vs output tokens).
+使用 `/usage` 查看详细分类费用（输入 vs 输出令牌）。
 
-### Session Resume Display
+### 会话恢复显示
 
-When resuming a previous session (`hermes -c` or `hermes --resume <id>`), a "Previous Conversation" panel appears between the banner and the input prompt, showing a compact recap of the conversation history. See [Sessions — Conversation Recap on Resume](sessions.md#conversation-recap-on-resume) for details and configuration.
+恢复之前的会话时（`hermes -c` 或 `hermes --resume <id>`），横幅和输入提示符之间会出现"上一次对话"面板，显示对话历史的紧凑摘要。详见[会话——恢复时的对话回顾](sessions.md#conversation-recap-on-resume)。
 
-## Keybindings
+## 快捷键
 
-| Key | Action |
-|-----|--------|
-| `Enter` | Send message |
-| `Alt+Enter` or `Ctrl+J` | New line (multi-line input) |
-| `Alt+V` | Paste an image from the clipboard when supported by the terminal |
-| `Ctrl+V` | Paste text and opportunistically attach clipboard images |
-| `Ctrl+B` | Start/stop voice recording when voice mode is enabled (`voice.record_key`, default: `ctrl+b`) |
-| `Ctrl+C` | Interrupt agent (double-press within 2s to force exit) |
-| `Ctrl+D` | Exit |
-| `Ctrl+Z` | Suspend Hermes to background (Unix only). Run `fg` in the shell to resume. |
-| `Tab` | Accept auto-suggestion (ghost text) or autocomplete slash commands |
+| 按键 | 操作 |
+|------|------|
+| `Enter` | 发送消息 |
+| `Alt+Enter` 或 `Ctrl+J` | 换行（多行输入） |
+| `Alt+V` | 在终端支持时从剪贴板粘贴图片 |
+| `Ctrl+V` | 粘贴文本并附带剪贴板图片 |
+| `Ctrl+B` | 启用语音模式时开始/停止录音（`voice.record_key`，默认：`ctrl+b`） |
+| `Ctrl+C` | 中断代理（2 秒内按两次强制退出） |
+| `Ctrl+D` | 退出 |
+| `Ctrl+Z` | 将 Hermes 挂起到后台（仅 Unix）。在 shell 中运行 `fg` 恢复。 |
+| `Tab` | 接受自动建议（幽灵文本）或自动补全斜杠命令 |
 
-## Slash Commands
+## 斜杠命令
 
-Type `/` to see the autocomplete dropdown. Hermes supports a large set of CLI slash commands, dynamic skill commands, and user-defined quick commands.
+输入 `/` 查看自动补全下拉菜单。Hermes 支持大量 CLI 斜杠命令、动态技能命令和用户自定义快捷命令。
 
-Common examples:
+常见示例：
 
-| Command | Description |
-|---------|-------------|
-| `/help` | Show command help |
-| `/model` | Show or change the current model |
-| `/tools` | List currently available tools |
-| `/skills browse` | Browse the skills hub and official optional skills |
-| `/background <prompt>` | Run a prompt in a separate background session |
-| `/skin` | Show or switch the active CLI skin |
-| `/voice on` | Enable CLI voice mode (press `Ctrl+B` to record) |
-| `/voice tts` | Toggle spoken playback for Hermes replies |
-| `/reasoning high` | Increase reasoning effort |
-| `/title My Session` | Name the current session |
+| 命令 | 描述 |
+|------|------|
+| `/help` | 显示命令帮助 |
+| `/model` | 显示或更改当前模型 |
+| `/tools` | 列出当前可用工具 |
+| `/skills browse` | 浏览技能中心和官方可选技能 |
+| `/background <prompt>` | 在单独的后台会话中运行提示 |
+| `/skin` | 显示或切换活动 CLI 皮肤 |
+| `/voice on` | 启用 CLI 语音模式（按 `Ctrl+B` 录音） |
+| `/voice tts` | 切换 Hermes 回复的语音播放 |
+| `/reasoning high` | 增加推理力度 |
+| `/title 我的会话` | 命名当前会话 |
 
-For the full built-in CLI and messaging lists, see [Slash Commands Reference](../reference/slash-commands.md).
+完整的内置 CLI 和消息列表，请参见[斜杠命令参考](../reference/slash-commands.md)。
 
-For setup, providers, silence tuning, and messaging/Discord voice usage, see [Voice Mode](features/voice-mode.md).
+设置、提供商、静默调优和消息/Discord 语音使用，请参见[语音模式](features/voice-mode.md)。
 
 :::tip
-Commands are case-insensitive — `/HELP` works the same as `/help`. Installed skills also become slash commands automatically.
+命令不区分大小写——`/HELP` 和 `/help` 效果相同。已安装的技能也会自动成为斜杠命令。
 :::
 
-## Quick Commands
+## 快捷命令
 
-You can define custom commands that run shell commands instantly without invoking the LLM. These work in both the CLI and messaging platforms (Telegram, Discord, etc.).
+你可以定义自定义命令来立即运行 shell 命令，无需调用 LLM。这些命令在 CLI 和消息平台（Telegram、Discord 等）中均可使用。
 
 ```yaml
 # ~/.hermes/config.yaml
@@ -143,35 +143,35 @@ quick_commands:
     command: nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader
 ```
 
-Then type `/status` or `/gpu` in any chat. See the [Configuration guide](/docs/user-guide/configuration#quick-commands) for more examples.
+然后在任何聊天中输入 `/status` 或 `/gpu`。更多示例请参见[配置指南](/docs/user-guide/configuration#quick-commands)。
 
-## Preloading Skills at Launch
+## 启动时预加载技能
 
-If you already know which skills you want active for the session, pass them at launch time:
+如果你已经知道要在会话中激活哪些技能，可以在启动时传入：
 
 ```bash
 hermes -s hermes-agent-dev,github-auth
 hermes chat -s github-pr-workflow -s github-auth
 ```
 
-Hermes loads each named skill into the session prompt before the first turn. The same flag works in interactive mode and single-query mode.
+Hermes 会在第一轮之前将每个命名的技能加载到会话提示中。相同的标志在交互模式和单次查询模式中均有效。
 
-## Skill Slash Commands
+## 技能斜杠命令
 
-Every installed skill in `~/.hermes/skills/` is automatically registered as a slash command. The skill name becomes the command:
+`~/.hermes/skills/` 中每个已安装的技能都会自动注册为斜杠命令。技能名称即为命令：
 
 ```
-/gif-search funny cats
-/axolotl help me fine-tune Llama 3 on my dataset
-/github-pr-workflow create a PR for the auth refactor
+/gif-search 搞笑猫咪
+/axolotl 帮我在我的数据集上微调 Llama 3
+/github-pr-workflow 为认证重构创建 PR
 
-# Just the skill name loads it and lets the agent ask what you need:
+# 仅输入技能名称会加载它并让代理询问你需要什么：
 /excalidraw
 ```
 
-## Personalities
+## 个性设置
 
-Set a predefined personality to change the agent's tone:
+设置预定义个性以更改代理的语气：
 
 ```
 /personality pirate
@@ -179,62 +179,62 @@ Set a predefined personality to change the agent's tone:
 /personality concise
 ```
 
-Built-in personalities include: `helpful`, `concise`, `technical`, `creative`, `teacher`, `kawaii`, `catgirl`, `pirate`, `shakespeare`, `surfer`, `noir`, `uwu`, `philosopher`, `hype`.
+内置个性包括：`helpful`、`concise`、`technical`、`creative`、`teacher`、`kawaii`、`catgirl`、`pirate`、`shakespeare`、`surfer`、`noir`、`uwu`、`philosopher`、`hype`。
 
-You can also define custom personalities in `~/.hermes/config.yaml`:
+你也可以在 `~/.hermes/config.yaml` 中定义自定义个性：
 
 ```yaml
 personalities:
-  helpful: "You are a helpful, friendly AI assistant."
-  kawaii: "You are a kawaii assistant! Use cute expressions..."
-  pirate: "Arrr! Ye be talkin' to Captain Hermes..."
-  # Add your own!
+  helpful: "你是一个乐于助人、友好的 AI 助手。"
+  kawaii: "你是一个可爱的助手！使用可爱的表达方式..."
+  pirate: "啊！你正在和 Hermes 船长说话..."
+  # 添加你自己的！
 ```
 
-## Multi-line Input
+## 多行输入
 
-There are two ways to enter multi-line messages:
+有两种方式输入多行消息：
 
-1. **`Alt+Enter` or `Ctrl+J`** — inserts a new line
-2. **Backslash continuation** — end a line with `\` to continue:
+1. **`Alt+Enter` 或 `Ctrl+J`** —— 插入新行
+2. **反斜杠续行** —— 以 `\` 结尾继续下一行：
 
 ```
-❯ Write a function that:\
-  1. Takes a list of numbers\
-  2. Returns the sum
+❯ 编写一个函数：\
+  1. 接受一个数字列表\
+  2. 返回总和
 ```
 
 :::info
-Pasting multi-line text is supported — use `Alt+Enter` or `Ctrl+J` to insert newlines, or simply paste content directly.
+支持粘贴多行文本——使用 `Alt+Enter` 或 `Ctrl+J` 插入换行符，或直接粘贴内容。
 :::
 
-## Interrupting the Agent
+## 中断代理
 
-You can interrupt the agent at any point:
+你可以在任何时候中断代理：
 
-- **Type a new message + Enter** while the agent is working — it interrupts and processes your new instructions
-- **`Ctrl+C`** — interrupt the current operation (press twice within 2s to force exit)
-- In-progress terminal commands are killed immediately (SIGTERM, then SIGKILL after 1s)
-- Multiple messages typed during interrupt are combined into one prompt
+- **输入新消息 + Enter** 当代理正在工作时——它会中断并处理你的新指令
+- **`Ctrl+C`** —— 中断当前操作（2 秒内按两次强制退出）
+- 进行中的终端命令会立即终止（SIGTERM，1 秒后 SIGKILL）
+- 中断期间输入的多条消息会被合并为一个提示
 
-### Busy Input Mode
+### 繁忙输入模式
 
-The `display.busy_input_mode` config key controls what happens when you press Enter while the agent is working:
+`display.busy_input_mode` 配置项控制当代理正在工作时你按 Enter 会发生什么：
 
-| Mode | Behavior |
-|------|----------|
-| `"interrupt"` (default) | Your message interrupts the current operation and is processed immediately |
-| `"queue"` | Your message is silently queued and sent as the next turn after the agent finishes |
+| 模式 | 行为 |
+|------|------|
+| `"interrupt"`（默认） | 你的消息中断当前操作并立即处理 |
+| `"queue"` | 你的消息被静默排队，代理完成后作为下一轮发送 |
 
 ```yaml
 # ~/.hermes/config.yaml
 display:
-  busy_input_mode: "queue"   # or "interrupt" (default)
+  busy_input_mode: "queue"   # 或 "interrupt"（默认）
 ```
 
-Queue mode is useful when you want to prepare follow-up messages without accidentally canceling in-flight work. Unknown values fall back to `"interrupt"`.
+队列模式适用于你想准备后续消息而不小心取消正在进行的工作时。未知值会回退到 `"interrupt"`。
 
-You can also change it inside the CLI:
+你也可以在 CLI 内更改：
 
 ```text
 /busy queue
@@ -242,164 +242,164 @@ You can also change it inside the CLI:
 /busy status
 ```
 
-### Suspending to Background
+### 挂起到后台
 
-On Unix systems, press **`Ctrl+Z`** to suspend Hermes to the background — just like any terminal process. The shell prints a confirmation:
+在 Unix 系统上，按 **`Ctrl+Z`** 将 Hermes 挂起到后台——就像任何终端进程一样。Shell 会打印确认信息：
 
 ```
-Hermes Agent has been suspended. Run `fg` to bring Hermes Agent back.
+Hermes Agent 已被挂起。运行 `fg` 恢复 Hermes Agent。
 ```
 
-Type `fg` in your shell to resume the session exactly where you left off. This is not supported on Windows.
+在 shell 中输入 `fg` 即可恢复会话到中断前的状态。Windows 不支持此功能。
 
-## Tool Progress Display
+## 工具进度显示
 
-The CLI shows animated feedback as the agent works:
+CLI 在代理工作时显示动画反馈：
 
-**Thinking animation** (during API calls):
+**思考动画**（API 调用期间）：
 ```
-  ◜ (｡•́︿•̀｡) pondering... (1.2s)
-  ◠ (⊙_⊙) contemplating... (2.4s)
-  ✧٩(ˊᗜˋ*)و✧ got it! (3.1s)
+  ◜ (｡•́︿•̀｡) 思考中... (1.2s)
+  ◠ (⊙_⊙) 分析中... (2.4s)
+  ✧٩(ˊᗜˋ*)و✧ 明白了！(3.1s)
 ```
 
-**Tool execution feed:**
+**工具执行反馈：**
 ```
   ┊ 💻 terminal `ls -la` (0.3s)
   ┊ 🔍 web_search (1.2s)
   ┊ 📄 web_extract (2.1s)
 ```
 
-Cycle through display modes with `/verbose`: `off → new → all → verbose`. This command can also be enabled for messaging platforms — see [configuration](/docs/user-guide/configuration#display-settings).
+使用 `/verbose` 切换显示模式：`off → new → all → verbose`。此命令也可在消息平台上启用——参见[配置](/docs/user-guide/configuration#display-settings)。
 
-### Tool Preview Length
+### 工具预览长度
 
-The `display.tool_preview_length` config key controls the maximum number of characters shown in tool call preview lines (e.g. file paths, terminal commands). The default is `0`, which means no limit — full paths and commands are shown.
+`display.tool_preview_length` 配置项控制工具调用预览行中显示的最大字符数（例如文件路径、终端命令）。默认为 `0`，表示无限制——显示完整路径和命令。
 
 ```yaml
 # ~/.hermes/config.yaml
 display:
-  tool_preview_length: 80   # Truncate tool previews to 80 chars (0 = no limit)
+  tool_preview_length: 80   # 将工具预览截断为 80 个字符（0 = 无限制）
 ```
 
-This is useful on narrow terminals or when tool arguments contain very long file paths.
+这在窄终端或工具参数包含很长的文件路径时很有用。
 
-## Session Management
+## 会话管理
 
-### Resuming Sessions
+### 恢复会话
 
-When you exit a CLI session, a resume command is printed:
+退出 CLI 会话时，会打印恢复命令：
 
 ```
-Resume this session with:
+使用以下命令恢复此会话：
   hermes --resume 20260225_143052_a1b2c3
 
-Session:        20260225_143052_a1b2c3
-Duration:       12m 34s
-Messages:       28 (5 user, 18 tool calls)
+会话：        20260225_143052_a1b2c3
+时长：        12m 34s
+消息数：      28（5 条用户消息，18 次工具调用）
 ```
 
-Resume options:
+恢复选项：
 
 ```bash
-hermes --continue                          # Resume the most recent CLI session
-hermes -c                                  # Short form
-hermes -c "my project"                     # Resume a named session (latest in lineage)
-hermes --resume 20260225_143052_a1b2c3     # Resume a specific session by ID
-hermes --resume "refactoring auth"         # Resume by title
-hermes -r 20260225_143052_a1b2c3           # Short form
+hermes --continue                          # 恢复最近的 CLI 会话
+hermes -c                                  # 简写形式
+hermes -c "我的项目"                        # 恢复命名会话（谱系中最新的）
+hermes --resume 20260225_143052_a1b2c3     # 按 ID 恢复指定会话
+hermes --resume "重构认证"                  # 按标题恢复
+hermes -r 20260225_143052_a1b2c3           # 简写形式
 ```
 
-Resuming restores the full conversation history from SQLite. The agent sees all previous messages, tool calls, and responses — just as if you never left.
+恢复会从 SQLite 加载完整的对话历史。代理会看到所有之前的消息、工具调用和响应——就像你从未离开过一样。
 
-Use `/title My Session Name` inside a chat to name the current session, or `hermes sessions rename <id> <title>` from the command line. Use `hermes sessions list` to browse past sessions.
+在聊天中使用 `/title 我的会话名称` 命名当前会话，或在命令行使用 `hermes sessions rename <id> <title>`。使用 `hermes sessions list` 浏览过去的会话。
 
-### Session Storage
+### 会话存储
 
-CLI sessions are stored in Hermes's SQLite state database under `~/.hermes/state.db`. The database keeps:
+CLI 会话存储在 Hermes 的 SQLite 状态数据库中，位于 `~/.hermes/state.db`。数据库保存：
 
-- session metadata (ID, title, timestamps, token counters)
-- message history
-- lineage across compressed/resumed sessions
-- full-text search indexes used by `session_search`
+- 会话元数据（ID、标题、时间戳、令牌计数器）
+- 消息历史
+- 压缩/恢复会话之间的谱系
+- `session_search` 使用的全文搜索索引
 
-Some messaging adapters also keep per-platform transcript files alongside the database, but the CLI itself resumes from the SQLite session store.
+一些消息适配器也会在数据库旁边保存每个平台的转录文件，但 CLI 本身从 SQLite 会话存储中恢复。
 
-### Context Compression
+### 上下文压缩
 
-Long conversations are automatically summarized when approaching context limits:
+长对话在接近上下文限制时会自动总结：
 
 ```yaml
-# In ~/.hermes/config.yaml
+# 在 ~/.hermes/config.yaml 中
 compression:
   enabled: true
-  threshold: 0.50    # Compress at 50% of context limit by default
+  threshold: 0.50    # 默认在上下文限制的 50% 时压缩
 
-# Summarization model configured under auxiliary:
+# 摘要模型在 auxiliary 下配置：
 auxiliary:
   compression:
-    model: "google/gemini-3-flash-preview"  # Model used for summarization
+    model: "google/gemini-3-flash-preview"  # 用于摘要的模型
 ```
 
-When compression triggers, middle turns are summarized while the first 3 and last 4 turns are always preserved.
+当压缩触发时，中间轮次会被总结，而前 3 轮和后 4 轮始终保留。
 
-## Background Sessions
+## 后台会话
 
-Run a prompt in a separate background session while continuing to use the CLI for other work:
-
-```
-/background Analyze the logs in /var/log and summarize any errors from today
-```
-
-Hermes immediately confirms the task and gives you back the prompt:
+在单独的后台会话中运行提示，同时继续使用 CLI 处理其他工作：
 
 ```
-🔄 Background task #1 started: "Analyze the logs in /var/log and summarize..."
-   Task ID: bg_143022_a1b2c3
+/background 分析 /var/log 中的日志并总结今天的任何错误
 ```
 
-### How It Works
-
-Each `/background` prompt spawns a **completely separate agent session** in a daemon thread:
-
-- **Isolated conversation** — the background agent has no knowledge of your current session's history. It receives only the prompt you provide.
-- **Same configuration** — the background agent inherits your model, provider, toolsets, reasoning settings, and fallback model from the current session.
-- **Non-blocking** — your foreground session stays fully interactive. You can chat, run commands, or even start more background tasks.
-- **Multiple tasks** — you can run several background tasks simultaneously. Each gets a numbered ID.
-
-### Results
-
-When a background task finishes, the result appears as a panel in your terminal:
+Hermes 立即确认任务并返回提示：
 
 ```
-╭─ ⚕ Hermes (background #1) ──────────────────────────────────╮
-│ Found 3 errors in syslog from today:                         │
-│ 1. OOM killer invoked at 03:22 — killed process nginx        │
-│ 2. Disk I/O error on /dev/sda1 at 07:15                      │
-│ 3. Failed SSH login attempts from 192.168.1.50 at 14:30      │
+🔄 后台任务 #1 已启动："分析 /var/log 中的日志并总结..."
+   任务 ID：bg_143022_a1b2c3
+```
+
+### 工作原理
+
+每个 `/background` 提示都会在一个守护线程中生成一个**完全独立的代理会话**：
+
+- **隔离的对话** —— 后台代理对当前会话的历史一无所知。它只接收你提供的提示。
+- **相同的配置** —— 后台代理继承当前会话的模型、提供商、工具集、推理设置和回退模型。
+- **非阻塞** —— 你的前台会话保持完全交互。你可以聊天、运行命令，甚至启动更多后台任务。
+- **多任务** —— 你可以同时运行多个后台任务。每个任务都有一个编号 ID。
+
+### 结果
+
+当后台任务完成时，结果会以面板形式出现在终端中：
+
+```
+╭─ ⚕ Hermes（后台 #1）──────────────────────────────────────╮
+│ 今天在 syslog 中发现 3 个错误：                              │
+│ 1. 03:22 调用了 OOM killer——终止了进程 nginx                 │
+│ 2. 07:15 /dev/sda1 上磁盘 I/O 错误                          │
+│ 3. 14:30 来自 192.168.1.50 的 SSH 登录尝试失败               │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-If the task fails, you'll see an error notification instead. If `display.bell_on_complete` is enabled in your config, the terminal bell rings when the task finishes.
+如果任务失败，你会看到错误通知。如果配置中启用了 `display.bell_on_complete`，任务完成时终端铃声会响。
 
-### Use Cases
+### 使用场景
 
-- **Long-running research** — "/background research the latest developments in quantum error correction" while you work on code
-- **File processing** — "/background analyze all Python files in this repo and list any security issues" while you continue a conversation
-- **Parallel investigations** — start multiple background tasks to explore different angles simultaneously
+- **长时间研究** —— "/background 研究量子纠错的最新进展"同时你继续编写代码
+- **文件处理** —— "/background 分析此仓库中的所有 Python 文件并列出任何安全问题"同时你继续对话
+- **并行调查** —— 启动多个后台任务同时探索不同方向
 
 :::info
-Background sessions do not appear in your main conversation history. They are standalone sessions with their own task ID (e.g., `bg_143022_a1b2c3`).
+后台会话不会出现在主对话历史中。它们是独立的会话，有自己的任务 ID（例如 `bg_143022_a1b2c3`）。
 :::
 
-## Quiet Mode
+## 安静模式
 
-By default, the CLI runs in quiet mode which:
-- Suppresses verbose logging from tools
-- Enables kawaii-style animated feedback
-- Keeps output clean and user-friendly
+默认情况下，CLI 在安静模式下运行，该模式：
+- 抑制工具的详细日志
+- 启用可爱风格的动画反馈
+- 保持输出简洁友好
 
-For debug output:
+获取调试输出：
 ```bash
 hermes chat --verbose
 ```

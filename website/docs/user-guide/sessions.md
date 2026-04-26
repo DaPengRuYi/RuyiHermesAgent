@@ -1,421 +1,421 @@
 ---
 sidebar_position: 7
-title: "Sessions"
-description: "Session persistence, resume, search, management, and per-platform session tracking"
+title: "会话"
+description: "会话持久化、恢复、搜索、管理和每平台会话跟踪"
 ---
 
-# Sessions
+# 会话
 
-Hermes Agent automatically saves every conversation as a session. Sessions enable conversation resume, cross-session search, and full conversation history management.
+Hermes Agent 自动将每个对话保存为会话。会话支持对话恢复、跨会话搜索和完整的对话历史管理。
 
-## How Sessions Work
+## 会话的工作原理
 
-Every conversation — whether from the CLI, Telegram, Discord, Slack, WhatsApp, Signal, Matrix, or any other messaging platform — is stored as a session with full message history. Sessions are tracked in two complementary systems:
+每个对话——无论来自 CLI、Telegram、Discord、Slack、WhatsApp、Signal、Matrix 还是任何其他消息平台——都作为带有完整消息历史的会话存储。会话在两个互补的系统中跟踪：
 
-1. **SQLite database** (`~/.hermes/state.db`) — structured session metadata with FTS5 full-text search
-2. **JSONL transcripts** (`~/.hermes/sessions/`) — raw conversation transcripts including tool calls (gateway)
+1. **SQLite 数据库**（`~/.hermes/state.db`）——具有 FTS5 全文搜索的结构化会话元数据
+2. **JSONL 转录**（`~/.hermes/sessions/`）——包括工具调用的原始对话转录（网关）
 
-The SQLite database stores:
-- Session ID, source platform, user ID
-- **Session title** (unique, human-readable name)
-- Model name and configuration
-- System prompt snapshot
-- Full message history (role, content, tool calls, tool results)
-- Token counts (input/output)
-- Timestamps (started_at, ended_at)
-- Parent session ID (for compression-triggered session splitting)
+SQLite 数据库存储：
+- 会话 ID、来源平台、用户 ID
+- **会话标题**（唯一、人类可读的名称）
+- 模型名称和配置
+- 系统提示快照
+- 完整消息历史（角色、内容、工具调用、工具结果）
+- 令牌计数（输入/输出）
+- 时间戳（started_at、ended_at）
+- 父会话 ID（用于压缩触发的会话拆分）
 
-### Session Sources
+### 会话来源
 
-Each session is tagged with its source platform:
+每个会话都标记有其来源平台：
 
-| Source | Description |
-|--------|-------------|
-| `cli` | Interactive CLI (`hermes` or `hermes chat`) |
-| `telegram` | Telegram messenger |
-| `discord` | Discord server/DM |
-| `slack` | Slack workspace |
-| `whatsapp` | WhatsApp messenger |
-| `signal` | Signal messenger |
-| `matrix` | Matrix rooms and DMs |
-| `mattermost` | Mattermost channels |
-| `email` | Email (IMAP/SMTP) |
-| `sms` | SMS via Twilio |
-| `dingtalk` | DingTalk messenger |
-| `feishu` | Feishu/Lark messenger |
-| `wecom` | WeCom (WeChat Work) |
-| `weixin` | Weixin (personal WeChat) |
-| `bluebubbles` | Apple iMessage via BlueBubbles macOS server |
-| `qqbot` | QQ Bot (Tencent QQ) via Official API v2 |
-| `homeassistant` | Home Assistant conversation |
-| `webhook` | Incoming webhooks |
-| `api-server` | API server requests |
-| `acp` | ACP editor integration |
-| `cron` | Scheduled cron jobs |
-| `batch` | Batch processing runs |
+| 来源 | 描述 |
+|------|------|
+| `cli` | 交互式 CLI（`hermes` 或 `hermes chat`） |
+| `telegram` | Telegram 消息 |
+| `discord` | Discord 服务器/DM |
+| `slack` | Slack 工作区 |
+| `whatsapp` | WhatsApp 消息 |
+| `signal` | Signal 消息 |
+| `matrix` | Matrix 房间和 DM |
+| `mattermost` | Mattermost 频道 |
+| `email` | 电子邮件（IMAP/SMTP） |
+| `sms` | 通过 Twilio 的短信 |
+| `dingtalk` | 钉钉消息 |
+| `feishu` | 飞书消息 |
+| `wecom` | 企业微信 |
+| `weixin` | 微信（个人） |
+| `bluebubbles` | 通过 BlueBubbles macOS 服务器的 Apple iMessage |
+| `qqbot` | QQ 机器人（腾讯 QQ）通过官方 API v2 |
+| `homeassistant` | Home Assistant 对话 |
+| `webhook` | 传入 Webhook |
+| `api-server` | API 服务器请求 |
+| `acp` | ACP 编辑器集成 |
+| `cron` | 定时任务 |
+| `batch` | 批处理运行 |
 
-## CLI Session Resume
+## CLI 会话恢复
 
-Resume previous conversations from the CLI using `--continue` or `--resume`:
+使用 `--continue` 或 `--resume` 从 CLI 恢复之前的对话：
 
-### Continue Last Session
+### 继续上次会话
 
 ```bash
-# Resume the most recent CLI session
+# 恢复最近的 CLI 会话
 hermes --continue
 hermes -c
 
-# Or with the chat subcommand
+# 或使用 chat 子命令
 hermes chat --continue
 hermes chat -c
 ```
 
-This looks up the most recent `cli` session from the SQLite database and loads its full conversation history.
+这会从 SQLite 数据库中查找最近的 `cli` 会话并加载其完整对话历史。
 
-### Resume by Name
+### 按名称恢复
 
-If you've given a session a title (see [Session Naming](#session-naming) below), you can resume it by name:
+如果你给会话起了标题（参见下面的[会话命名](#会话命名)），可以按名称恢复：
 
 ```bash
-# Resume a named session
-hermes -c "my project"
+# 恢复命名会话
+hermes -c "我的项目"
 
-# If there are lineage variants (my project, my project #2, my project #3),
-# this automatically resumes the most recent one
-hermes -c "my project"   # → resumes "my project #3"
+# 如果有谱系变体（我的项目、我的项目 #2、我的项目 #3），
+# 这会自动恢复最新的一个
+hermes -c "我的项目"   # → 恢复 "我的项目 #3"
 ```
 
-### Resume Specific Session
+### 恢复特定会话
 
 ```bash
-# Resume a specific session by ID
+# 按 ID 恢复特定会话
 hermes --resume 20250305_091523_a1b2c3d4
 hermes -r 20250305_091523_a1b2c3d4
 
-# Resume by title
-hermes --resume "refactoring auth"
+# 按标题恢复
+hermes --resume "重构认证"
 
-# Or with the chat subcommand
+# 或使用 chat 子命令
 hermes chat --resume 20250305_091523_a1b2c3d4
 ```
 
-Session IDs are shown when you exit a CLI session, and can be found with `hermes sessions list`.
+会话 ID 在你退出 CLI 会话时显示，也可以通过 `hermes sessions list` 找到。
 
-### Conversation Recap on Resume
+### 恢复时的对话回顾
 
-When you resume a session, Hermes displays a compact recap of the previous conversation in a styled panel before the input prompt:
+恢复会话时，Hermes 在输入提示之前以样式面板显示之前对话的紧凑回顾：
 
-<img className="docs-terminal-figure" src="/img/docs/session-recap.svg" alt="Stylized preview of the Previous Conversation recap panel shown when resuming a Hermes session." />
-<p className="docs-figure-caption">Resume mode shows a compact recap panel with recent user and assistant turns before returning you to the live prompt.</p>
+<img className="docs-terminal-figure" src="/img/docs/session-recap.svg" alt="恢复 Hermes 会话时显示的上一次对话回顾面板的风格化预览。" />
+<p className="docs-figure-caption">恢复模式显示一个紧凑的回顾面板，在返回活动提示之前显示最近的用户和助手轮次。</p>
 
-The recap:
-- Shows **user messages** (gold `●`) and **assistant responses** (green `◆`)
-- **Truncates** long messages (300 chars for user, 200 chars / 3 lines for assistant)
-- **Collapses tool calls** to a count with tool names (e.g., `[3 tool calls: terminal, web_search]`)
-- **Hides** system messages, tool results, and internal reasoning
-- **Caps** at the last 10 exchanges with a "... N earlier messages ..." indicator
-- Uses **dim styling** to distinguish from the active conversation
+回顾：
+- 显示**用户消息**（金色 `●`）和**助手响应**（绿色 `◆`）
+- **截断**长消息（用户 300 字符，助手 200 字符 / 3 行）
+- **折叠工具调用**为计数和工具名称（例如 `[3 tool calls: terminal, web_search]`）
+- **隐藏**系统消息、工具结果和内部推理
+- **限制**最后 10 次交换，带有"... N 条更早消息..."指示器
+- 使用**暗淡样式**以区分于活动对话
 
-To disable the recap and keep the minimal one-liner behavior, set in `~/.hermes/config.yaml`:
+要禁用回顾并保持最小单行行为，在 `~/.hermes/config.yaml` 中设置：
 
 ```yaml
 display:
-  resume_display: minimal   # default: full
+  resume_display: minimal   # 默认：full
 ```
 
 :::tip
-Session IDs follow the format `YYYYMMDD_HHMMSS_<8-char-hex>`, e.g. `20250305_091523_a1b2c3d4`. You can resume by ID or by title — both work with `-c` and `-r`.
+会话 ID 遵循格式 `YYYYMMDD_HHMMSS_<8-char-hex>`，例如 `20250305_091523_a1b2c3d4`。你可以按 ID 或标题恢复——两者都适用于 `-c` 和 `-r`。
 :::
 
-## Session Naming
+## 会话命名
 
-Give sessions human-readable titles so you can find and resume them easily.
+给会话起人类可读的标题，以便轻松查找和恢复。
 
-### Auto-Generated Titles
+### 自动生成标题
 
-Hermes automatically generates a short descriptive title (3–7 words) for each session after the first exchange. This runs in a background thread using a fast auxiliary model, so it adds no latency. You'll see auto-generated titles when browsing sessions with `hermes sessions list` or `hermes sessions browse`.
+Hermes 在第一次交换后自动为每个会话生成一个简短描述性标题（3–7 个词）。这在后台线程中使用快速辅助模型运行，因此不会增加延迟。当你使用 `hermes sessions list` 或 `hermes sessions browse` 浏览会话时，会看到自动生成的标题。
 
-Auto-titling only fires once per session and is skipped if you've already set a title manually.
+自动标题每个会话仅触发一次，如果你已手动设置标题则跳过。
 
-### Setting a Title Manually
+### 手动设置标题
 
-Use the `/title` slash command inside any chat session (CLI or gateway):
+在任何聊天会话（CLI 或网关）中使用 `/title` 斜杠命令：
 
 ```
-/title my research project
+/title 我的研究项目
 ```
 
-The title is applied immediately. If the session hasn't been created in the database yet (e.g., you run `/title` before sending your first message), it's queued and applied once the session starts.
+标题立即应用。如果会话尚未在数据库中创建（例如，你在发送第一条消息前运行 `/title`），它会被排队并在会话开始后应用。
 
-You can also rename existing sessions from the command line:
+你也可以从命令行重命名现有会话：
 
 ```bash
-hermes sessions rename 20250305_091523_a1b2c3d4 "refactoring auth module"
+hermes sessions rename 20250305_091523_a1b2c3d4 "重构认证模块"
 ```
 
-### Title Rules
+### 标题规则
 
-- **Unique** — no two sessions can share the same title
-- **Max 100 characters** — keeps listing output clean
-- **Sanitized** — control characters, zero-width chars, and RTL overrides are stripped automatically
-- **Normal Unicode is fine** — emoji, CJK, accented characters all work
+- **唯一** —— 两个会话不能共享相同的标题
+- **最多 100 个字符** —— 保持列表输出整洁
+- **已清理** —— 控制字符、零宽字符和 RTL 覆盖会自动剥离
+- **正常 Unicode 可以** —— 表情符号、CJK、带重音字符都可以
 
-### Auto-Lineage on Compression
+### 压缩时自动谱系
 
-When a session's context is compressed (manually via `/compress` or automatically), Hermes creates a new continuation session. If the original had a title, the new session automatically gets a numbered title:
+当会话的上下文被压缩（手动通过 `/compress` 或自动）时，Hermes 创建一个新的延续会话。如果原始会话有标题，新会话自动获得编号标题：
 
 ```
-"my project" → "my project #2" → "my project #3"
+"我的项目" → "我的项目 #2" → "我的项目 #3"
 ```
 
-When you resume by name (`hermes -c "my project"`), it automatically picks the most recent session in the lineage.
+当你按名称恢复时（`hermes -c "我的项目"`），它自动选择谱系中最新的会话。
 
-### /title in Messaging Platforms
+### 消息平台中的 /title
 
-The `/title` command works in all gateway platforms (Telegram, Discord, Slack, WhatsApp):
+`/title` 命令在所有网关平台（Telegram、Discord、Slack、WhatsApp）中有效：
 
-- `/title My Research` — set the session title
-- `/title` — show the current title
+- `/title 我的研究` —— 设置会话标题
+- `/title` —— 显示当前标题
 
-## Session Management Commands
+## 会话管理命令
 
-Hermes provides a full set of session management commands via `hermes sessions`:
+Hermes 通过 `hermes sessions` 提供完整的会话管理命令集：
 
-### List Sessions
+### 列出会话
 
 ```bash
-# List recent sessions (default: last 20)
+# 列出最近的会话（默认：最近 20 个）
 hermes sessions list
 
-# Filter by platform
+# 按平台过滤
 hermes sessions list --source telegram
 
-# Show more sessions
+# 显示更多会话
 hermes sessions list --limit 50
 ```
 
-When sessions have titles, the output shows titles, previews, and relative timestamps:
+当会话有标题时，输出显示标题、预览和相对时间戳：
 
 ```
-Title                  Preview                                  Last Active   ID
+标题                  预览                                       最后活动      ID
 ────────────────────────────────────────────────────────────────────────────────────────────────
-refactoring auth       Help me refactor the auth module please   2h ago        20250305_091523_a
-my project #3          Can you check the test failures?          yesterday     20250304_143022_e
-—                      What's the weather in Las Vegas?          3d ago        20250303_101500_f
+重构认证              帮我重构认证模块                              2 小时前      20250305_091523_a
+我的项目 #3           你能检查测试失败吗？                          昨天          20250304_143022_e
+—                     拉斯维加斯的天气怎么样？                      3 天前        20250303_101500_f
 ```
 
-When no sessions have titles, a simpler format is used:
+当没有会话有标题时，使用更简单的格式：
 
 ```
-Preview                                            Last Active   Src    ID
+预览                                              最后活动      来源    ID
 ──────────────────────────────────────────────────────────────────────────────────────
-Help me refactor the auth module please             2h ago        cli    20250305_091523_a
-What's the weather in Las Vegas?                    3d ago        tele   20250303_101500_f
+帮我重构认证模块                                    2 小时前      cli    20250305_091523_a
+拉斯维加斯的天气怎么样？                              3 天前        tele   20250303_101500_f
 ```
 
-### Export Sessions
+### 导出会话
 
 ```bash
-# Export all sessions to a JSONL file
+# 将所有会话导出到 JSONL 文件
 hermes sessions export backup.jsonl
 
-# Export sessions from a specific platform
+# 导出特定平台的会话
 hermes sessions export telegram-history.jsonl --source telegram
 
-# Export a single session
+# 导出单个会话
 hermes sessions export session.jsonl --session-id 20250305_091523_a1b2c3d4
 ```
 
-Exported files contain one JSON object per line with full session metadata and all messages.
+导出的文件每行包含一个 JSON 对象，带有完整的会话元数据和所有消息。
 
-### Delete a Session
+### 删除会话
 
 ```bash
-# Delete a specific session (with confirmation)
+# 删除特定会话（带确认）
 hermes sessions delete 20250305_091523_a1b2c3d4
 
-# Delete without confirmation
+# 不确认删除
 hermes sessions delete 20250305_091523_a1b2c3d4 --yes
 ```
 
-### Rename a Session
+### 重命名会话
 
 ```bash
-# Set or change a session's title
-hermes sessions rename 20250305_091523_a1b2c3d4 "debugging auth flow"
+# 设置或更改会话标题
+hermes sessions rename 20250305_091523_a1b2c3d4 "调试认证流程"
 
-# Multi-word titles don't need quotes in the CLI
-hermes sessions rename 20250305_091523_a1b2c3d4 debugging auth flow
+# CLI 中多词标题不需要引号
+hermes sessions rename 20250305_091523_a1b2c3d4 调试认证流程
 ```
 
-If the title is already in use by another session, an error is shown.
+如果标题已被其他会话使用，会显示错误。
 
-### Prune Old Sessions
+### 清理旧会话
 
 ```bash
-# Delete ended sessions older than 90 days (default)
+# 删除超过 90 天的已结束会话（默认）
 hermes sessions prune
 
-# Custom age threshold
+# 自定义年龄阈值
 hermes sessions prune --older-than 30
 
-# Only prune sessions from a specific platform
+# 仅清理特定平台的会话
 hermes sessions prune --source telegram --older-than 60
 
-# Skip confirmation
+# 跳过确认
 hermes sessions prune --older-than 30 --yes
 ```
 
 :::info
-Pruning only deletes **ended** sessions (sessions that have been explicitly ended or auto-reset). Active sessions are never pruned.
+清理仅删除**已结束**的会话（已明确结束或自动重置的会话）。活动会话永远不会被清理。
 :::
 
-### Session Statistics
+### 会话统计
 
 ```bash
 hermes sessions stats
 ```
 
-Output:
+输出：
 
 ```
-Total sessions: 142
-Total messages: 3847
-  cli: 89 sessions
-  telegram: 38 sessions
-  discord: 15 sessions
-Database size: 12.4 MB
+总会话数：142
+总消息数：3847
+  cli：89 个会话
+  telegram：38 个会话
+  discord：15 个会话
+数据库大小：12.4 MB
 ```
 
-For deeper analytics — token usage, cost estimates, tool breakdown, and activity patterns — use [`hermes insights`](/docs/reference/cli-commands#hermes-insights).
+有关更深入的分析——令牌使用、费用估算、工具分类和活动模式——使用 [`hermes insights`](/docs/reference/cli-commands#hermes-insights)。
 
-## Session Search Tool
+## 会话搜索工具
 
-The agent has a built-in `session_search` tool that performs full-text search across all past conversations using SQLite's FTS5 engine.
+代理有一个内置的 `session_search` 工具，使用 SQLite 的 FTS5 引擎对所有过去的对话执行全文搜索。
 
-### How It Works
+### 工作原理
 
-1. FTS5 searches matching messages ranked by relevance
-2. Groups results by session, takes the top N unique sessions (default 3)
-3. Loads each session's conversation, truncates to ~100K chars centered on matches
-4. Sends to a fast summarization model for focused summaries
-5. Returns per-session summaries with metadata and surrounding context
+1. FTS5 搜索按相关性排序的匹配消息
+2. 按会话分组结果，取前 N 个唯一会话（默认 3）
+3. 加载每个会话的对话，截断到约 100K 字符，以匹配为中心
+4. 发送到快速摘要模型进行聚焦摘要
+5. 返回每个会话的摘要，带元数据和周围上下文
 
-### FTS5 Query Syntax
+### FTS5 查询语法
 
-The search supports standard FTS5 query syntax:
+搜索支持标准 FTS5 查询语法：
 
-- Simple keywords: `docker deployment`
-- Phrases: `"exact phrase"`
-- Boolean: `docker OR kubernetes`, `python NOT java`
-- Prefix: `deploy*`
+- 简单关键字：`docker deployment`
+- 短语：`"精确短语"`
+- 布尔：`docker OR kubernetes`、`python NOT java`
+- 前缀：`deploy*`
 
-### When It's Used
+### 何时使用
 
-The agent is prompted to use session search automatically:
+代理会自动被提示使用会话搜索：
 
-> *"When the user references something from a past conversation or you suspect relevant prior context exists, use session_search to recall it before asking them to repeat themselves."*
+> *"当用户引用过去的对话内容或你怀疑存在相关先前上下文时，使用 session_search 来回忆它，而不是让他们重复。"*
 
-## Per-Platform Session Tracking
+## 每平台会话跟踪
 
-### Gateway Sessions
+### 网关会话
 
-On messaging platforms, sessions are keyed by a deterministic session key built from the message source:
+在消息平台上，会话由从消息来源构建的确定性会话键控：
 
-| Chat Type | Default Key Format | Behavior |
-|-----------|--------------------|----------|
-| Telegram DM | `agent:main:telegram:dm:<chat_id>` | One session per DM chat |
-| Discord DM | `agent:main:discord:dm:<chat_id>` | One session per DM chat |
-| WhatsApp DM | `agent:main:whatsapp:dm:<canonical_identifier>` | One session per DM user (LID/phone aliases collapse to one identity when mapping exists) |
-| Group chat | `agent:main:<platform>:group:<chat_id>:<user_id>` | Per-user inside the group when the platform exposes a user ID |
-| Group thread/topic | `agent:main:<platform>:group:<chat_id>:<thread_id>` | Shared session for all thread participants (default). Per-user with `thread_sessions_per_user: true`. |
-| Channel | `agent:main:<platform>:channel:<chat_id>:<user_id>` | Per-user inside the channel when the platform exposes a user ID |
+| 聊天类型 | 默认键格式 | 行为 |
+|---------|-----------|------|
+| Telegram DM | `agent:main:telegram:dm:<chat_id>` | 每个 DM 聊天一个会话 |
+| Discord DM | `agent:main:discord:dm:<chat_id>` | 每个 DM 聊天一个会话 |
+| WhatsApp DM | `agent:main:whatsapp:dm:<canonical_identifier>` | 每个 DM 用户一个会话（当映射存在时 LID/电话别名折叠为一个身份） |
+| 群聊 | `agent:main:<platform>:group:<chat_id>:<user_id>` | 当平台暴露用户 ID 时群组内每用户 |
+| 群组线程/话题 | `agent:main:<platform>:group:<chat_id>:<thread_id>` | 所有线程参与者共享会话（默认）。使用 `thread_sessions_per_user: true` 时每用户。 |
+| 频道 | `agent:main:<platform>:channel:<chat_id>:<user_id>` | 当平台暴露用户 ID 时频道内每用户 |
 
-When Hermes cannot get a participant identifier for a shared chat, it falls back to one shared session for that room.
+当 Hermes 无法获取共享聊天的参与者标识符时，它回退到该房间的一个共享会话。
 
-### Shared vs Isolated Group Sessions
+### 共享 vs 隔离群组会话
 
-By default, Hermes uses `group_sessions_per_user: true` in `config.yaml`. That means:
+默认情况下，Hermes 在 `config.yaml` 中使用 `group_sessions_per_user: true`。这意味着：
 
-- Alice and Bob can both talk to Hermes in the same Discord channel without sharing transcript history
-- one user's long tool-heavy task does not pollute another user's context window
-- interrupt handling also stays per-user because the running-agent key matches the isolated session key
+- Alice 和 Bob 可以在同一个 Discord 频道中与 Hermes 对话而不共享转录历史
+- 一个用户的长时间工具密集任务不会污染另一个用户的上下文窗口
+- 中断处理也保持每用户，因为运行代理键与隔离会话键匹配
 
-If you want one shared "room brain" instead, set:
+如果你想要一个共享的"房间大脑"，设置：
 
 ```yaml
 group_sessions_per_user: false
 ```
 
-That reverts groups/channels to a single shared session per room, which preserves shared conversational context but also shares token costs, interrupt state, and context growth.
+这将群组/频道恢复为每个房间一个共享会话，这保留共享对话上下文但也共享令牌费用、中断状态和上下文增长。
 
-### Session Reset Policies
+### 会话重置策略
 
-Gateway sessions are automatically reset based on configurable policies:
+网关会话根据可配置的策略自动重置：
 
-- **idle** — reset after N minutes of inactivity
-- **daily** — reset at a specific hour each day
-- **both** — reset on whichever comes first (idle or daily)
-- **none** — never auto-reset
+- **idle** —— N 分钟不活动后重置
+- **daily** —— 每天特定时间重置
+- **both** —— 以先到者为准（空闲或每日）
+- **none** —— 永不自动重置
 
-Before a session is auto-reset, the agent is given a turn to save any important memories or skills from the conversation.
+在会话自动重置之前，代理会获得一轮机会以保存对话中的任何重要记忆或技能。
 
-Sessions with **active background processes** are never auto-reset, regardless of policy.
+具有**活动后台进程**的会话永远不会自动重置，无论策略如何。
 
-## Storage Locations
+## 存储位置
 
-| What | Path | Description |
-|------|------|-------------|
-| SQLite database | `~/.hermes/state.db` | All session metadata + messages with FTS5 |
-| Gateway transcripts | `~/.hermes/sessions/` | JSONL transcripts per session + sessions.json index |
-| Gateway index | `~/.hermes/sessions/sessions.json` | Maps session keys to active session IDs |
+| 内容 | 路径 | 描述 |
+|------|------|------|
+| SQLite 数据库 | `~/.hermes/state.db` | 所有会话元数据 + 带 FTS5 的消息 |
+| 网关转录 | `~/.hermes/sessions/` | 每个会话的 JSONL 转录 + sessions.json 索引 |
+| 网关索引 | `~/.hermes/sessions/sessions.json` | 将会话键映射到活动会话 ID |
 
-The SQLite database uses WAL mode for concurrent readers and a single writer, which suits the gateway's multi-platform architecture well.
+SQLite 数据库使用 WAL 模式支持并发读取者和单个写入者，非常适合网关的多平台架构。
 
-### Database Schema
+### 数据库模式
 
-Key tables in `state.db`:
+`state.db` 中的关键表：
 
-- **sessions** — session metadata (id, source, user_id, model, title, timestamps, token counts). Titles have a unique index (NULL titles allowed, only non-NULL must be unique).
-- **messages** — full message history (role, content, tool_calls, tool_name, token_count)
-- **messages_fts** — FTS5 virtual table for full-text search across message content
+- **sessions** —— 会话元数据（id、source、user_id、model、title、timestamps、token_counts）。标题有唯一索引（允许 NULL 标题，仅非 NULL 必须唯一）。
+- **messages** —— 完整消息历史（role、content、tool_calls、tool_name、token_count）
+- **messages_fts** —— 用于跨消息内容全文搜索的 FTS5 虚拟表
 
-## Session Expiry and Cleanup
+## 会话过期和清理
 
-### Automatic Cleanup
+### 自动清理
 
-- Gateway sessions auto-reset based on the configured reset policy
-- Before reset, the agent saves memories and skills from the expiring session
-- Opt-in auto-pruning: when `sessions.auto_prune` is `true`, ended sessions older than `sessions.retention_days` (default 90) are pruned at CLI/gateway startup
-- After a prune that actually removed rows, `state.db` is `VACUUM`ed to reclaim disk space (SQLite does not shrink the file on plain DELETE)
-- Pruning runs at most once per `sessions.min_interval_hours` (default 24); the last-run timestamp is tracked inside `state.db` itself so it's shared across every Hermes process in the same `HERMES_HOME`
+- 网关会话根据配置的重置策略自动重置
+- 重置前，代理从即将过期的会话中保存记忆和技能
+- 可选自动清理：当 `sessions.auto_prune` 为 `true` 时，在 CLI/网关启动时清理超过 `sessions.retention_days`（默认 90）的已结束会话
+- 清理实际删除行后，`state.db` 会 `VACUUM` 以回收磁盘空间（SQLite 在普通 DELETE 上不会缩小文件）
+- 清理最多每 `sessions.min_interval_hours`（默认 24）运行一次；上次运行时间戳在 `state.db` 本身中跟踪，因此在同一 `HERMES_HOME` 中的所有 Hermes 进程间共享
 
-Default is **off** — session history is valuable for `session_search` recall, and silently deleting it could surprise users. Enable in `~/.hermes/config.yaml`:
+默认是**关闭** —— 会话历史对 `session_search` 回忆很有价值，静默删除可能会让用户感到意外。在 `~/.hermes/config.yaml` 中启用：
 
 ```yaml
 sessions:
-  auto_prune: true          # opt in — default is false
-  retention_days: 90        # keep ended sessions this many days
-  vacuum_after_prune: true  # reclaim disk space after a pruning sweep
-  min_interval_hours: 24    # don't re-run the sweep more often than this
+  auto_prune: true          # 选择加入——默认为 false
+  retention_days: 90        # 保留已结束会话这么多天
+  vacuum_after_prune: true  # 清理扫描后回收磁盘空间
+  min_interval_hours: 24    # 不要更频繁地重新运行扫描
 ```
 
-Active sessions are never auto-pruned, regardless of age.
+活动会话永远不会自动清理，无论年龄如何。
 
-### Manual Cleanup
+### 手动清理
 
 ```bash
-# Prune sessions older than 90 days
+# 清理超过 90 天的会话
 hermes sessions prune
 
-# Delete a specific session
+# 删除特定会话
 hermes sessions delete <session_id>
 
-# Export before pruning (backup)
+# 清理前导出（备份）
 hermes sessions export backup.jsonl
 hermes sessions prune --older-than 30 --yes
 ```
 
 :::tip
-The database grows slowly (typical: 10-15 MB for hundreds of sessions) and session history powers `session_search` recall across past conversations, so auto-prune ships disabled. Enable it if you're running a heavy gateway/cron workload where `state.db` is meaningfully affecting performance (observed failure mode: 384 MB state.db with ~1000 sessions slowing down FTS5 inserts and `/resume` listing). Use `hermes sessions prune` for one-off cleanup without turning on the automatic sweep.
+数据库增长缓慢（典型：数百个会话 10-15 MB），会话历史支持跨过去对话的 `session_search` 回忆，因此自动清理默认禁用。如果你运行繁重的网关/定时任务工作负载，其中 `state.db` 明显影响性能（观察到的失败模式：约 1000 个会话的 384 MB state.db 减慢 FTS5 插入和 `/resume` 列表），请启用它。使用 `hermes sessions prune` 进行一次性清理而不开启自动扫描。
 :::

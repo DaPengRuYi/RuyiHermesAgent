@@ -1,96 +1,96 @@
 ---
 sidebar_position: 12
-title: "Cron Troubleshooting"
-description: "Diagnose and fix common Hermes cron issues — jobs not firing, delivery failures, skill loading errors, and performance problems"
+title: "Cron 故障排除"
+description: "诊断和修复常见的 Hermes cron 问题 — 作业未触发、投递失败、技能加载错误和性能问题"
 ---
 
-# Cron Troubleshooting
+# Cron 故障排除
 
-When a cron job isn't behaving as expected, work through these checks in order. Most issues fall into one of four categories: timing, delivery, permissions, or skill loading.
+当 cron 作业未按预期运行时，按顺序进行这些检查。大多数问题属于四个类别之一：时间、投递、权限或技能加载。
 
 ---
 
-## Jobs Not Firing
+## 作业未触发
 
-### Check 1: Verify the job exists and is active
+### 检查 1：验证作业存在且处于活动状态
 
 ```bash
 hermes cron list
 ```
 
-Look for the job and confirm its state is `[active]` (not `[paused]` or `[completed]`). If it shows `[completed]`, the repeat count may be exhausted — edit the job to reset it.
+查找作业并确认其状态为 `[active]`（不是 `[paused]` 或 `[completed]`）。如果显示 `[completed]`，重复次数可能已耗尽 — 编辑作业以重置。
 
-### Check 2: Confirm the schedule is correct
+### 检查 2：确认调度正确
 
-A misformatted schedule silently defaults to one-shot or is rejected entirely. Test your expression:
+格式错误的调度会静默默认为一次性触发或被完全拒绝。测试你的表达式：
 
-| Your expression | Should evaluate to |
+| 你的表达式 | 应该解析为 |
 |----------------|-------------------|
-| `0 9 * * *` | 9:00 AM every day |
-| `0 9 * * 1` | 9:00 AM every Monday |
-| `every 2h` | Every 2 hours from now |
-| `30m` | 30 minutes from now |
-| `2025-06-01T09:00:00` | June 1, 2025 at 9:00 AM UTC |
+| `0 9 * * *` | 每天上午 9:00 |
+| `0 9 * * 1` | 每周一上午 9:00 |
+| `every 2h` | 从现在起每 2 小时 |
+| `30m` | 从现在起 30 分钟 |
+| `2025-06-01T09:00:00` | 2025 年 6 月 1 日 UTC 上午 9:00 |
 
-If the job fires once and then disappears from the list, it's a one-shot schedule (`30m`, `1d`, or an ISO timestamp) — expected behavior.
+如果作业触发一次然后从列表中消失，它是一次性调度（`30m`、`1d` 或 ISO 时间戳）— 这是预期行为。
 
-### Check 3: Is the gateway running?
+### 检查 3：网关是否在运行？
 
-Cron jobs are fired by the gateway's background ticker thread, which ticks every 60 seconds. A regular CLI chat session does **not** automatically fire cron jobs.
+Cron 作业由网关的后台计时线程触发，每 60 秒跳动一次。普通的 CLI 聊天会话**不会**自动触发 cron 作业。
 
-If you're expecting jobs to fire automatically, you need a running gateway (`hermes gateway` or `hermes serve`). For one-off debugging, you can manually trigger a tick with `hermes cron tick`.
+如果你希望作业自动触发，你需要一个运行中的网关（`hermes gateway` 或 `hermes serve`）。对于一次性调试，你可以使用 `hermes cron tick` 手动触发一次跳动。
 
-### Check 4: Check the system clock and timezone
+### 检查 4：检查系统时钟和时区
 
-Jobs use the local timezone. If your machine's clock is wrong or in a different timezone than expected, jobs will fire at the wrong times. Verify:
+作业使用本地时区。如果你机器的时钟错误或处于不同的时区，作业将在错误的时间触发。验证：
 
 ```bash
 date
-hermes cron list   # Compare next_run times with local time
+hermes cron list   # 将 next_run 时间与本地时间比较
 ```
 
 ---
 
-## Delivery Failures
+## 投递失败
 
-### Check 1: Verify the deliver target is correct
+### 检查 1：验证投递目标正确
 
-Delivery targets are case-sensitive and require the correct platform to be configured. A misconfigured target silently drops the response.
+投递目标区分大小写，并且需要配置正确的平台。配置错误的目标会静默丢弃响应。
 
-| Target | Requires |
+| 目标 | 需要 |
 |--------|----------|
-| `telegram` | `TELEGRAM_BOT_TOKEN` in `~/.hermes/.env` |
-| `discord` | `DISCORD_BOT_TOKEN` in `~/.hermes/.env` |
-| `slack` | `SLACK_BOT_TOKEN` in `~/.hermes/.env` |
-| `whatsapp` | WhatsApp gateway configured |
-| `signal` | Signal gateway configured |
-| `matrix` | Matrix homeserver configured |
-| `email` | SMTP configured in `config.yaml` |
-| `sms` | SMS provider configured |
-| `local` | Write access to `~/.hermes/cron/output/` |
-| `origin` | Delivers to the chat where the job was created |
+| `telegram` | `~/.hermes/.env` 中的 `TELEGRAM_BOT_TOKEN` |
+| `discord` | `~/.hermes/.env` 中的 `DISCORD_BOT_TOKEN` |
+| `slack` | `~/.hermes/.env` 中的 `SLACK_BOT_TOKEN` |
+| `whatsapp` | 已配置 WhatsApp 网关 |
+| `signal` | 已配置 Signal 网关 |
+| `matrix` | 已配置 Matrix 服务器 |
+| `email` | 在 `config.yaml` 中配置了 SMTP |
+| `sms` | 已配置 SMS 提供者 |
+| `local` | 对 `~/.hermes/cron/output/` 有写权限 |
+| `origin` | 投递到创建作业的聊天 |
 
-Other supported platforms include `mattermost`, `homeassistant`, `dingtalk`, `feishu`, `wecom`, `weixin`, `bluebubbles`, `qqbot`, and `webhook`. You can also target a specific chat with `platform:chat_id` syntax (e.g., `telegram:-1001234567890`).
+其他支持的平台包括 `mattermost`、`homeassistant`、`dingtalk`、`feishu`、`wecom`、`weixin`、`bluebubbles`、`qqbot` 和 `webhook`。你也可以使用 `platform:chat_id` 语法指定特定聊天（例如 `telegram:-1001234567890`）。
 
-If delivery fails, the job still runs — it just won't send anywhere. Check `hermes cron list` for updated `last_error` field (if available).
+如果投递失败，作业仍然运行 — 只是不会发送到任何地方。检查 `hermes cron list` 中更新的 `last_error` 字段（如果可用）。
 
-### Check 2: Check `[SILENT]` usage
+### 检查 2：检查 `[SILENT]` 用法
 
-If your cron job produces no output or the agent responds with `[SILENT]`, delivery is suppressed. This is intentional for monitoring jobs — but make sure your prompt isn't accidentally suppressing everything.
+如果你的 cron 作业没有输出或代理响应了 `[SILENT]`，投递会被抑制。这对监控作业是有意为之 — 但确保你的提示没有意外地抑制所有内容。
 
-A prompt that says "respond with [SILENT] if nothing changed" will silently swallow non-empty responses too. Check your conditional logic.
+提示说 "如果没有变化则响应 [SILENT]" 也会静默吞掉非空响应。检查你的条件逻辑。
 
-### Check 3: Platform token permissions
+### 检查 3：平台令牌权限
 
-Each messaging platform bot needs specific permissions to receive messages. If delivery silently fails:
+每个消息平台机器人需要特定权限才能接收消息。如果投递静默失败：
 
-- **Telegram**: Bot must be an admin in the target group/channel
-- **Discord**: Bot must have permission to send in the target channel
-- **Slack**: Bot must be added to the workspace and have `chat:write` scope
+- **Telegram**：机器人必须是目标群组/频道的管理员
+- **Discord**：机器人必须有在目标频道发送消息的权限
+- **Slack**：机器人必须已添加到工作区并具有 `chat:write` 范围
 
-### Check 4: Response wrapping
+### 检查 4：响应包装
 
-By default, cron responses are wrapped with a header and footer (`cron.wrap_response: true` in `config.yaml`). Some platforms or integrations may not handle this well. To disable:
+默认情况下，cron 响应带有页眉和页脚包装（`config.yaml` 中的 `cron.wrap_response: true`）。某些平台或集成可能无法很好地处理。要禁用：
 
 ```yaml
 cron:
@@ -99,127 +99,127 @@ cron:
 
 ---
 
-## Skill Loading Failures
+## 技能加载失败
 
-### Check 1: Verify skills are installed
+### 检查 1：验证技能已安装
 
 ```bash
 hermes skills list
 ```
 
-Skills must be installed before they can be attached to cron jobs. If a skill is missing, install it first with `hermes skills install <skill-name>` or via `/skills` in the CLI.
+技能必须先安装才能附加到 cron 作业。如果技能缺失，先使用 `hermes skills install <skill-name>` 或在 CLI 中通过 `/skills` 安装。
 
-### Check 2: Check skill name vs. skill folder name
+### 检查 2：检查技能名称与技能文件夹名称
 
-Skill names are case-sensitive and must match the installed skill's folder name. If your job specifies `ai-funding-daily-report` but the skill folder is `ai-funding-daily-report`, confirm the exact name from `hermes skills list`.
+技能名称区分大小写，必须与已安装技能的文件夹名称匹配。如果你的作业指定了 `ai-funding-daily-report` 但技能文件夹是 `ai-funding-daily-report`，请从 `hermes skills list` 确认确切名称。
 
-### Check 3: Skills that require interactive tools
+### 检查 3：需要交互式工具的技能
 
-Cron jobs run with the `cronjob`, `messaging`, and `clarify` toolsets disabled. This prevents recursive cron creation, direct message sending (delivery is handled by the scheduler), and interactive prompts. If a skill relies on these toolsets, it won't work in a cron context.
+Cron 作业在禁用 `cronjob`、`messaging` 和 `clarify` 工具集的情况下运行。这可以防止递归 cron 创建、直接消息发送（投递由调度器处理）和交互式提示。如果技能依赖这些工具集，它在 cron 上下文中无法工作。
 
-Check the skill's documentation to confirm it works in non-interactive (headless) mode.
+检查技能的文档以确认它在非交互式（无头）模式下工作。
 
-### Check 4: Multi-skill ordering
+### 检查 4：多技能排序
 
-When using multiple skills, they load in order. If Skill A depends on context from Skill B, make sure B loads first:
+使用多个技能时，它们按顺序加载。如果技能 A 依赖技能 B 的上下文，确保 B 先加载：
 
 ```bash
 /cron add "0 9 * * *" "..." --skill context-skill --skill target-skill
 ```
 
-In this example, `context-skill` loads before `target-skill`.
+在此示例中，`context-skill` 在 `target-skill` 之前加载。
 
 ---
 
-## Job Errors and Failures
+## 作业错误和失败
 
-### Check 1: Review recent job output
+### 检查 1：查看最近的作业输出
 
-If a job ran and failed, you may see error context in:
+如果作业运行并失败，你可能在以下位置看到错误上下文：
 
-1. The chat where the job delivers (if delivery succeeded)
-2. `~/.hermes/logs/agent.log` for scheduler messages (or `errors.log` for warnings)
-3. The job's `last_run` metadata via `hermes cron list`
+1. 作业投递的聊天中（如果投递成功）
+2. `~/.hermes/logs/agent.log` 中的调度器消息（或 `errors.log` 中的警告）
+3. 通过 `hermes cron list` 的作业 `last_run` 元数据
 
-### Check 2: Common error patterns
+### 检查 2：常见错误模式
 
-**"No such file or directory" for scripts**
-The `script` path must be an absolute path (or relative to the Hermes config directory). Verify:
+**脚本的 "No such file or directory"**
+`script` 路径必须是绝对路径（或相对于 Hermes 配置目录）。验证：
 ```bash
-ls ~/.hermes/scripts/your-script.py   # Must exist
+ls ~/.hermes/scripts/your-script.py   # 必须存在
 hermes cron edit <job_id> --script ~/.hermes/scripts/your-script.py
 ```
 
-**"Skill not found" at job execution**
-The skill must be installed on the machine running the scheduler. If you move between machines, skills don't automatically sync — reinstall them with `hermes skills install <skill-name>`.
+**作业执行时的 "Skill not found"**
+技能必须安装在运行调度器的机器上。如果你在机器之间切换，技能不会自动同步 — 使用 `hermes skills install <skill-name>` 重新安装。
 
-**Job runs but delivers nothing**
-Likely a delivery target issue (see Delivery Failures above) or a silently suppressed response (`[SILENT]`).
+**作业运行但不投递任何内容**
+可能是投递目标问题（参见上面的投递失败）或静默抑制的响应（`[SILENT]`）。
 
-**Job hangs or times out**
-The scheduler uses an inactivity-based timeout (default 600s, configurable via `HERMES_CRON_TIMEOUT` env var, `0` for unlimited). The agent can run as long as it's actively calling tools — the timer only fires after sustained inactivity. Long-running jobs should use scripts to handle data collection and deliver only the result.
+**作业挂起或超时**
+调度器使用基于不活动的超时（默认 600 秒，可通过 `HERMES_CRON_TIMEOUT` 环境变量配置，`0` 表示无限）。代理可以运行任意长时间，只要它在积极调用工具 — 计时器仅在持续不活动后触发。长时间运行的作业应使用脚本来处理数据收集，只投递结果。
 
-### Check 3: Lock contention
+### 检查 3：锁争用
 
-The scheduler uses file-based locking to prevent overlapping ticks. If two gateway instances are running (or a CLI session conflicts with a gateway), jobs may be delayed or skipped.
+调度器使用基于文件的锁来防止重叠跳动。如果两个网关实例正在运行（或 CLI 会话与网关冲突），作业可能会延迟或跳过。
 
-Kill duplicate gateway processes:
+杀死重复的网关进程：
 ```bash
 ps aux | grep hermes
-# Kill duplicate processes, keep only one
+# 杀死重复进程，只保留一个
 ```
 
-### Check 4: Permissions on jobs.json
+### 检查 4：jobs.json 的权限
 
-Jobs are stored in `~/.hermes/cron/jobs.json`. If this file is not readable/writable by your user, the scheduler will fail silently:
+作业存储在 `~/.hermes/cron/jobs.json` 中。如果此文件不可被你的用户读/写，调度器将静默失败：
 
 ```bash
 ls -la ~/.hermes/cron/jobs.json
-chmod 600 ~/.hermes/cron/jobs.json   # Your user should own it
+chmod 600 ~/.hermes/cron/jobs.json   # 你的用户应该拥有它
 ```
 
 ---
 
-## Performance Issues
+## 性能问题
 
-### Slow job startup
+### 作业启动慢
 
-Each cron job creates a fresh AIAgent session, which may involve provider authentication and model loading. For time-sensitive schedules, add buffer time (e.g., `0 8 * * *` instead of `0 9 * * *`).
+每个 cron 作业创建一个新的 AIAgent 会话，可能涉及提供者认证和模型加载。对于时间敏感的调度，添加缓冲时间（例如 `0 8 * * *` 而不是 `0 9 * * *`）。
 
-### Too many overlapping jobs
+### 太多重叠的作业
 
-The scheduler executes jobs sequentially within each tick. If multiple jobs are due at the same time, they run one after another. Consider staggering schedules (e.g., `0 9 * * *` and `5 9 * * *` instead of both at `0 9 * * *`) to avoid delays.
+调度器在每个跳动内顺序执行作业。如果多个作业同时到期，它们会一个接一个运行。考虑错开调度（例如 `0 9 * * *` 和 `5 9 * * *` 而不是两者都在 `0 9 * * *`）以避免延迟。
 
-### Large script output
+### 大型脚本输出
 
-Scripts that dump megabytes of output will slow down the agent and may hit token limits. Filter/summarize at the script level — emit only what the agent needs to reason about.
+输出数兆字节的脚本会减慢代理速度并可能达到 token 限制。在脚本层面过滤/总结 — 只输出代理需要推理的内容。
 
 ---
 
-## Diagnostic Commands
+## 诊断命令
 
 ```bash
-hermes cron list                    # Show all jobs, states, next_run times
-hermes cron run <job_id>            # Schedule for next tick (for testing)
-hermes cron edit <job_id>           # Fix configuration issues
-hermes logs                         # View recent Hermes logs
-hermes skills list                  # Verify installed skills
+hermes cron list                    # 显示所有作业、状态、next_run 时间
+hermes cron run <job_id>            # 调度到下一个跳动（用于测试）
+hermes cron edit <job_id>           # 修复配置问题
+hermes logs                         # 查看最近的 Hermes 日志
+hermes skills list                  # 验证已安装的技能
 ```
 
 ---
 
-## Getting More Help
+## 获取更多帮助
 
-If you've worked through this guide and the issue persists:
+如果你已经完成了本指南但问题仍然存在：
 
-1. Run the job with `hermes cron run <job_id>` (fires on next gateway tick) and watch for errors in the chat output
-2. Check `~/.hermes/logs/agent.log` for scheduler messages and `~/.hermes/logs/errors.log` for warnings
-3. Open an issue at [github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) with:
-   - The job ID and schedule
-   - The delivery target
-   - What you expected vs. what happened
-   - Relevant error messages from the logs
+1. 使用 `hermes cron run <job_id>` 运行作业（在下一个网关跳动时触发）并在聊天输出中观察错误
+2. 检查 `~/.hermes/logs/agent.log` 中的调度器消息和 `~/.hermes/logs/errors.log` 中的警告
+3. 在 GitHub 上提交 issue，包含：
+   - 作业 ID 和调度
+   - 投递目标
+   - 你期望的 vs 实际发生的
+   - 日志中的相关错误消息
 
 ---
 
-*For the complete cron reference, see [Automate Anything with Cron](/docs/guides/automate-with-cron) and [Scheduled Tasks (Cron)](/docs/user-guide/features/cron).*
+*有关完整的 cron 参考，请参见[使用 Cron 自动化任何事情](/docs/guides/automate-with-cron)和[定时任务（Cron）](/docs/user-guide/features/cron)。*

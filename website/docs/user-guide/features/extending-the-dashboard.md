@@ -1,62 +1,62 @@
 ---
 sidebar_position: 17
-title: "Extending the Dashboard"
-description: "Build themes and plugins for the Hermes web dashboard — palettes, typography, layouts, custom tabs, shell slots, page-scoped slots, and backend API routes"
+title: "扩展仪表板"
+description: "为 Hermes 网页仪表板构建主题和插件——调色板、排版、布局、自定义标签页、Shell 插槽、页面作用域插槽和后端 API 路由"
 ---
 
-# Extending the Dashboard
+# 扩展仪表板
 
-The Hermes web dashboard (`hermes dashboard`) is built to be reskinned and extended without forking the codebase. Three layers are exposed:
+Hermes 网页仪表板（`hermes dashboard`）设计为无需分叉代码库即可重新皮肤化和扩展。暴露三层：
 
-1. **Themes** — YAML files that repaint the dashboard's palette, typography, layout, and per-component chrome. Drop a file in `~/.hermes/dashboard-themes/`; it appears in the theme switcher.
-2. **UI plugins** — a directory with `manifest.json` + a JavaScript bundle that registers a tab, replaces a built-in page, augments one via page-scoped slots, or injects components into named shell slots.
-3. **Backend plugins** — a Python file inside that plugin directory that exposes a FastAPI `router`; routes are mounted under `/api/plugins/<name>/` and called from the plugin's UI.
+1. **主题** — YAML 文件，重新绘制仪表板的调色板、排版、布局和每个组件的 chrome。将文件放入 `~/.hermes/dashboard-themes/`；它会出现在主题切换器中。
+2. **UI 插件** — 包含 `manifest.json` + JavaScript 包的目录，注册标签页、替换内置页面、通过页面作用域插槽增强页面，或向命名的 Shell 插槽注入组件。
+3. **后端插件** — 该插件目录内的 Python 文件，暴露 FastAPI `router`；路由挂载在 `/api/plugins/<name>/` 下，从插件 UI 调用。
 
-All three are **drop-in at runtime**: no repo clone, no `npm run build`, no patching the dashboard source. This page is the canonical reference for all three.
+所有三种都是**运行时即插即用**：无需克隆仓库，无需 `npm run build`，无需修补仪表板源码。本页是所有三种的权威参考。
 
-If you just want to use the dashboard, see [Web Dashboard](./web-dashboard). If you want to reskin the terminal CLI (not the web dashboard), see [Skins & Themes](./skins) — the CLI skin system is unrelated to dashboard themes.
+如果你只想使用仪表板，请参见[网页仪表板](./web-dashboard)。如果你想重新皮肤化终端 CLI（不是网页仪表板），请参见[皮肤与主题](./skins)——CLI 皮肤系统与仪表板主题无关。
 
-:::note How the pieces compose
-Themes and plugins are independent but synergistic. A theme can stand alone (just a YAML file). A plugin can stand alone (just a tab). Together they let you build a complete visual reskin with custom HUDs — the bundled `strike-freedom-cockpit` demo does exactly that. See [Combined theme + plugin demo](#combined-theme--plugin-demo).
+:::note 各部分如何组合
+主题和插件是独立但协同的。主题可以独立存在（仅一个 YAML 文件）。插件可以独立存在（仅一个标签页）。两者结合让你构建带有自定义 HUD 的完整视觉重新皮肤——捆绑的 `strike-freedom-cockpit` 演示正是这样做的。参见[组合主题 + 插件演示](#组合主题--插件演示)。
 :::
 
 ---
 
-## Table of contents
+## 目录
 
-- [Themes](#themes)
-  - [Quick start — your first theme](#quick-start--your-first-theme)
-  - [Palette, typography, layout](#palette-typography-layout)
-  - [Layout variants](#layout-variants)
-  - [Theme assets (images as CSS vars)](#theme-assets-images-as-css-vars)
-  - [Component chrome overrides](#component-chrome-overrides)
-  - [Color overrides](#color-overrides)
-  - [Raw `customCSS`](#raw-customcss)
-  - [Built-in themes](#built-in-themes)
-  - [Full theme YAML reference](#full-theme-yaml-reference)
-- [Plugins](#plugins)
-  - [Quick start — your first plugin](#quick-start--your-first-plugin)
-  - [Directory layout](#directory-layout)
-  - [Manifest reference](#manifest-reference)
-  - [The Plugin SDK](#the-plugin-sdk)
-  - [Shell slots](#shell-slots)
-  - [Replacing built-in pages (`tab.override`)](#replacing-built-in-pages-taboverride)
-  - [Augmenting built-in pages (page-scoped slots)](#augmenting-built-in-pages-page-scoped-slots)
-  - [Slot-only plugins (`tab.hidden`)](#slot-only-plugins-tabhidden)
-  - [Backend API routes](#backend-api-routes)
-  - [Custom CSS per plugin](#custom-css-per-plugin)
-  - [Plugin discovery & reload](#plugin-discovery--reload)
-- [Combined theme + plugin demo](#combined-theme--plugin-demo)
-- [API reference](#api-reference)
-- [Troubleshooting](#troubleshooting)
+- [主题](#主题)
+  - [快速开始——你的第一个主题](#快速开始你的第一个主题)
+  - [调色板、排版、布局](#调色板排版布局)
+  - [布局变体](#布局变体)
+  - [主题资源（图片作为 CSS 变量）](#主题资源图片作为-css-变量)
+  - [组件 chrome 覆盖](#组件-chrome-覆盖)
+  - [颜色覆盖](#颜色覆盖)
+  - [原始 `customCSS`](#原始-customcss)
+  - [内置主题](#内置主题)
+  - [完整主题 YAML 参考](#完整主题-yaml-参考)
+- [插件](#插件)
+  - [快速开始——你的第一个插件](#快速开始你的第一个插件)
+  - [目录布局](#目录布局)
+  - [清单参考](#清单参考)
+  - [插件 SDK](#插件-sdk)
+  - [Shell 插槽](#shell-插槽)
+  - [替换内置页面（`tab.override`）](#替换内置页面taboverride)
+  - [增强内置页面（页面作用域插槽）](#增强内置页面页面作用域插槽)
+  - [仅插槽插件（`tab.hidden`）](#仅插槽插件tabhidden)
+  - [后端 API 路由](#后端-api-路由)
+  - [每个插件的自定义 CSS](#每个插件的自定义-css)
+  - [插件发现与重载](#插件发现与重载)
+- [组合主题 + 插件演示](#组合主题--插件演示)
+- [API 参考](#api-参考)
+- [故障排除](#故障排除)
 
 ---
 
-## Themes
+## 主题
 
-Themes are YAML files stored in `~/.hermes/dashboard-themes/`. The file name doesn't matter (the theme's `name:` field is what the system uses), but convention is `<name>.yaml`. Every field is optional — missing keys fall back to the built-in `default` theme, so a theme can be as small as one color.
+主题是存储在 `~/.hermes/dashboard-themes/` 中的 YAML 文件。文件名不重要（系统的主题使用 `name:` 字段），但约定为 `<name>.yaml`。每个字段都是可选的——缺失的键回退到内置的 `default` 主题，因此主题可以小到一个颜色。
 
-### Quick start — your first theme
+### 快速开始——你的第一个主题
 
 ```bash
 mkdir -p ~/.hermes/dashboard-themes
@@ -73,52 +73,52 @@ palette:
   midground: "#ff00ff"
 ```
 
-Refresh the dashboard. Click the palette icon in the header and pick **Neon**. The background goes black, text and accents go magenta, and every derived color (card, border, muted, ring, etc.) is recomputed from that 2-color triplet via `color-mix()` in CSS.
+刷新仪表板。点击页眉中的调色板图标并选择 **Neon**。背景变黑，文本和强调色变洋红，每个派生颜色（卡片、边框、静音、环等）都从该 2 色三元组通过 CSS 中的 `color-mix()` 重新计算。
 
-That's the whole onboarding: one file, two colors. Everything below is optional refinement.
+这就是整个入门：一个文件，两种颜色。以下是可选的细化。
 
-### Palette, typography, layout
+### 调色板、排版、布局
 
-These three blocks are the heart of a theme. Each is independent — override one, leave the others.
+这三个块是主题的核心。每个都是独立的——覆盖一个，保留其他。
 
-#### Palette (3-layer)
+#### 调色板（3 层）
 
-The palette is a triplet of color layers plus a warm-glow vignette color and a noise-grain multiplier. The dashboard's design-system cascade derives every shadcn-compatible token (card, popover, muted, border, primary, destructive, ring, etc.) from this triplet via CSS `color-mix()`. Overriding three colors cascades into the whole UI.
+调色板是颜色层的三元组加上暖光晕晕影颜色和噪点纹理乘数。仪表板的设计系统级联通过 CSS `color-mix()` 从这个三元组派生每个 shadcn 兼容的令牌（卡片、弹出框、静音、边框、主要、破坏性、环等）。覆盖三种颜色会级联到整个 UI。
 
-| Key | Description |
-|-----|-------------|
-| `palette.background` | Deepest canvas color — typically near-black. Drives the page background and card fill. |
-| `palette.midground` | Primary text and accent. Most UI chrome reads this (foreground text, button outlines, focus rings). |
-| `palette.foreground` | Top-layer highlight. The default theme sets this to white at alpha 0 (invisible); themes that want a bright accent on top can raise its alpha. |
-| `palette.warmGlow` | `rgba(...)` string used as the vignette color by `<Backdrop />`. |
-| `palette.noiseOpacity` | 0–1.2 multiplier on the grain overlay. Lower = softer, higher = grittier. |
+| 键 | 描述 |
+|----|------|
+| `palette.background` | 最深画布颜色——通常接近黑色。驱动页面背景和卡片填充。 |
+| `palette.midground` | 主文本和强调色。大多数 UI chrome 读取此值（前景文本、按钮轮廓、焦点环）。 |
+| `palette.foreground` | 顶层高亮。默认主题将其设为 alpha 0 的白色（不可见）；想要明亮强调色的主题可以提高其 alpha。 |
+| `palette.warmGlow` | `<Backdrop />` 用作晕影颜色的 `rgba(...)` 字符串。 |
+| `palette.noiseOpacity` | 0–1.2 的纹理覆盖层乘数。越低越柔和，越高越粗犷。 |
 
-Each layer accepts either `{hex: "#RRGGBB", alpha: 0.0–1.0}` or a bare hex string (alpha defaults to 1.0).
+每层接受 `{hex: "#RRGGBB", alpha: 0.0–1.0}` 或裸十六进制字符串（alpha 默认为 1.0）。
 
 ```yaml
 palette:
   background:
     hex: "#05091a"
     alpha: 1.0
-  midground: "#d8f0ff"          # bare hex, alpha = 1.0
+  midground: "#d8f0ff"          # 裸十六进制，alpha = 1.0
   foreground:
     hex: "#ffffff"
-    alpha: 0                    # invisible top layer
+    alpha: 0                    # 不可见的顶层
   warmGlow: "rgba(255, 199, 55, 0.24)"
   noiseOpacity: 0.7
 ```
 
-#### Typography
+#### 排版
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `fontSans` | string | CSS font-family stack for body copy (applied to `html`, `body`). |
-| `fontMono` | string | CSS font-family stack for code blocks, `<code>`, `.font-mono` utilities. |
-| `fontDisplay` | string | Optional heading/display stack. Falls back to `fontSans`. |
-| `fontUrl` | string | Optional external stylesheet URL. Injected as `<link rel="stylesheet">` in `<head>` on theme switch. Same URL is never injected twice. Works with Google Fonts, Bunny Fonts, self-hosted `@font-face` sheets — anything linkable. |
-| `baseSize` | string | Root font size — controls the rem scale. E.g. `"14px"`, `"16px"`. |
-| `lineHeight` | string | Default line-height. E.g. `"1.5"`, `"1.65"`. |
-| `letterSpacing` | string | Default letter-spacing. E.g. `"0"`, `"0.01em"`, `"-0.01em"`. |
+| 键 | 类型 | 描述 |
+|----|------|------|
+| `fontSans` | 字符串 | 正文复制的 CSS font-family 堆栈（应用于 `html`、`body`）。 |
+| `fontMono` | 字符串 | 代码块、`<code>`、`.font-mono` 工具类的 CSS font-family 堆栈。 |
+| `fontDisplay` | 字符串 | 可选的标题/展示堆栈。回退到 `fontSans`。 |
+| `fontUrl` | 字符串 | 可选的外部样式表 URL。在主题切换时作为 `<link rel="stylesheet">` 注入到 `<head>` 中。相同 URL 不会注入两次。适用于 Google Fonts、Bunny Fonts、自托管 `@font-face` 表——任何可链接的。 |
+| `baseSize` | 字符串 | 根字体大小——控制 rem 比例。例如 `"14px"`、`"16px"`。 |
+| `lineHeight` | 字符串 | 默认行高。例如 `"1.5"`、`"1.65"`。 |
+| `letterSpacing` | 字符串 | 默认字间距。例如 `"0"`、`"0.01em"`、`"-0.01em"`。 |
 
 ```yaml
 typography:
@@ -131,12 +131,12 @@ typography:
   letterSpacing: "0.04em"
 ```
 
-#### Layout
+#### 布局
 
-| Key | Values | Description |
-|-----|--------|-------------|
-| `radius` | any CSS length (`"0"`, `"0.25rem"`, `"0.5rem"`, `"1rem"`, ...) | Corner-radius token. Maps to `--radius` and cascades into `--radius-sm/md/lg/xl` — every rounded element shifts together. |
-| `density` | `compact` \| `comfortable` \| `spacious` | Spacing multiplier applied as the `--spacing-mul` CSS var. `compact = 0.85×`, `comfortable = 1.0×` (default), `spacious = 1.2×`. Scales Tailwind's base spacing, so padding, gap, and space-between utilities all shift proportionally. |
+| 键 | 值 | 描述 |
+|----|---|------|
+| `radius` | 任何 CSS 长度（`"0"`、`"0.25rem"`、`"0.5rem"`、`"1rem"`、...） | 圆角令牌。映射到 `--radius` 并级联到 `--radius-sm/md/lg/xl`——每个圆角元素一起移动。 |
+| `density` | `compact` \| `comfortable` \| `spacious` | 作为 `--spacing-mul` CSS 变量应用的间距乘数。`compact = 0.85×`、`comfortable = 1.0×`（默认）、`spacious = 1.2×`。缩放 Tailwind 的基础间距，因此 padding、gap 和 space-between 工具类都按比例移动。 |
 
 ```yaml
 layout:
@@ -144,31 +144,31 @@ layout:
   density: compact
 ```
 
-### Layout variants
+### 布局变体
 
-`layoutVariant` picks the overall shell layout. Defaults to `"standard"` when absent.
+`layoutVariant` 选择整体 Shell 布局。不存在时默认为 `"standard"`。
 
-| Variant | Behaviour |
-|---------|-----------|
-| `standard` | Single column, 1600px max-width (default). |
-| `cockpit` | Left sidebar rail (260px) + main content. Populated by plugins via the `sidebar` slot — see [Shell slots](#shell-slots). Without a plugin the rail shows a placeholder. |
-| `tiled` | Drops the max-width clamp so pages can use the full viewport width. |
+| 变体 | 行为 |
+|------|------|
+| `standard` | 单列，1600px 最大宽度（默认）。 |
+| `cockpit` | 左侧栏轨（260px）+ 主内容。由插件通过 `sidebar` 插槽填充——参见 [Shell 插槽](#shell-插槽)。没有插件时，侧栏轨显示占位符。 |
+| `tiled` | 取消最大宽度限制，以便页面可以使用完整视口宽度。 |
 
 ```yaml
 layoutVariant: cockpit
 ```
 
-The current variant is exposed as `document.documentElement.dataset.layoutVariant`, so raw CSS in `customCSS` can target it via `:root[data-layout-variant="cockpit"] ...`.
+当前变体暴露为 `document.documentElement.dataset.layoutVariant`，因此 `customCSS` 中的原始 CSS 可以通过 `:root[data-layout-variant="cockpit"] ...` 定向它。
 
-### Theme assets (images as CSS vars)
+### 主题资源（图片作为 CSS 变量）
 
-Ship artwork URLs with a theme. Each named slot becomes a CSS var (`--theme-asset-<name>`) that the built-in shell and any plugin can read. The `bg` slot is automatically wired into the backdrop; other slots are plugin-facing.
+随主题附带美术资源 URL。每个命名插槽成为 CSS 变量（`--theme-asset-<name>`），内置 Shell 和任何插件都可以读取。`bg` 插槽自动连接到背景；其他插槽面向插件。
 
 ```yaml
 assets:
-  bg: "https://example.com/hero-bg.jpg"           # auto-wired into <Backdrop />
-  hero: "/my-images/strike-freedom.png"           # for plugin sidebars
-  crest: "/my-images/crest.svg"                   # for header-left plugins
+  bg: "https://example.com/hero-bg.jpg"           # 自动连接到 <Backdrop />
+  hero: "/my-images/strike-freedom.png"           # 用于插件侧栏
+  crest: "/my-images/crest.svg"                   # 用于页眉左侧插件
   logo: "/my-images/logo.png"
   sidebar: "/my-images/rail.png"
   header: "/my-images/header-art.png"
@@ -176,25 +176,25 @@ assets:
     scanLines: "/my-images/scanlines.png"         # → --theme-asset-custom-scanLines
 ```
 
-Values accept:
+值接受：
 
-- Bare URLs — wrapped in `url(...)` automatically.
-- Pre-wrapped `url(...)`, `linear-gradient(...)`, `radial-gradient(...)` expressions — used as-is.
-- `"none"` — explicit opt-out.
+- 裸 URL — 自动包装在 `url(...)` 中。
+- 预包装的 `url(...)`、`linear-gradient(...)`、`radial-gradient(...)` 表达式 — 按原样使用。
+- `"none"` — 明确退出。
 
-Every asset is also emitted as `--theme-asset-<name>-raw` (the unwrapped URL), in case a plugin needs to pass it to `<img src>` instead of `background-image`.
+每个资源也作为 `--theme-asset-<name>-raw`（未包装的 URL）发出，以防插件需要将其传递给 `<img src>` 而非 `background-image`。
 
-Plugins read these with plain CSS or JS:
+插件通过纯 CSS 或 JS 读取这些：
 
 ```javascript
-// In a plugin slot
+// 在插件插槽中
 const hero = getComputedStyle(document.documentElement)
   .getPropertyValue("--theme-asset-hero").trim();
 ```
 
-### Component chrome overrides
+### 组件 chrome 覆盖
 
-`componentStyles` restyles individual shell components without writing CSS selectors. Each bucket's entries become CSS vars (`--component-<bucket>-<kebab-property>`) that the shell's shared components read. So `card:` overrides apply to every `<Card>`, `header:` to the app bar, etc.
+`componentStyles` 无需编写 CSS 选择器即可重新样式化单个 Shell 组件。每个桶的条目成为 CSS 变量（`--component-<bucket>-<kebab-property>`），Shell 的共享组件读取它们。所以 `card:` 覆盖应用于每个 `<Card>`，`header:` 应用于应用栏等。
 
 ```yaml
 componentStyles:
@@ -214,13 +214,13 @@ componentStyles:
   page: {}
 ```
 
-Supported buckets: `card`, `header`, `footer`, `sidebar`, `tab`, `progress`, `badge`, `backdrop`, `page`.
+支持的桶：`card`、`header`、`footer`、`sidebar`、`tab`、`progress`、`badge`、`backdrop`、`page`。
 
-Property names use camelCase (`clipPath`) and are emitted as kebab (`clip-path`). Values are plain CSS strings — anything CSS accepts (`clip-path`, `border-image`, `background`, `box-shadow`, `animation`, ...).
+属性名使用 camelCase（`clipPath`），发出为 kebab（`clip-path`）。值是纯 CSS 字符串——CSS 接受的任何内容（`clip-path`、`border-image`、`background`、`box-shadow`、`animation`、...）。
 
-### Color overrides
+### 颜色覆盖
 
-Most themes won't need this — the 3-layer palette derives every shadcn token. Use `colorOverrides` when you want a specific accent the derivation won't produce (a softer destructive red for a pastel theme, a specific success green for a brand).
+大多数主题不需要这个——3 层调色板派生每个 shadcn 令牌。当你想要派生不会产生的特定强调色时使用 `colorOverrides`（柔和主题的柔和破坏性红色、品牌的特定成功绿色）。
 
 ```yaml
 colorOverrides:
@@ -232,13 +232,13 @@ colorOverrides:
   border: "rgba(64, 200, 255, 0.28)"
 ```
 
-Supported keys: `card`, `cardForeground`, `popover`, `popoverForeground`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`, `accentForeground`, `destructive`, `destructiveForeground`, `success`, `warning`, `border`, `input`, `ring`.
+支持的键：`card`、`cardForeground`、`popover`、`popoverForeground`、`primary`、`primaryForeground`、`secondary`、`secondaryForeground`、`muted`、`mutedForeground`、`accent`、`accentForeground`、`destructive`、`destructiveForeground`、`success`、`warning`、`border`、`input`、`ring`。
 
-Each key maps 1:1 to the `--color-<kebab>` CSS var (e.g. `primaryForeground` → `--color-primary-foreground`). Any key set here wins over the palette cascade for the active theme only — switching to another theme clears the overrides.
+每个键 1:1 映射到 `--color-<kebab>` CSS 变量（例如 `primaryForeground` → `--color-primary-foreground`）。这里设置的任何键仅对活跃主题胜过调色板级联——切换到另一个主题会清除覆盖。
 
-### Raw `customCSS`
+### 原始 `customCSS`
 
-For selector-level chrome that `componentStyles` can't express — pseudo-elements, animations, media queries, theme-scoped overrides — drop raw CSS into `customCSS`:
+对于 `componentStyles` 无法表达的选择器级别 chrome——伪元素、动画、媒体查询、主题作用域覆盖——将原始 CSS 放入 `customCSS`：
 
 ```yaml
 customCSS: |
@@ -256,26 +256,26 @@ customCSS: |
   }
 ```
 
-The CSS is injected as a single scoped `<style data-hermes-theme-css>` tag on theme apply and cleaned up on theme switch. **Capped at 32 KiB per theme.**
+CSS 作为单个作用域的 `<style data-hermes-theme-css>` 标签在主题应用时注入，在主题切换时清理。**每个主题上限 32 KiB。**
 
-### Built-in themes
+### 内置主题
 
-Each built-in ships its own palette, typography, and layout — switching produces visible changes beyond color alone.
+每个内置主题都有自己的调色板、排版和布局——切换产生超越颜色本身的可见变化。
 
-| Theme | Palette | Typography | Layout |
-|-------|---------|------------|--------|
-| **Hermes Teal** (`default`) | Dark teal + cream | System stack, 15px | 0.5rem radius, comfortable |
-| **Midnight** (`midnight`) | Deep blue-violet | Inter + JetBrains Mono, 14px | 0.75rem radius, comfortable |
-| **Ember** (`ember`) | Warm crimson + bronze | Spectral (serif) + IBM Plex Mono, 15px | 0.25rem radius, comfortable |
-| **Mono** (`mono`) | Grayscale | IBM Plex Sans + IBM Plex Mono, 13px | 0 radius, compact |
-| **Cyberpunk** (`cyberpunk`) | Neon green on black | Share Tech Mono everywhere, 14px | 0 radius, compact |
-| **Rosé** (`rose`) | Pink + ivory | Fraunces (serif) + DM Mono, 16px | 1rem radius, spacious |
+| 主题 | 调色板 | 排版 | 布局 |
+|------|--------|------|------|
+| **Hermes Teal**（`default`） | 深青色 + 奶油色 | 系统堆栈，15px | 0.5rem 圆角，舒适 |
+| **Midnight**（`midnight`） | 深蓝紫色 | Inter + JetBrains Mono，14px | 0.75rem 圆角，舒适 |
+| **Ember**（`ember`） | 温暖的深红 + 青铜色 | Spectral（衬线）+ IBM Plex Mono，15px | 0.25rem 圆角，舒适 |
+| **Mono**（`mono`） | 灰度 | IBM Plex Sans + IBM Plex Mono，13px | 0 圆角，紧凑 |
+| **Cyberpunk**（`cyberpunk`） | 黑底霓虹绿 | Share Tech Mono 全用，14px | 0 圆角，紧凑 |
+| **Rosé**（`rose`） | 粉色 + 象牙色 | Fraunces（衬线）+ DM Mono，16px | 1rem 圆角，宽敞 |
 
-Themes that reference Google Fonts (all except Hermes Teal) load the stylesheet on demand — the first time you switch to them a `<link>` tag is injected into `<head>`.
+引用 Google Fonts 的主题（除 Hermes Teal 外的所有）按需加载样式表——首次切换到它们时，`<link>` 标签被注入到 `<head>` 中。
 
-### Full theme YAML reference
+### 完整主题 YAML 参考
 
-Every knob in one file — copy and trim what you don't need:
+一个文件中的所有旋钮——复制并裁剪你不需要的：
 
 ```yaml
 # ~/.hermes/dashboard-themes/ocean.yaml
@@ -283,7 +283,7 @@ name: ocean
 label: Ocean Deep
 description: Deep sea blues with coral accents
 
-# 3-layer palette (accepts {hex, alpha} or bare hex)
+# 3 层调色板（接受 {hex, alpha} 或裸十六进制）
 palette:
   background:
     hex: "#0a1628"
@@ -300,7 +300,7 @@ palette:
 typography:
   fontSans: "Poppins, system-ui, sans-serif"
   fontMono: "Fira Code, ui-monospace, monospace"
-  fontDisplay: "Poppins, system-ui, sans-serif"   # optional
+  fontDisplay: "Poppins, system-ui, sans-serif"   # 可选
   fontUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap"
   baseSize: "15px"
   lineHeight: "1.6"
@@ -331,28 +331,28 @@ colorOverrides:
   ring: "#ff6b6b"
 
 customCSS: |
-  /* Any additional selector-level tweaks */
+  /* 任何额外的选择器级别调整 */
 ```
 
-Refresh the dashboard after creating the file. Switch themes live from the header bar — click the palette icon. Selection persists to `config.yaml` under `dashboard.theme` and is restored on reload.
+创建文件后刷新仪表板。从页眉栏实时切换主题——点击调色板图标。选择持久化到 `config.yaml` 的 `dashboard.theme` 下，并在重载时恢复。
 
 ---
 
-## Plugins
+## 插件
 
-A dashboard plugin is a directory with a `manifest.json`, a pre-built JS bundle, and optionally a CSS file and a Python file with FastAPI routes. Plugins live next to other Hermes plugins in `~/.hermes/plugins/<name>/` — the dashboard extension is a `dashboard/` subfolder inside that plugin directory, so one plugin can extend both the CLI/gateway and the dashboard from a single install.
+仪表板插件是一个包含 `manifest.json`、预构建 JS 包，以及可选的 CSS 文件和带 FastAPI 路由的 Python 文件的目录。插件与其他 Hermes 插件一起位于 `~/.hermes/plugins/<name>/`——仪表板扩展是该插件目录中的 `dashboard/` 子文件夹，因此一个插件可以从单个安装同时扩展 CLI/网关和仪表板。
 
-Plugins don't bundle React or UI components. They use the **Plugin SDK** exposed on `window.__HERMES_PLUGIN_SDK__`. This keeps plugin bundles tiny (typically a few KB) and avoids version conflicts.
+插件不捆绑 React 或 UI 组件。它们使用暴露在 `window.__HERMES_PLUGIN_SDK__` 上的**插件 SDK**。这保持插件包很小（通常几 KB）并避免版本冲突。
 
-### Quick start — your first plugin
+### 快速开始——你的第一个插件
 
-Create the directory structure:
+创建目录结构：
 
 ```bash
 mkdir -p ~/.hermes/plugins/my-plugin/dashboard/dist
 ```
 
-Write the manifest:
+编写清单：
 
 ```json
 // ~/.hermes/plugins/my-plugin/dashboard/manifest.json
@@ -369,7 +369,7 @@ Write the manifest:
 }
 ```
 
-Write the JS bundle (a plain IIFE — no build step needed):
+编写 JS 包（普通 IIFE——无需构建步骤）：
 
 ```javascript
 // ~/.hermes/plugins/my-plugin/dashboard/dist/index.js
@@ -397,35 +397,35 @@ Write the JS bundle (a plain IIFE — no build step needed):
 })();
 ```
 
-Refresh the dashboard — your tab appears in the nav bar, after **Skills**.
+刷新仪表板——你的标签页出现在导航栏中，在 **Skills** 之后。
 
-:::tip Skip React.createElement
-If you prefer JSX, use any bundler (esbuild, Vite, rollup) with React as an external and IIFE output. The only hard requirement is that the final file is a single JS file loadable via `<script>`. React is never bundled; it comes from `SDK.React`.
+:::tip 跳过 React.createElement
+如果你偏好 JSX，使用任何打包器（esbuild、Vite、rollup），将 React 作为外部依赖，IIFE 输出。唯一硬性要求是最终文件是通过 `<script>` 加载的单个 JS 文件。React 永远不捆绑；它来自 `SDK.React`。
 :::
 
-### Directory layout
+### 目录布局
 
 ```
 ~/.hermes/plugins/my-plugin/
-├── plugin.yaml              # optional — existing CLI/gateway plugin manifest
-├── __init__.py              # optional — existing CLI/gateway hooks
-└── dashboard/               # dashboard extension
-    ├── manifest.json        # required — tab config, icon, entry point
+├── plugin.yaml              # 可选——现有 CLI/网关插件清单
+├── __init__.py              # 可选——现有 CLI/网关钩子
+└── dashboard/               # 仪表板扩展
+    ├── manifest.json        # 必需——标签页配置、图标、入口点
     ├── dist/
-    │   ├── index.js         # required — pre-built JS bundle (IIFE)
-    │   └── style.css        # optional — custom CSS
-    └── plugin_api.py        # optional — backend API routes (FastAPI)
+    │   ├── index.js         # 必需——预构建 JS 包（IIFE）
+    │   └── style.css        # 可选——自定义 CSS
+    └── plugin_api.py        # 可选——后端 API 路由（FastAPI）
 ```
 
-A single plugin directory can carry three orthogonal extensions:
+单个插件目录可以携带三个正交扩展：
 
-- `plugin.yaml` + `__init__.py` — CLI/gateway plugin ([see plugins page](./plugins)).
-- `dashboard/manifest.json` + `dashboard/dist/index.js` — dashboard UI plugin.
-- `dashboard/plugin_api.py` — dashboard backend routes.
+- `plugin.yaml` + `__init__.py` — CLI/网关插件（[参见插件页面](./plugins)）。
+- `dashboard/manifest.json` + `dashboard/dist/index.js` — 仪表板 UI 插件。
+- `dashboard/plugin_api.py` — 仪表板后端路由。
 
-None of them are required; include only the layers you need.
+它们都不是必需的；只包含你需要的层。
 
-### Manifest reference
+### 清单参考
 
 ```json
 {
@@ -447,39 +447,39 @@ None of them are required; include only the layers you need.
 }
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Unique plugin identifier. Lowercase, hyphens ok. Used in URLs and registration. |
-| `label` | Yes | Display name shown in the nav tab. |
-| `description` | No | Short description (shown in dashboard admin surfaces). |
-| `icon` | No | Lucide icon name. Defaults to `Puzzle`. Unknown names fall back to `Puzzle`. |
-| `version` | No | Semver string. Defaults to `0.0.0`. |
-| `tab.path` | Yes | URL path for the tab (e.g. `/my-plugin`). |
-| `tab.position` | No | Where to insert the tab. `"end"` (default), `"after:<path>"`, or `"before:<path>"` — value after the colon is the **path segment** of the target tab (no leading slash). Examples: `"after:skills"`, `"before:config"`. |
-| `tab.override` | No | Set to a built-in route path (`"/"`, `"/sessions"`, `"/config"`, ...) to **replace** that page instead of adding a new tab. See [Replacing built-in pages](#replacing-built-in-pages-taboverride). |
-| `tab.hidden` | No | When true, register the component and any slots without adding a tab to the nav. Used by slot-only plugins. See [Slot-only plugins](#slot-only-plugins-tabhidden). |
-| `slots` | No | Named shell slots this plugin populates. **Documentation aid only** — actual registration happens from the JS bundle via `registerSlot()`. Listing slots here makes discovery surfaces more informative. |
-| `entry` | Yes | Path to the JS bundle relative to `dashboard/`. Defaults to `dist/index.js`. |
-| `css` | No | Path to a CSS file to inject as a `<link>` tag. |
-| `api` | No | Path to a Python file with FastAPI routes. Mounted at `/api/plugins/<name>/`. |
+| 字段 | 必需 | 描述 |
+|------|------|------|
+| `name` | 是 | 唯一插件标识符。小写，可用连字符。用于 URL 和注册。 |
+| `label` | 是 | 导航标签页中显示的名称。 |
+| `description` | 否 | 简短描述（在仪表板管理界面显示）。 |
+| `icon` | 否 | Lucide 图标名称。默认为 `Puzzle`。未知名称回退到 `Puzzle`。 |
+| `version` | 否 | 语义化版本字符串。默认为 `0.0.0`。 |
+| `tab.path` | 是 | 标签页的 URL 路径（例如 `/my-plugin`）。 |
+| `tab.position` | 否 | 插入标签页的位置。`"end"`（默认）、`"after:<path>"` 或 `"before:<path>"`——冒号后的值是目标标签页的**路径段**（无前导斜杠）。示例：`"after:skills"`、`"before:config"`。 |
+| `tab.override` | 否 | 设置为内置路由路径（`"/"`、`"/sessions"`、`"/config"`、...）以**替换**该页面而非添加新标签页。参见[替换内置页面](#替换内置页面taboverride)。 |
+| `tab.hidden` | 否 | 为 true 时，注册组件和任何插槽而不向导航添加标签页。用于仅插槽插件。参见[仅插槽插件](#仅插槽插件tabhidden)。 |
+| `slots` | 否 | 此插件填充的命名 Shell 插槽。**仅文档辅助**——实际注册从 JS 包通过 `registerSlot()` 完成。此处列出插槽使发现界面更具信息性。 |
+| `entry` | 是 | 相对于 `dashboard/` 的 JS 包路径。默认为 `dist/index.js`。 |
+| `css` | 否 | 要作为 `<link>` 标签注入的 CSS 文件路径。 |
+| `api` | 否 | 包含 FastAPI 路由的 Python 文件路径。挂载在 `/api/plugins/<name>/`。 |
 
-#### Available icons
+#### 可用图标
 
-Plugins use Lucide icon names. The dashboard maps these by name — unknown names silently fall back to `Puzzle`.
+插件使用 Lucide 图标名称。仪表板按名称映射——未知名称静默回退到 `Puzzle`。
 
-Currently mapped: `Activity`, `BarChart3`, `Clock`, `Code`, `Database`, `Eye`, `FileText`, `Globe`, `Heart`, `KeyRound`, `MessageSquare`, `Package`, `Puzzle`, `Settings`, `Shield`, `Sparkles`, `Star`, `Terminal`, `Wrench`, `Zap`.
+当前映射：`Activity`、`BarChart3`、`Clock`、`Code`、`Database`、`Eye`、`FileText`、`Globe`、`Heart`、`KeyRound`、`MessageSquare`、`Package`、`Puzzle`、`Settings`、`Shield`、`Sparkles`、`Star`、`Terminal`、`Wrench`、`Zap`。
 
-Need a different icon? Open a PR to `web/src/App.tsx`'s `ICON_MAP` — pure additive change.
+需要不同的图标？向 `web/src/App.tsx` 的 `ICON_MAP` 提交 PR——纯增量更改。
 
-### The Plugin SDK
+### 插件 SDK
 
-Everything a plugin needs is on `window.__HERMES_PLUGIN_SDK__`. Plugins should never import React directly.
+插件需要的一切都在 `window.__HERMES_PLUGIN_SDK__` 上。插件永远不应直接导入 React。
 
 ```javascript
-const SDK = window.__HERMES_PLUGIN_SDK__;
+const SDK = window.__HERMES_PLUGIN_SDK__
 
 // React + hooks
-SDK.React                    // the React instance
+SDK.React                    // React 实例
 SDK.hooks.useState
 SDK.hooks.useEffect
 SDK.hooks.useCallback
@@ -488,7 +488,7 @@ SDK.hooks.useRef
 SDK.hooks.useContext
 SDK.hooks.createContext
 
-// UI components (shadcn/ui primitives)
+// UI 组件（shadcn/ui 原语）
 SDK.components.Card
 SDK.components.CardHeader
 SDK.components.CardTitle
@@ -503,22 +503,22 @@ SDK.components.Separator
 SDK.components.Tabs
 SDK.components.TabsList
 SDK.components.TabsTrigger
-SDK.components.PluginSlot    // render a named slot (useful for nested plugin UIs)
+SDK.components.PluginSlot    // 渲染命名插槽（用于嵌套插件 UI）
 
-// Hermes API client + raw fetcher
-SDK.api                      // typed client — getStatus, getSessions, getConfig, ...
-SDK.fetchJSON                // raw fetch for custom endpoints (plugin-registered routes)
+// Hermes API 客户端 + 原始获取器
+SDK.api                      // 类型化客户端——getStatus、getSessions、getConfig、...
+SDK.fetchJSON                // 用于自定义端点的原始获取（插件注册的路由）
 
-// Utilities
-SDK.utils.cn                 // Tailwind class merger (clsx + twMerge)
-SDK.utils.timeAgo            // "5m ago" from unix timestamp
-SDK.utils.isoTimeAgo         // "5m ago" from ISO string
+// 工具
+SDK.utils.cn                 // Tailwind 类合并器（clsx + twMerge）
+SDK.utils.timeAgo            // 从 unix 时间戳显示 "5m ago"
+SDK.utils.isoTimeAgo         // 从 ISO 字符串显示 "5m ago"
 
 // Hooks
-SDK.useI18n                  // i18n hook for multi-language plugins
+SDK.useI18n                  // 多语言插件的 i18n hook
 ```
 
-#### Calling your plugin's backend
+#### 调用你的插件后端
 
 ```javascript
 SDK.fetchJSON("/api/plugins/my-plugin/data")
@@ -526,63 +526,63 @@ SDK.fetchJSON("/api/plugins/my-plugin/data")
   .catch((err) => console.error("API call failed:", err));
 ```
 
-`fetchJSON` injects the session auth token, surfaces errors as thrown exceptions, and parses JSON automatically.
+`fetchJSON` 注入会话认证令牌，将错误作为抛出异常暴露，并自动解析 JSON。
 
-#### Calling built-in Hermes endpoints
+#### 调用内置 Hermes 端点
 
 ```javascript
-// Agent status
+// 代理状态
 SDK.api.getStatus().then((s) => console.log("Version:", s.version));
 
-// Recent sessions
+// 最近会话
 SDK.api.getSessions(10).then((resp) => console.log(resp.sessions.length));
 ```
 
-See [Web Dashboard → REST API](./web-dashboard#rest-api) for the full list.
+参见[网页仪表板 → REST API](./web-dashboard#rest-api) 获取完整列表。
 
-### Shell slots
+### Shell 插槽
 
-Slots let a plugin inject components into named locations of the app shell — the cockpit sidebar, the header, the footer, an overlay layer — without claiming a whole tab. Multiple plugins can populate the same slot; they render stacked in registration order.
+插槽让插件向应用 Shell 的命名位置注入组件——驾驶舱侧栏、页眉、页脚、覆盖层——无需占用整个标签页。多个插件可以填充同一插槽；它们按注册顺序堆叠渲染。
 
-Register from inside the plugin bundle:
+在插件包内注册：
 
 ```javascript
 window.__HERMES_PLUGINS__.registerSlot("my-plugin", "sidebar", MySidebar);
 window.__HERMES_PLUGINS__.registerSlot("my-plugin", "header-left", MyCrest);
 ```
 
-#### Slot catalogue
+#### 插槽目录
 
-**Shell-wide slots** (render anywhere in the app chrome):
+**Shell 全局插槽**（在应用 chrome 的任何位置渲染）：
 
-| Slot | Location |
-|------|----------|
-| `backdrop` | Inside the `<Backdrop />` layer stack, above the noise layer. |
-| `header-left` | Before the Hermes brand in the top bar. |
-| `header-right` | Before the theme/language switchers in the top bar. |
-| `header-banner` | Full-width strip below the nav. |
-| `sidebar` | Cockpit sidebar rail — **only rendered when `layoutVariant === "cockpit"`**. |
-| `pre-main` | Above the route outlet (inside `<main>`). |
-| `post-main` | Below the route outlet (inside `<main>`). |
-| `footer-left` | Footer cell content (replaces default). |
-| `footer-right` | Footer cell content (replaces default). |
-| `overlay` | Fixed-position layer above everything else. Useful for chrome (scanlines, vignettes) `customCSS` can't achieve alone. |
+| 插槽 | 位置 |
+|------|------|
+| `backdrop` | `<Backdrop />` 层栈内，噪点层上方。 |
+| `header-left` | 顶栏中 Hermes 品牌之前。 |
+| `header-right` | 顶栏中主题/语言切换器之前。 |
+| `header-banner` | 导航下方的全宽条带。 |
+| `sidebar` | 驾驶舱侧栏轨——**仅当 `layoutVariant === "cockpit"` 时渲染**。 |
+| `pre-main` | 路由出口上方（`<main>` 内）。 |
+| `post-main` | 路由出口下方（`<main>` 内）。 |
+| `footer-left` | 页脚单元格内容（替换默认）。 |
+| `footer-right` | 页脚单元格内容（替换默认）。 |
+| `overlay` | 所有内容之上的固定定位层。适用于 `customCSS` 单独无法实现的 chrome（扫描线、晕影）。 |
 
-**Page-scoped slots** (render only on the named built-in page — use these to inject widgets, cards, or toolbars into an existing page without overriding the whole route):
+**页面作用域插槽**（仅在命名的内置页面上渲染——用于向现有页面注入小部件、卡片或工具栏，无需覆盖整个路由）：
 
-| Slot | Where it renders |
-|------|------------------|
-| `sessions:top` / `sessions:bottom` | Top / bottom of the `/sessions` page. |
-| `analytics:top` / `analytics:bottom` | Top / bottom of the `/analytics` page. |
-| `logs:top` / `logs:bottom` | Top (above filter toolbar) / bottom (below log viewer) of `/logs`. |
-| `cron:top` / `cron:bottom` | Top / bottom of the `/cron` page. |
-| `skills:top` / `skills:bottom` | Top / bottom of the `/skills` page. |
-| `config:top` / `config:bottom` | Top / bottom of the `/config` page. |
-| `env:top` / `env:bottom` | Top / bottom of the `/env` (Keys) page. |
-| `docs:top` / `docs:bottom` | Top (above the iframe) / bottom of `/docs`. |
-| `chat:top` / `chat:bottom` | Top / bottom of `/chat` (only active when embedded chat is enabled). |
+| 插槽 | 渲染位置 |
+|------|---------|
+| `sessions:top` / `sessions:bottom` | `/sessions` 页面的顶部/底部。 |
+| `analytics:top` / `analytics:bottom` | `/analytics` 页面的顶部/底部。 |
+| `logs:top` / `logs:bottom` | `/logs` 的顶部（过滤工具栏上方）/底部（日志查看器下方）。 |
+| `cron:top` / `cron:bottom` | `/cron` 页面的顶部/底部。 |
+| `skills:top` / `skills:bottom` | `/skills` 页面的顶部/底部。 |
+| `config:top` / `config:bottom` | `/config` 页面的顶部/底部。 |
+| `env:top` / `env:bottom` | `/env`（密钥）页面的顶部/底部。 |
+| `docs:top` / `docs:bottom` | `/docs` 的顶部（iframe 上方）/底部。 |
+| `chat:top` / `chat:bottom` | `/chat` 的顶部/底部（仅在启用嵌入式聊天时活跃）。 |
 
-Example — add a banner card to the top of the Sessions page:
+示例——向会话页面顶部添加横幅卡片：
 
 ```javascript
 function PinnedSessionsBanner() {
@@ -595,17 +595,17 @@ function PinnedSessionsBanner() {
 window.__HERMES_PLUGINS__.registerSlot("my-plugin", "sessions:top", PinnedSessionsBanner);
 ```
 
-Combine page-scoped slots with `tab.hidden: true` if your plugin only augments existing pages and doesn't need a sidebar tab of its own.
+将页面作用域插槽与 `tab.hidden: true` 结合，如果你的插件仅增强现有页面而不需要自己的侧栏标签页。
 
-The shell only renders `<PluginSlot name="..." />` for the slots above. Additional names are accepted by the registry for nested plugin UIs — a plugin can expose its own slots via `SDK.components.PluginSlot`.
+Shell 仅为上述插槽渲染 `<PluginSlot name="..." />`。注册表接受额外的名称用于嵌套插件 UI——插件可以通过 `SDK.components.PluginSlot` 暴露自己的插槽。
 
-#### Re-registration and HMR
+#### 重新注册和 HMR
 
-If the same `(plugin, slot)` pair is registered twice, the later call replaces the earlier one — this matches how React HMR expects plugin re-mounts to behave.
+如果同一 `(plugin, slot)` 对注册两次，后一次调用替换前一次——这与 React HMR 期望的插件重新挂载行为匹配。
 
-### Replacing built-in pages (`tab.override`)
+### 替换内置页面（`tab.override`）
 
-Setting `tab.override` to a built-in route path makes the plugin's component replace that page instead of adding a new tab. Useful when a theme wants a custom home page (`/`) but wants to keep the rest of the dashboard intact.
+将 `tab.override` 设为内置路由路径会使插件的组件替换该页面，而非添加新标签页。当主题想要自定义首页（`/`）但保持仪表板其余部分完整时很有用。
 
 ```json
 {
@@ -620,25 +620,25 @@ Setting `tab.override` to a built-in route path makes the plugin's component rep
 }
 ```
 
-With `override` set:
+设置 `override` 后：
 
-- The original page component at `/` is removed from the router.
-- Your plugin renders at `/` instead.
-- No nav tab is added for `tab.path` (the override is the point).
+- `/` 的原始页面组件从路由器中移除。
+- 你的插件在 `/` 渲染。
+- 不为 `tab.path` 添加导航标签页（覆盖就是目的）。
 
-Only one plugin can override a given path. If two plugins claim the same override, the first wins and the second is ignored with a dev-mode warning.
+只有一个插件可以覆盖给定路径。如果两个插件声明相同的覆盖，第一个获胜，第二个被忽略并显示开发模式警告。
 
-If you only need to add a card or toolbar to an existing page without taking it over, use [page-scoped slots](#augmenting-built-in-pages-page-scoped-slots) instead.
+如果你只需要向现有页面添加卡片或工具栏而不接管它，请改用[页面作用域插槽](#增强内置页面页面作用域插槽)。
 
-### Augmenting built-in pages (page-scoped slots)
+### 增强内置页面（页面作用域插槽）
 
-Full replacement via `tab.override` is heavy — your plugin now owns the entire page, including any future updates we ship to it. Most of the time you just want to add a banner, card, or toolbar to an existing page. That's what **page-scoped slots** are for.
+通过 `tab.override` 的完全替换很重——你的插件现在拥有整个页面，包括我们未来发布的任何更新。大多数时候你只想向现有页面添加横幅、卡片或工具栏。这就是**页面作用域插槽**的用途。
 
-Every built-in page exposes `<page>:top` and `<page>:bottom` slots rendered at the top and bottom of its content area. Your plugin populates one by calling `registerSlot()` — the built-in page keeps working normally, and your component renders alongside it.
+每个内置页面暴露 `<page>:top` 和 `<page>:bottom` 插槽，渲染在其内容区域的顶部和底部。你的插件通过调用 `registerSlot()` 填充一个——内置页面正常继续工作，你的组件在其旁边渲染。
 
-Available slots: `sessions:*`, `analytics:*`, `logs:*`, `cron:*`, `skills:*`, `config:*`, `env:*`, `docs:*`, `chat:*` (each with `:top` and `:bottom`). See the full catalogue in [Shell slots → Slot catalogue](#slot-catalogue).
+可用插槽：`sessions:*`、`analytics:*`、`logs:*`、`cron:*`、`skills:*`、`config:*`、`env:*`、`docs:*`、`chat:*`（每个有 `:top` 和 `:bottom`）。参见 [Shell 插槽 → 插槽目录](#插槽目录)中的完整目录。
 
-Minimal example — pin a banner to the top of the Sessions page:
+最小示例——将横幅固定到会话页面顶部：
 
 ```json
 // ~/.hermes/plugins/session-notes/dashboard/manifest.json
@@ -665,26 +665,26 @@ Minimal example — pin a banner to the top of the Sessions page:
     );
   }
 
-  // Placeholder for the hidden tab.
+  // Hidden tab 的占位符。
   window.__HERMES_PLUGINS__.register("session-notes", function () { return null; });
 
-  // The real work.
+  // 真正的工作。
   window.__HERMES_PLUGINS__.registerSlot("session-notes", "sessions:top", Banner);
 })();
 ```
 
-Key points:
+关键点：
 
-- `tab.hidden: true` keeps the plugin out of the sidebar — it has no standalone page.
-- The `slots` manifest field is documentation only. The actual binding happens in the JS bundle via `registerSlot()`.
-- Multiple plugins can claim the same page-scoped slot. They render stacked in registration order.
-- Zero footprint when no plugin registers: the built-in page renders exactly as before.
+- `tab.hidden: true` 使插件不出现在侧栏——它没有独立页面。
+- `slots` 清单字段仅用于文档。实际绑定在 JS 包中通过 `registerSlot()` 完成。
+- 多个插件可以声明同一页面作用域插槽。它们按注册顺序堆叠渲染。
+- 无插件注册时零占用：内置页面完全按原样渲染。
 
-The bundled `example-dashboard` plugin ships a live demo that injects a banner into `sessions:top` — install it to see the pattern end-to-end.
+捆绑的 `example-dashboard` 插件提供了一个向 `sessions:top` 注入横幅的实时演示——安装它以端到端查看该模式。
 
-### Slot-only plugins (`tab.hidden`)
+### 仅插槽插件（`tab.hidden`）
 
-When `tab.hidden: true`, the plugin registers its component (for direct URL visits) and any slots, but never adds a tab to the navigation. Used by plugins that only exist to inject into slots — a header crest, a sidebar HUD, an overlay.
+当 `tab.hidden: true` 时，插件注册其组件（用于直接 URL 访问）和任何插槽，但从不向导航添加标签页。用于仅存在于向插槽注入内容的插件——页眉徽章、侧栏 HUD、覆盖层。
 
 ```json
 {
@@ -700,11 +700,11 @@ When `tab.hidden: true`, the plugin registers its component (for direct URL visi
 }
 ```
 
-The bundle still calls `register()` with a placeholder component (good practice in case someone hits the URL directly) and then `registerSlot()` to do the real work.
+包仍然调用 `register()` 带占位符组件（以防有人直接访问 URL），然后调用 `registerSlot()` 做真正的工作。
 
-### Backend API routes
+### 后端 API 路由
 
-Plugins can register FastAPI routes by setting `api` in the manifest. Create the file and export a `router`:
+插件可以通过在清单中设置 `api` 注册 FastAPI 路由。创建文件并导出 `router`：
 
 ```python
 # ~/.hermes/plugins/my-plugin/dashboard/plugin_api.py
@@ -721,16 +721,16 @@ async def do_action(body: dict):
     return {"ok": True, "received": body}
 ```
 
-Routes are mounted under `/api/plugins/<name>/`, so the above becomes:
+路由挂载在 `/api/plugins/<name>/` 下，所以上述变为：
 
 - `GET  /api/plugins/my-plugin/data`
 - `POST /api/plugins/my-plugin/action`
 
-Plugin API routes bypass session-token authentication since the dashboard server binds to localhost by default. **Don't expose the dashboard on a public interface with `--host 0.0.0.0` if you run untrusted plugins** — their routes become reachable too.
+插件 API 路由绕过会话令牌认证，因为仪表板服务器默认绑定到 localhost。**如果你运行不受信任的插件，不要用 `--host 0.0.0.0` 在公共接口上暴露仪表板**——它们的路由也会变得可达。
 
-#### Accessing Hermes internals
+#### 访问 Hermes 内部
 
-Backend routes run inside the dashboard process, so they can import from the hermes-agent codebase directly:
+后端路由运行在仪表板进程内，因此它们可以直接从 hermes-agent 代码库导入：
 
 ```python
 from fastapi import APIRouter
@@ -754,9 +754,9 @@ async def config_snapshot():
     return {"model": cfg.get("model", {})}
 ```
 
-### Custom CSS per plugin
+### 每个插件的自定义 CSS
 
-If your plugin needs styles beyond Tailwind classes and inline `style=`, add a CSS file and reference it in the manifest:
+如果你的插件需要超出 Tailwind 类和内联 `style=` 的样式，添加 CSS 文件并在清单中引用：
 
 ```json
 {
@@ -764,7 +764,7 @@ If your plugin needs styles beyond Tailwind classes and inline `style=`, add a C
 }
 ```
 
-The file is injected as a `<link>` tag on plugin load. Use specific class names to avoid conflicts with the dashboard's styles, and reference the dashboard's CSS vars to stay theme-aware:
+文件在插件加载时作为 `<link>` 标签注入。使用特定类名以避免与仪表板样式冲突，并引用仪表板的 CSS 变量以保持主题感知：
 
 ```css
 /* dist/style.css */
@@ -779,126 +779,126 @@ The file is injected as a `<link>` tag on plugin load. Use specific class names 
 }
 ```
 
-The dashboard exposes every shadcn token as `--color-*` plus theme extras (`--theme-asset-*`, `--component-<bucket>-*`, `--radius`, `--spacing-mul`). Reference those and your plugin automatically reskins with the active theme.
+仪表板将每个 shadcn 令牌暴露为 `--color-*` 加主题额外（`--theme-asset-*`、`--component-<bucket>-*`、`--radius`、`--spacing-mul`）。引用这些，你的插件自动随活跃主题重新皮肤化。
 
-### Plugin discovery & reload
+### 插件发现与重载
 
-The dashboard scans three directories for `dashboard/manifest.json`:
+仪表板扫描三个目录查找 `dashboard/manifest.json`：
 
-| Priority | Directory | Source label |
-|----------|-----------|--------------|
-| 1 (wins on conflict) | `~/.hermes/plugins/<name>/dashboard/` | `user` |
+| 优先级 | 目录 | 来源标签 |
+|--------|------|---------|
+| 1（冲突时获胜） | `~/.hermes/plugins/<name>/dashboard/` | `user` |
 | 2 | `<repo>/plugins/memory/<name>/dashboard/` | `bundled` |
 | 2 | `<repo>/plugins/<name>/dashboard/` | `bundled` |
-| 3 | `./.hermes/plugins/<name>/dashboard/` | `project` — only when `HERMES_ENABLE_PROJECT_PLUGINS` is set |
+| 3 | `./.hermes/plugins/<name>/dashboard/` | `project` — 仅当设置了 `HERMES_ENABLE_PROJECT_PLUGINS` 时 |
 
-Discovery results are cached per dashboard process. After adding a new plugin, either:
+发现结果按仪表板进程缓存。添加新插件后，要么：
 
 ```bash
-# Force a rescan without restart
+# 强制重新扫描无需重启
 curl http://127.0.0.1:9119/api/dashboard/plugins/rescan
 ```
 
-…or restart `hermes dashboard`.
+…要么重启 `hermes dashboard`。
 
-#### Plugin load lifecycle
+#### 插件加载生命周期
 
-1. Dashboard loads. `main.tsx` exposes the SDK on `window.__HERMES_PLUGIN_SDK__` and the registry on `window.__HERMES_PLUGINS__`.
-2. `App.tsx` calls `usePlugins()` → fetches `GET /api/dashboard/plugins`.
-3. For each manifest: CSS `<link>` is injected (if declared), then a `<script>` tag loads the JS bundle.
-4. The plugin's IIFE runs and calls `window.__HERMES_PLUGINS__.register(name, Component)` — and optionally `.registerSlot(name, slot, Component)` for each slot.
-5. The dashboard resolves the registered component against the manifest, adds the tab to navigation (unless `hidden`), and mounts the component as a route.
+1. 仪表板加载。`main.tsx` 在 `window.__HERMES_PLUGIN_SDK__` 上暴露 SDK，在 `window.__HERMES_PLUGINS__` 上暴露注册表。
+2. `App.tsx` 调用 `usePlugins()` → 获取 `GET /api/dashboard/plugins`。
+3. 对于每个清单：注入 CSS `<link>`（如果声明），然后 `<script>` 标签加载 JS 包。
+4. 插件的 IIFE 运行并调用 `window.__HERMES_PLUGINS__.register(name, Component)` ——以及可选的 `.registerSlot(name, slot, Component)` 用于每个插槽。
+5. 仪表板解析注册的组件与清单，向导航添加标签页（除非 `hidden`），并将组件挂载为路由。
 
-Plugins have up to **2 seconds** after their script loads to call `register()`. After that the dashboard stops waiting and finishes initial render. If a plugin later registers, it still appears — the nav is reactive.
+插件在脚本加载后有最多 **2 秒**调用 `register()`。之后仪表板停止等待并完成初始渲染。如果插件后来注册，它仍然出现——导航是响应式的。
 
-If a plugin's script fails to load (404, syntax error, exception during IIFE), the dashboard logs a warning to the browser console and continues without it.
+如果插件的脚本加载失败（404、语法错误、IIFE 期间异常），仪表板向浏览器控制台记录警告并继续。
 
 ---
 
-## Combined theme + plugin demo
+## 组合主题 + 插件演示
 
-The repo ships `plugins/strike-freedom-cockpit/` as a complete reskin demo. It pairs a theme YAML with a slot-only plugin to produce a cockpit-style HUD without forking the dashboard.
+仓库附带 `plugins/strike-freedom-cockpit/` 作为完整的重新皮肤演示。它将主题 YAML 与仅插槽插件配对，产生驾驶舱风格的 HUD 而无需分叉仪表板。
 
-**What it demonstrates:**
+**它演示了什么：**
 
-- A full theme using palette, typography, `fontUrl`, `layoutVariant: cockpit`, `assets`, `componentStyles` (notched card corners, gradient backgrounds), `colorOverrides`, and `customCSS` (scanline overlay).
-- A slot-only plugin (`tab.hidden: true`) that registers into three slots:
-  - `sidebar` — an MS-STATUS panel with live telemetry bars driven by `SDK.api.getStatus()`.
-  - `header-left` — a faction crest that reads `--theme-asset-crest` from the active theme.
-  - `footer-right` — a custom tagline replacing the default org line.
-- The plugin reads theme-supplied artwork via CSS vars, so swapping themes changes the hero/crest without plugin code changes.
+- 使用调色板、排版、`fontUrl`、`layoutVariant: cockpit`、`assets`、`componentStyles`（切口卡片角、渐变背景）、`colorOverrides` 和 `customCSS`（扫描线覆盖）的完整主题。
+- 仅插槽插件（`tab.hidden: true`）注册到三个插槽：
+  - `sidebar` — MS-STATUS 面板，带有由 `SDK.api.getStatus()` 驱动的实时遥测条。
+  - `header-left` — 从活跃主题读取 `--theme-asset-crest` 的派系徽章。
+  - `footer-right` — 替换默认组织行的自定义标语。
+- 插件通过 CSS 变量读取主题提供的美术资源，因此切换主题无需更改插件代码即可更改英雄/徽章。
 
-**Install:**
+**安装：**
 
 ```bash
-# Theme
+# 主题
 cp plugins/strike-freedom-cockpit/theme/strike-freedom.yaml \
    ~/.hermes/dashboard-themes/
 
-# Plugin
+# 插件
 cp -r plugins/strike-freedom-cockpit ~/.hermes/plugins/
 ```
 
-Open the dashboard, pick **Strike Freedom** from the theme switcher. The cockpit sidebar appears, the crest shows in the header, the tagline replaces the footer. Switch back to **Hermes Teal** and the plugin remains installed but invisible (the `sidebar` slot only renders under the `cockpit` layout variant).
+打开仪表板，从主题切换器选择 **Strike Freedom**。驾驶舱侧栏出现，徽章显示在页眉中，标语替换页脚。切换回 **Hermes Teal**，插件仍然安装但不可见（`sidebar` 插槽仅在 `cockpit` 布局变体下渲染）。
 
-Read the plugin source (`plugins/strike-freedom-cockpit/dashboard/dist/index.js`) to see how it reads CSS vars, guards against older dashboards without slot support, and registers three slots from one bundle.
-
----
-
-## API reference
-
-### Theme endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/dashboard/themes` | GET | List available themes + active name. Built-ins return `{name, label, description}`; user themes also include a `definition` field with the full normalised theme object. |
-| `/api/dashboard/theme` | PUT | Set active theme. Body: `{"name": "midnight"}`. Persists to `config.yaml` under `dashboard.theme`. |
-
-### Plugin endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/dashboard/plugins` | GET | List discovered plugins (with manifests, minus internal fields). |
-| `/api/dashboard/plugins/rescan` | GET | Force re-scan the plugin directories without restarting. |
-| `/dashboard-plugins/<name>/<path>` | GET | Serve static assets from a plugin's `dashboard/` directory. Path traversal is blocked. |
-| `/api/plugins/<name>/*` | * | Plugin-registered backend routes. |
-
-### SDK on `window`
-
-| Global | Type | Provider |
-|--------|------|----------|
-| `window.__HERMES_PLUGIN_SDK__` | object | `registry.ts` — React, hooks, UI components, API client, utils. |
-| `window.__HERMES_PLUGINS__.register(name, Component)` | function | Register a plugin's main component. |
-| `window.__HERMES_PLUGINS__.registerSlot(name, slot, Component)` | function | Register into a named shell slot. |
+阅读插件源码（`plugins/strike-freedom-cockpit/dashboard/dist/index.js`）以查看它如何读取 CSS 变量、防御没有插槽支持的旧仪表板，以及从一个包注册三个插槽。
 
 ---
 
-## Troubleshooting
+## API 参考
 
-**My theme doesn't appear in the picker.**
-Check that the file is in `~/.hermes/dashboard-themes/` and ends in `.yaml` or `.yml`. Refresh the page. Run `curl http://127.0.0.1:9119/api/dashboard/themes` — your theme should be in the response. If the YAML has a parse error, the dashboard logs to `errors.log` under `~/.hermes/logs/`.
+### 主题端点
 
-**My plugin's tab doesn't show up.**
-1. Check the manifest is at `~/.hermes/plugins/<name>/dashboard/manifest.json` (note the `dashboard/` subdirectory).
-2. `curl http://127.0.0.1:9119/api/dashboard/plugins/rescan` to force re-discovery.
-3. Open browser dev tools → Network — confirm `manifest.json`, `index.js`, and any CSS loaded without 404s.
-4. Open browser dev tools → Console — look for errors during the IIFE or `window.__HERMES_PLUGINS__ is undefined` (indicates the SDK didn't initialize, usually a React render crash earlier).
-5. Verify your bundle calls `window.__HERMES_PLUGINS__.register(...)` with the **same name** as `manifest.json:name`.
+| 端点 | 方法 | 描述 |
+|------|------|------|
+| `/api/dashboard/themes` | GET | 列出可用主题 + 活跃名称。内置返回 `{name, label, description}`；用户主题还包含带完整规范化主题对象的 `definition` 字段。 |
+| `/api/dashboard/theme` | PUT | 设置活跃主题。Body：`{"name": "midnight"}`。持久化到 `config.yaml` 的 `dashboard.theme` 下。 |
 
-**Slot-registered components don't render.**
-The `sidebar` slot only renders when the active theme has `layoutVariant: cockpit`. Other slots always render. If you're registering into a slot with no hits, add `console.log` inside `registerSlot` to confirm the plugin bundle ran at all.
+### 插件端点
 
-**Plugin backend routes return 404.**
-1. Confirm the manifest has `"api": "plugin_api.py"` pointing to an existing file inside `dashboard/`.
-2. Restart `hermes dashboard` — plugin API routes are mounted once at startup, **not** on rescan.
-3. Check that `plugin_api.py` exports a module-level `router = APIRouter()`. Other export names are not picked up.
-4. Tail `~/.hermes/logs/errors.log` for `Failed to load plugin <name> API routes` — import errors are logged there.
+| 端点 | 方法 | 描述 |
+|------|------|------|
+| `/api/dashboard/plugins` | GET | 列出发现的插件（带清单，减去内部字段）。 |
+| `/api/dashboard/plugins/rescan` | GET | 强制重新扫描插件目录无需重启。 |
+| `/dashboard-plugins/<name>/<path>` | GET | 从插件的 `dashboard/` 目录提供静态资源。路径遍历被阻止。 |
+| `/api/plugins/<name>/*` | * | 插件注册的后端路由。 |
 
-**Theme change drops my color overrides.**
-`colorOverrides` are scoped to the active theme and cleared on theme switch — that's by design. If you want overrides that persist, put them in your theme's YAML, not in the live switcher.
+### `window` 上的 SDK
 
-**Theme customCSS gets truncated.**
-The `customCSS` block is capped at 32 KiB per theme. Split large stylesheets across multiple themes, or switch to a plugin that injects a full stylesheet via its `css` field (no size cap).
+| 全局 | 类型 | 提供者 |
+|------|------|--------|
+| `window.__HERMES_PLUGIN_SDK__` | object | `registry.ts` — React、hooks、UI 组件、API 客户端、工具。 |
+| `window.__HERMES_PLUGINS__.register(name, Component)` | function | 注册插件的主组件。 |
+| `window.__HERMES_PLUGINS__.registerSlot(name, slot, Component)` | function | 注册到命名的 Shell 插槽。 |
 
-**I want to ship a plugin on PyPI.**
-Dashboard plugins are installed by directory layout, not by pip entry point. The cleanest distribution path today is a git repo the user clones into `~/.hermes/plugins/`. A pip-based installer for dashboard plugins is not currently wired up.
+---
+
+## 故障排除
+
+**我的主题没有出现在选择器中。**
+检查文件是否在 `~/.hermes/dashboard-themes/` 中并以 `.yaml` 或 `.yml` 结尾。刷新页面。运行 `curl http://127.0.0.1:9119/api/dashboard/themes`——你的主题应该在响应中。如果 YAML 有解析错误，仪表板记录到 `~/.hermes/logs/` 下的 `errors.log`。
+
+**我的插件标签页没有显示。**
+1. 检查清单是否在 `~/.hermes/plugins/<name>/dashboard/manifest.json`（注意 `dashboard/` 子目录）。
+2. `curl http://127.0.0.1:9119/api/dashboard/plugins/rescan` 强制重新发现。
+3. 打开浏览器开发工具 → Network——确认 `manifest.json`、`index.js` 和任何 CSS 加载无 404。
+4. 打开浏览器开发工具 → Console——查找 IIFE 期间的错误或 `window.__HERMES_PLUGINS__ is undefined`（表示 SDK 未初始化，通常是之前的 React 渲染崩溃）。
+5. 验证你的包调用 `window.__HERMES_PLUGINS__.register(...)` 使用与 `manifest.json:name` **相同的名称**。
+
+**插槽注册的组件不渲染。**
+`sidebar` 插槽仅在活跃主题有 `layoutVariant: cockpit` 时渲染。其他插槽始终渲染。如果你注册到没有命中的插槽，在 `registerSlot` 内添加 `console.log` 以确认插件包确实运行了。
+
+**插件后端路由返回 404。**
+1. 确认清单有 `"api": "plugin_api.py"` 指向 `dashboard/` 内的现有文件。
+2. 重启 `hermes dashboard`——插件 API 路由在启动时挂载一次，**不在**重新扫描时。
+3. 检查 `plugin_api.py` 导出模块级别的 `router = APIRouter()`。其他导出名称不会被拾取。
+4. 查看 `~/.hermes/logs/errors.log` 中的 `Failed to load plugin <name> API routes`——导入错误记录在那里。
+
+**主题更改丢失我的颜色覆盖。**
+`colorOverrides` 作用域为活跃主题，在主题切换时清除——这是设计如此。如果你想要持久的覆盖，将它们放在主题的 YAML 中，而非实时切换器中。
+
+**主题 customCSS 被截断。**
+`customCSS` 块每个主题上限 32 KiB。将大样式表拆分到多个主题，或切换到通过其 `css` 字段注入完整样式表的插件（无大小上限）。
+
+**我想在 PyPI 上发布插件。**
+仪表板插件通过目录布局安装，而非 pip 入口点。目前最干净的分发路径是用户克隆到 `~/.hermes/plugins/` 的 git 仓库。仪表板插件的基于 pip 的安装器目前未配置。

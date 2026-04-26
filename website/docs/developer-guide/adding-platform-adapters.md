@@ -2,45 +2,45 @@
 sidebar_position: 9
 ---
 
-# Adding a Platform Adapter
+# 添加平台适配器
 
-This guide covers adding a new messaging platform to the Hermes gateway. A platform adapter connects Hermes to an external messaging service (Telegram, Discord, WeCom, etc.) so users can interact with the agent through that service.
+本指南介绍如何向 Hermes 网关添加新的消息平台。平台适配器将 Hermes 连接到外部消息服务（Telegram、Discord、企业微信等），使用户可以通过该服务与代理交互。
 
 :::tip
-Adding a platform adapter touches 20+ files across code, config, and docs. Use this guide as a checklist — the adapter file itself is typically only 40% of the work.
+添加平台适配器涉及代码、配置和文档中的 20 多个文件。请将本指南作为清单使用 — 适配器文件本身通常只占工作量的 40%。
 :::
 
-## Architecture Overview
+## 架构概述
 
 ```
-User ↔ Messaging Platform ↔ Platform Adapter ↔ Gateway Runner ↔ AIAgent
+用户 ↔ 消息平台 ↔ 平台适配器 ↔ 网关运行器 ↔ AIAgent
 ```
 
-Every adapter extends `BasePlatformAdapter` from `gateway/platforms/base.py` and implements:
+每个适配器都继承自 `gateway/platforms/base.py` 中的 `BasePlatformAdapter`，并实现：
 
-- **`connect()`** — Establish connection (WebSocket, long-poll, HTTP server, etc.)
-- **`disconnect()`** — Clean shutdown
-- **`send()`** — Send a text message to a chat
-- **`send_typing()`** — Show typing indicator (optional)
-- **`get_chat_info()`** — Return chat metadata
+- **`connect()`** — 建立连接（WebSocket、长轮询、HTTP 服务器等）
+- **`disconnect()`** — 清理关闭
+- **`send()`** — 向聊天发送文本消息
+- **`send_typing()`** — 显示输入指示器（可选）
+- **`get_chat_info()`** — 返回聊天元数据
 
-Inbound messages are received by the adapter and forwarded via `self.handle_message(event)`, which the base class routes to the gateway runner.
+入站消息由适配器接收并通过 `self.handle_message(event)` 转发，基类将其路由到网关运行器。
 
-## Step-by-Step Checklist
+## 分步清单
 
-### 1. Platform Enum
+### 1. 平台枚举
 
-Add your platform to the `Platform` enum in `gateway/config.py`:
+将你的平台添加到 `gateway/config.py` 中的 `Platform` 枚举：
 
 ```python
 class Platform(str, Enum):
-    # ... existing platforms ...
+    # ... 现有平台 ...
     NEWPLAT = "newplat"
 ```
 
-### 2. Adapter File
+### 2. 适配器文件
 
-Create `gateway/platforms/newplat.py`:
+创建 `gateway/platforms/newplat.py`：
 
 ```python
 from gateway.config import Platform, PlatformConfig
@@ -76,7 +76,7 @@ class NewPlatAdapter(BasePlatformAdapter):
         return {"name": chat_id, "type": "dm"}
 ```
 
-For inbound messages, build a `MessageEvent` and call `self.handle_message(event)`:
+对于入站消息，构建 `MessageEvent` 并调用 `self.handle_message(event)`：
 
 ```python
 source = self.build_source(
@@ -95,52 +95,52 @@ event = MessageEvent(
 await self.handle_message(event)
 ```
 
-### 3. Gateway Config (`gateway/config.py`)
+### 3. 网关配置 (`gateway/config.py`)
 
-Three touchpoints:
+三个接触点：
 
-1. **`get_connected_platforms()`** — Add a check for your platform's required credentials
-2. **`load_gateway_config()`** — Add token env map entry: `Platform.NEWPLAT: "NEWPLAT_TOKEN"`
-3. **`_apply_env_overrides()`** — Map all `NEWPLAT_*` env vars to config
+1. **`get_connected_platforms()`** — 添加对你平台所需凭据的检查
+2. **`load_gateway_config()`** — 添加令牌环境变量映射条目：`Platform.NEWPLAT: "NEWPLAT_TOKEN"`
+3. **`_apply_env_overrides()`** — 将所有 `NEWPLAT_*` 环境变量映射到配置
 
-### 4. Gateway Runner (`gateway/run.py`)
+### 4. 网关运行器 (`gateway/run.py`)
 
-Five touchpoints:
+五个接触点：
 
-1. **`_create_adapter()`** — Add an `elif platform == Platform.NEWPLAT:` branch
-2. **`_is_user_authorized()` allowed_users map** — `Platform.NEWPLAT: "NEWPLAT_ALLOWED_USERS"`
-3. **`_is_user_authorized()` allow_all map** — `Platform.NEWPLAT: "NEWPLAT_ALLOW_ALL_USERS"`
-4. **Early env check `_any_allowlist` tuple** — Add `"NEWPLAT_ALLOWED_USERS"`
-5. **Early env check `_allow_all` tuple** — Add `"NEWPLAT_ALLOW_ALL_USERS"`
-6. **`_UPDATE_ALLOWED_PLATFORMS` frozenset** — Add `Platform.NEWPLAT`
+1. **`_create_adapter()`** — 添加 `elif platform == Platform.NEWPLAT:` 分支
+2. **`_is_user_authorized()` allowed_users 映射** — `Platform.NEWPLAT: "NEWPLAT_ALLOWED_USERS"`
+3. **`_is_user_authorized()` allow_all 映射** — `Platform.NEWPLAT: "NEWPLAT_ALLOW_ALL_USERS"`
+4. **早期环境检查 `_any_allowlist` 元组** — 添加 `"NEWPLAT_ALLOWED_USERS"`
+5. **早期环境检查 `_allow_all` 元组** — 添加 `"NEWPLAT_ALLOW_ALL_USERS"`
+6. **`_UPDATE_ALLOWED_PLATFORMS` frozenset** — 添加 `Platform.NEWPLAT`
 
-### 5. Cross-Platform Delivery
+### 5. 跨平台投递
 
-1. **`gateway/platforms/webhook.py`** — Add `"newplat"` to the delivery type tuple
-2. **`cron/scheduler.py`** — Add to `_KNOWN_DELIVERY_PLATFORMS` frozenset and `_deliver_result()` platform map
+1. **`gateway/platforms/webhook.py`** — 将 `"newplat"` 添加到投递类型元组
+2. **`cron/scheduler.py`** — 添加到 `_KNOWN_DELIVERY_PLATFORMS` frozenset 和 `_deliver_result()` 平台映射
 
-### 6. CLI Integration
+### 6. CLI 集成
 
-1. **`hermes_cli/config.py`** — Add all `NEWPLAT_*` vars to `_EXTRA_ENV_KEYS`
-2. **`hermes_cli/gateway.py`** — Add entry to `_PLATFORMS` list with key, label, emoji, token_var, setup_instructions, and vars
-3. **`hermes_cli/platforms.py`** — Add `PlatformInfo` entry with label and default_toolset (used by `skills_config` and `tools_config` TUIs)
-4. **`hermes_cli/setup.py`** — Add `_setup_newplat()` function (can delegate to `gateway.py`) and add tuple to the messaging platforms list
-5. **`hermes_cli/status.py`** — Add platform detection entry: `"NewPlat": ("NEWPLAT_TOKEN", "NEWPLAT_HOME_CHANNEL")`
-6. **`hermes_cli/dump.py`** — Add `"newplat": "NEWPLAT_TOKEN"` to platform detection dict
+1. **`hermes_cli/config.py`** — 将所有 `NEWPLAT_*` 变量添加到 `_EXTRA_ENV_KEYS`
+2. **`hermes_cli/gateway.py`** — 添加条目到 `_PLATFORMS` 列表，包含 key、label、emoji、token_var、setup_instructions 和 vars
+3. **`hermes_cli/platforms.py`** — 添加 `PlatformInfo` 条目，包含 label 和 default_toolset（用于 `skills_config` 和 `tools_config` TUI）
+4. **`hermes_cli/setup.py`** — 添加 `_setup_newplat()` 函数（可委托给 `gateway.py`）并添加元组到消息平台列表
+5. **`hermes_cli/status.py`** — 添加平台检测条目：`"NewPlat": ("NEWPLAT_TOKEN", "NEWPLAT_HOME_CHANNEL")`
+6. **`hermes_cli/dump.py`** — 将 `"newplat": "NEWPLAT_TOKEN"` 添加到平台检测字典
 
-### 7. Tools
+### 7. 工具
 
-1. **`tools/send_message_tool.py`** — Add `"newplat": Platform.NEWPLAT` to platform map
-2. **`tools/cronjob_tools.py`** — Add `newplat` to the delivery target description string
+1. **`tools/send_message_tool.py`** — 将 `"newplat": Platform.NEWPLAT` 添加到平台映射
+2. **`tools/cronjob_tools.py`** — 将 `newplat` 添加到投递目标描述字符串
 
-### 8. Toolsets
+### 8. 工具集
 
-1. **`toolsets.py`** — Add `"hermes-newplat"` toolset definition with `_HERMES_CORE_TOOLS`
-2. **`toolsets.py`** — Add `"hermes-newplat"` to the `"hermes-gateway"` includes list
+1. **`toolsets.py`** — 添加 `"hermes-newplat"` 工具集定义，包含 `_HERMES_CORE_TOOLS`
+2. **`toolsets.py`** — 将 `"hermes-newplat"` 添加到 `"hermes-gateway"` includes 列表
 
-### 9. Optional: Platform Hints
+### 9. 可选：平台提示
 
-**`agent/prompt_builder.py`** — If your platform has specific rendering limitations (no markdown, message length limits, etc.), add an entry to the `_PLATFORM_HINTS` dict. This injects platform-specific guidance into the system prompt:
+**`agent/prompt_builder.py`** — 如果你的平台有特定的渲染限制（无 markdown、消息长度限制等），请添加条目到 `_PLATFORM_HINTS` 字典。这会将平台特定的指导注入系统提示词：
 
 ```python
 _PLATFORM_HINTS = {
@@ -152,51 +152,51 @@ _PLATFORM_HINTS = {
 }
 ```
 
-Not all platforms need hints — only add one if the agent's behavior should differ.
+并非所有平台都需要提示 — 仅在代理行为需要不同时才添加。
 
-### 10. Tests
+### 10. 测试
 
-Create `tests/gateway/test_newplat.py` covering:
+创建 `tests/gateway/test_newplat.py`，覆盖：
 
-- Adapter construction from config
-- Message event building
-- Send method (mock the external API)
-- Platform-specific features (encryption, routing, etc.)
+- 从配置构建适配器
+- 消息事件构建
+- 发送方法（模拟外部 API）
+- 平台特定功能（加密、路由等）
 
-### 11. Documentation
+### 11. 文档
 
-| File | What to add |
-|------|-------------|
-| `website/docs/user-guide/messaging/newplat.md` | Full platform setup page |
-| `website/docs/user-guide/messaging/index.md` | Platform comparison table, architecture diagram, toolsets table, security section, next-steps link |
-| `website/docs/reference/environment-variables.md` | All NEWPLAT_* env vars |
-| `website/docs/reference/toolsets-reference.md` | hermes-newplat toolset |
-| `website/docs/integrations/index.md` | Platform link |
-| `website/sidebars.ts` | Sidebar entry for the docs page |
-| `website/docs/developer-guide/architecture.md` | Adapter count + listing |
-| `website/docs/developer-guide/gateway-internals.md` | Adapter file listing |
+| 文件 | 添加内容 |
+|------|----------|
+| `website/docs/user-guide/messaging/newplat.md` | 完整的平台设置页面 |
+| `website/docs/user-guide/messaging/index.md` | 平台比较表、架构图、工具集表、安全部分、下一步链接 |
+| `website/docs/reference/environment-variables.md` | 所有 NEWPLAT_* 环境变量 |
+| `website/docs/reference/toolsets-reference.md` | hermes-newplat 工具集 |
+| `website/docs/integrations/index.md` | 平台链接 |
+| `website/sidebars.ts` | 文档页面的侧边栏条目 |
+| `website/docs/developer-guide/architecture.md` | 适配器数量 + 列表 |
+| `website/docs/developer-guide/gateway-internals.md` | 适配器文件列表 |
 
-## Parity Audit
+## 对等审计
 
-Before marking a new platform PR as complete, run a parity audit against an established platform:
+在将新平台 PR 标记为完成之前，针对已建立的平台运行对等审计：
 
 ```bash
-# Find every .py file mentioning the reference platform
+# 查找每个提及参考平台的 .py 文件
 search_files "bluebubbles" output_mode="files_only" file_glob="*.py"
 
-# Find every .py file mentioning the new platform
+# 查找每个提及新平台的 .py 文件
 search_files "newplat" output_mode="files_only" file_glob="*.py"
 
-# Any file in the first set but not the second is a potential gap
+# 第一个集合中有但第二个集合中没有的文件是潜在的差距
 ```
 
-Repeat for `.md` and `.ts` files. Investigate each gap — is it a platform enumeration (needs updating) or a platform-specific reference (skip)?
+对 `.md` 和 `.ts` 文件重复此操作。调查每个差距 — 是平台枚举（需要更新）还是平台特定引用（跳过）？
 
-## Common Patterns
+## 常见模式
 
-### Long-Poll Adapters
+### 长轮询适配器
 
-If your adapter uses long-polling (like Telegram or Weixin), use a polling loop task:
+如果你的适配器使用长轮询（如 Telegram 或微信），使用轮询循环任务：
 
 ```python
 async def connect(self):
@@ -210,9 +210,9 @@ async def _poll_loop(self):
             await self.handle_message(self._build_event(msg))
 ```
 
-### Callback/Webhook Adapters
+### 回调/Webhook 适配器
 
-If the platform pushes messages to your endpoint (like WeCom Callback), run an HTTP server:
+如果平台将消息推送到你的端点（如企业微信回调），运行 HTTP 服务器：
 
 ```python
 async def connect(self):
@@ -227,11 +227,11 @@ async def _handle_callback(self, request):
     return web.Response(text="success")  # Acknowledge immediately
 ```
 
-For platforms with tight response deadlines (e.g., WeCom's 5-second limit), always acknowledge immediately and deliver the agent's reply proactively via API later. Agent sessions run 3–30 minutes — inline replies within a callback response window are not feasible.
+对于有严格响应截止时间的平台（例如企业微信的 5 秒限制），始终立即确认，然后稍后通过 API 主动投递代理的回复。代理会话运行 3-30 分钟 — 在回调响应窗口内内联回复是不可行的。
 
-### Token Locks
+### 令牌锁
 
-If the adapter holds a persistent connection with a unique credential, add a scoped lock to prevent two profiles from using the same credential:
+如果适配器持有具有唯一凭据的持久连接，请添加作用域锁以防止两个配置文件使用相同的凭据：
 
 ```python
 from gateway.status import acquire_scoped_lock, release_scoped_lock
@@ -246,11 +246,11 @@ async def disconnect(self):
     release_scoped_lock("newplat", self._token)
 ```
 
-## Reference Implementations
+## 参考实现
 
-| Adapter | Pattern | Complexity | Good reference for |
-|---------|---------|------------|-------------------|
-| `bluebubbles.py` | REST + webhook | Medium | Simple REST API integration |
-| `weixin.py` | Long-poll + CDN | High | Media handling, encryption |
-| `wecom_callback.py` | Callback/webhook | Medium | HTTP server, AES crypto, multi-app |
-| `telegram.py` | Long-poll + Bot API | High | Full-featured adapter with groups, threads |
+| 适配器 | 模式 | 复杂度 | 适合参考 |
+|--------|------|--------|----------|
+| `bluebubbles.py` | REST + webhook | 中等 | 简单 REST API 集成 |
+| `weixin.py` | 长轮询 + CDN | 高 | 媒体处理、加密 |
+| `wecom_callback.py` | 回调/webhook | 中等 | HTTP 服务器、AES 加密、多应用 |
+| `telegram.py` | 长轮询 + Bot API | 高 | 全功能适配器，支持群组、线程 |

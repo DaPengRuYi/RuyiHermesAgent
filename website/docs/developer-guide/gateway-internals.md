@@ -1,29 +1,29 @@
 ---
 sidebar_position: 7
-title: "Gateway Internals"
-description: "How the messaging gateway boots, authorizes users, routes sessions, and delivers messages"
+title: "网关内部机制"
+description: "消息网关如何启动、授权用户、路由会话和投递消息"
 ---
 
-# Gateway Internals
+# 网关内部机制
 
-The messaging gateway is the long-running process that connects Hermes to 14+ external messaging platforms through a unified architecture.
+消息网关是长期运行的进程，通过统一架构将 Hermes 连接到 14+ 个外部消息平台。
 
-## Key Files
+## 关键文件
 
-| File | Purpose |
-|------|---------|
-| `gateway/run.py` | `GatewayRunner` — main loop, slash commands, message dispatch (~9,000 lines) |
-| `gateway/session.py` | `SessionStore` — conversation persistence and session key construction |
-| `gateway/delivery.py` | Outbound message delivery to target platforms/channels |
-| `gateway/pairing.py` | DM pairing flow for user authorization |
-| `gateway/channel_directory.py` | Maps chat IDs to human-readable names for cron delivery |
-| `gateway/hooks.py` | Hook discovery, loading, and lifecycle event dispatch |
-| `gateway/mirror.py` | Cross-session message mirroring for `send_message` |
-| `gateway/status.py` | Token lock management for profile-scoped gateway instances |
-| `gateway/builtin_hooks/` | Always-registered hooks (e.g., BOOT.md system prompt hook) |
-| `gateway/platforms/` | Platform adapters (one per messaging platform) |
+| 文件 | 用途 |
+|------|------|
+| `gateway/run.py` | `GatewayRunner` — 主循环、斜杠命令、消息调度（约 9,000 行） |
+| `gateway/session.py` | `SessionStore` — 对话持久化和会话密钥构建 |
+| `gateway/delivery.py` | 出站消息投递到目标平台/频道 |
+| `gateway/pairing.py` | 用户授权的 DM 配对流程 |
+| `gateway/channel_directory.py` | 将聊天 ID 映射到人类可读名称用于定时投递 |
+| `gateway/hooks.py` | 钩子发现、加载和生命周期事件调度 |
+| `gateway/mirror.py` | 用于 `send_message` 的跨会话消息镜像 |
+| `gateway/status.py` | 配置文件范围网关实例的令牌锁管理 |
+| `gateway/builtin_hooks/` | 始终注册的钩子（例如 BOOT.md 系统提示词钩子） |
+| `gateway/platforms/` | 平台适配器（每个消息平台一个） |
 
-## Architecture Overview
+## 架构概述
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -31,7 +31,7 @@ The messaging gateway is the long-running process that connects Hermes to 14+ ex
 │                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
 │  │ Telegram │  │ Discord  │  │  Slack   │       │
-│  │ Adapter  │  │ Adapter  │  │ Adapter  │       │
+│  │ 适配器   │  │ 适配器   │  │ 适配器   │       │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘       │
 │       │             │             │             │
 │       └─────────────┼─────────────┘             │
@@ -40,86 +40,86 @@ The messaging gateway is the long-running process that connects Hermes to 14+ ex
 │                     │                           │
 │         ┌───────────┼───────────┐               │
 │         ▼           ▼           ▼               │
-│  Slash command   AIAgent    Queue/BG            │
-│    dispatch      creation   sessions            │
+│  斜杠命令      AIAgent      队列/后台           │
+│    调度        创建         会话                │
 │                     │                           │
 │                     ▼                           │
 │                 SessionStore                    │
-│              (SQLite persistence)               │
+│              （SQLite 持久化）                   │
 └───────┴─────────────┴─────────────┴─────────────┘
 ```
 
-## Message Flow
+## 消息流
 
-When a message arrives from any platform:
+当消息从任何平台到达时：
 
-1. **Platform adapter** receives raw event, normalizes it into a `MessageEvent`
-2. **Base adapter** checks active session guard:
-   - If agent is running for this session → queue message, set interrupt event
-   - If `/approve`, `/deny`, `/stop` → bypass guard (dispatched inline)
-3. **GatewayRunner._handle_message()** receives the event:
-   - Resolve session key via `_session_key_for_source()` (format: `agent:main:{platform}:{chat_type}:{chat_id}`)
-   - Check authorization (see Authorization below)
-   - Check if it's a slash command → dispatch to command handler
-   - Check if agent is already running → intercept commands like `/stop`, `/status`
-   - Otherwise → create `AIAgent` instance and run conversation
-4. **Response** is sent back through the platform adapter
+1. **平台适配器**接收原始事件，将其规范化为 `MessageEvent`
+2. **基础适配器**检查活跃会话守卫：
+   - 如果代理正在为此会话运行 → 排队消息，设置中断事件
+   - 如果是 `/approve`、`/deny`、`/stop` → 绕过守卫（内联调度）
+3. **GatewayRunner._handle_message()** 接收事件：
+   - 通过 `_session_key_for_source()` 解析会话密钥（格式：`agent:main:{platform}:{chat_type}:{chat_id}`）
+   - 检查授权（见下方授权）
+   - 检查是否为斜杠命令 → 调度到命令处理器
+   - 检查代理是否已在运行 → 拦截 `/stop`、`/status` 等命令
+   - 否则 → 创建 `AIAgent` 实例并运行对话
+4. **响应**通过平台适配器发送回去
 
-### Session Key Format
+### 会话密钥格式
 
-Session keys encode the full routing context:
+会话密钥编码完整的路由上下文：
 
 ```
 agent:main:{platform}:{chat_type}:{chat_id}
 ```
 
-For example: `agent:main:telegram:private:123456789`
+例如：`agent:main:telegram:private:123456789`
 
-Thread-aware platforms (Telegram forum topics, Discord threads, Slack threads) may include thread IDs in the chat_id portion. **Never construct session keys manually** — always use `build_session_key()` from `gateway/session.py`.
+线程感知平台（Telegram 论坛话题、Discord 线程、Slack 线程）可能在 chat_id 部分包含线程 ID。**永远不要手动构建会话密钥** — 始终使用 `gateway/session.py` 中的 `build_session_key()`。
 
-### Two-Level Message Guard
+### 两级消息守卫
 
-When an agent is actively running, incoming messages pass through two sequential guards:
+当代理活跃运行时，传入消息通过两个连续的守卫：
 
-1. **Level 1 — Base adapter** (`gateway/platforms/base.py`): Checks `_active_sessions`. If the session is active, queues the message in `_pending_messages` and sets an interrupt event. This catches messages *before* they reach the gateway runner.
+1. **第 1 级 — 基础适配器**（`gateway/platforms/base.py`）：检查 `_active_sessions`。如果会话活跃，将消息排队到 `_pending_messages` 并设置中断事件。这在消息到达网关运行器*之前*捕获消息。
 
-2. **Level 2 — Gateway runner** (`gateway/run.py`): Checks `_running_agents`. Intercepts specific commands (`/stop`, `/new`, `/queue`, `/status`, `/approve`, `/deny`) and routes them appropriately. Everything else triggers `running_agent.interrupt()`.
+2. **第 2 级 — 网关运行器**（`gateway/run.py`）：检查 `_running_agents`。拦截特定命令（`/stop`、`/new`、`/queue`、`/status`、`/approve`、`/deny`）并适当地路由它们。其他所有内容触发 `running_agent.interrupt()`。
 
-Commands that must reach the runner while the agent is blocked (like `/approve`) are dispatched **inline** via `await self._message_handler(event)` — they bypass the background task system to avoid race conditions.
+必须在代理阻塞时到达运行器的命令（如 `/approve`）通过 `await self._message_handler(event)` **内联**调度 — 它们绕过后台任务系统以避免竞态条件。
 
-## Authorization
+## 授权
 
-The gateway uses a multi-layer authorization check, evaluated in order:
+网关使用多层授权检查，按顺序评估：
 
-1. **Per-platform allow-all flag** (e.g., `TELEGRAM_ALLOW_ALL_USERS`) — if set, all users on that platform are authorized
-2. **Platform allowlist** (e.g., `TELEGRAM_ALLOWED_USERS`) — comma-separated user IDs
-3. **DM pairing** — authenticated users can pair new users via a pairing code
-4. **Global allow-all** (`GATEWAY_ALLOW_ALL_USERS`) — if set, all users across all platforms are authorized
-5. **Default: deny** — unauthorized users are rejected
+1. **每平台允许所有标志**（例如 `TELEGRAM_ALLOW_ALL_USERS`）— 如果设置，该平台上的所有用户都被授权
+2. **平台允许列表**（例如 `TELEGRAM_ALLOWED_USERS`）— 逗号分隔的用户 ID
+3. **DM 配对** — 已认证用户可以通过配对码配对新用户
+4. **全局允许所有**（`GATEWAY_ALLOW_ALL_USERS`）— 如果设置，所有平台上的所有用户都被授权
+5. **默认：拒绝** — 未授权用户被拒绝
 
-### DM Pairing Flow
+### DM 配对流程
 
 ```text
-Admin: /pair
-Gateway: "Pairing code: ABC123. Share with the user."
-New user: ABC123
-Gateway: "Paired! You're now authorized."
+管理员：/pair
+网关："配对码：ABC123。分享给用户。"
+新用户：ABC123
+网关："已配对！你现在已授权。"
 ```
 
-Pairing state is persisted in `gateway/pairing.py` and survives restarts.
+配对状态持久化在 `gateway/pairing.py` 中，重启后保留。
 
-## Slash Command Dispatch
+## 斜杠命令调度
 
-All slash commands in the gateway flow through the same resolution pipeline:
+网关中的所有斜杠命令都通过相同的解析管道：
 
-1. `resolve_command()` from `hermes_cli/commands.py` maps input to canonical name (handles aliases, prefix matching)
-2. The canonical name is checked against `GATEWAY_KNOWN_COMMANDS`
-3. Handler in `_handle_message()` dispatches based on canonical name
-4. Some commands are gated on config (`gateway_config_gate` on `CommandDef`)
+1. `hermes_cli/commands.py` 中的 `resolve_command()` 将输入映射到规范名称（处理别名、前缀匹配）
+2. 规范名称与 `GATEWAY_KNOWN_COMMANDS` 检查
+3. `_handle_message()` 中的处理器根据规范名称调度
+4. 某些命令受配置门控（`CommandDef` 上的 `gateway_config_gate`）
 
-### Running-Agent Guard
+### 运行中代理守卫
 
-Commands that must NOT execute while the agent is processing are rejected early:
+在代理处理期间不得执行的命令会被提前拒绝：
 
 ```python
 if _quick_key in self._running_agents:
@@ -127,93 +127,93 @@ if _quick_key in self._running_agents:
         return "⏳ Agent is running — wait for it to finish or /stop first."
 ```
 
-Bypass commands (`/stop`, `/new`, `/approve`, `/deny`, `/queue`, `/status`) have special handling.
+绕过命令（`/stop`、`/new`、`/approve`、`/deny`、`/queue`、`/status`）有特殊处理。
 
-## Config Sources
+## 配置来源
 
-The gateway reads configuration from multiple sources:
+网关从多个来源读取配置：
 
-| Source | What it provides |
-|--------|-----------------|
-| `~/.hermes/.env` | API keys, bot tokens, platform credentials |
-| `~/.hermes/config.yaml` | Model settings, tool configuration, display options |
-| Environment variables | Override any of the above |
+| 来源 | 提供内容 |
+|------|----------|
+| `~/.hermes/.env` | API 密钥、机器人令牌、平台凭据 |
+| `~/.hermes/config.yaml` | 模型设置、工具配置、显示选项 |
+| 环境变量 | 覆盖上述任何内容 |
 
-Unlike the CLI (which uses `load_cli_config()` with hardcoded defaults), the gateway reads `config.yaml` directly via YAML loader. This means config keys that exist in the CLI's defaults dict but not in the user's config file may behave differently between CLI and gateway.
+与 CLI（使用带有硬编码默认值的 `load_cli_config()`）不同，网关通过 YAML 加载器直接读取 `config.yaml`。这意味着存在于 CLI 默认值字典中但不在用户配置文件中的配置键在 CLI 和网关之间可能表现不同。
 
-## Platform Adapters
+## 平台适配器
 
-Each messaging platform has an adapter in `gateway/platforms/`:
+每个消息平台在 `gateway/platforms/` 中有一个适配器：
 
 ```text
 gateway/platforms/
-├── base.py              # BaseAdapter — shared logic for all platforms
-├── telegram.py          # Telegram Bot API (long polling or webhook)
-├── discord.py           # Discord bot via discord.py
+├── base.py              # BaseAdapter — 所有平台的共享逻辑
+├── telegram.py          # Telegram Bot API（长轮询或 webhook）
+├── discord.py           # Discord 机器人，通过 discord.py
 ├── slack.py             # Slack Socket Mode
 ├── whatsapp.py          # WhatsApp Business Cloud API
-├── signal.py            # Signal via signal-cli REST API
-├── matrix.py            # Matrix via mautrix (optional E2EE)
+├── signal.py            # Signal，通过 signal-cli REST API
+├── matrix.py            # Matrix，通过 mautrix（可选 E2EE）
 ├── mattermost.py        # Mattermost WebSocket API
-├── email.py             # Email via IMAP/SMTP
-├── sms.py               # SMS via Twilio
-├── dingtalk.py          # DingTalk WebSocket
-├── feishu.py            # Feishu/Lark WebSocket or webhook
-├── wecom.py             # WeCom (WeChat Work) callback
-├── weixin.py            # Weixin (personal WeChat) via iLink Bot API
-├── bluebubbles.py       # Apple iMessage via BlueBubbles macOS server
-├── qqbot.py             # QQ Bot (Tencent QQ) via Official API v2
-├── webhook.py           # Inbound/outbound webhook adapter
-├── api_server.py        # REST API server adapter
-└── homeassistant.py     # Home Assistant conversation integration
+├── email.py             # 邮件，通过 IMAP/SMTP
+├── sms.py               # 短信，通过 Twilio
+├── dingtalk.py          # 钉钉 WebSocket
+├── feishu.py            # 飞书 WebSocket 或 webhook
+├── wecom.py             # 企业微信回调
+├── weixin.py            # 微信（个人），通过 iLink Bot API
+├── bluebubbles.py       # Apple iMessage，通过 BlueBubbles macOS 服务器
+├── qqbot.py             # QQ 机器人，通过 Official API v2
+├── webhook.py           # 入站/出站 webhook 适配器
+├── api_server.py        # REST API 服务器适配器
+└── homeassistant.py     # Home Assistant 对话集成
 ```
 
-Adapters implement a common interface:
-- `connect()` / `disconnect()` — lifecycle management
-- `send_message()` — outbound message delivery
-- `on_message()` — inbound message normalization → `MessageEvent`
+适配器实现通用接口：
+- `connect()` / `disconnect()` — 生命周期管理
+- `send_message()` — 出站消息投递
+- `on_message()` — 入站消息规范化 → `MessageEvent`
 
-### Token Locks
+### 令牌锁
 
-Adapters that connect with unique credentials call `acquire_scoped_lock()` in `connect()` and `release_scoped_lock()` in `disconnect()`. This prevents two profiles from using the same bot token simultaneously.
+使用唯一凭据连接的适配器在 `connect()` 中调用 `acquire_scoped_lock()`，在 `disconnect()` 中调用 `release_scoped_lock()`。这防止两个配置文件同时使用相同的机器人令牌。
 
-## Delivery Path
+## 投递路径
 
-Outgoing deliveries (`gateway/delivery.py`) handle:
+出站投递（`gateway/delivery.py`）处理：
 
-- **Direct reply** — send response back to the originating chat
-- **Home channel delivery** — route cron job outputs and background results to a configured home channel
-- **Explicit target delivery** — `send_message` tool specifying `telegram:-1001234567890`
-- **Cross-platform delivery** — deliver to a different platform than the originating message
+- **直接回复** — 将响应发送回源聊天
+- **主频道投递** — 将定时任务输出和后台结果路由到配置的主频道
+- **显式目标投递** — `send_message` 工具指定 `telegram:-1001234567890`
+- **跨平台投递** — 投递到与源消息不同的平台
 
-Cron job deliveries are NOT mirrored into gateway session history — they live in their own cron session only. This is a deliberate design choice to avoid message alternation violations.
+定时任务投递不会镜像到网关会话历史中 — 它们仅存在于自己的定时会话中。这是为了避免消息交替违规的刻意设计选择。
 
-## Hooks
+## 钩子
 
-Gateway hooks are Python modules that respond to lifecycle events:
+网关钩子是响应生命周期事件的 Python 模块：
 
-### Gateway Hook Events
+### 网关钩子事件
 
-| Event | When fired |
-|-------|-----------|
-| `gateway:startup` | Gateway process starts |
-| `session:start` | New conversation session begins |
-| `session:end` | Session completes or times out |
-| `session:reset` | User resets session with `/new` |
-| `agent:start` | Agent begins processing a message |
-| `agent:step` | Agent completes one tool-calling iteration |
-| `agent:end` | Agent finishes and returns response |
-| `command:*` | Any slash command is executed |
+| 事件 | 触发时机 |
+|------|----------|
+| `gateway:startup` | 网关进程启动 |
+| `session:start` | 新对话会话开始 |
+| `session:end` | 会话完成或超时 |
+| `session:reset` | 用户用 `/new` 重置会话 |
+| `agent:start` | 代理开始处理消息 |
+| `agent:step` | 代理完成一次工具调用迭代 |
+| `agent:end` | 代理完成并返回响应 |
+| `command:*` | 执行任何斜杠命令 |
 
-Hooks are discovered from `gateway/builtin_hooks/` (always active) and `~/.hermes/hooks/` (user-installed). Each hook is a directory with a `HOOK.yaml` manifest and `handler.py`.
+钩子从 `gateway/builtin_hooks/`（始终活跃）和 `~/.hermes/hooks/`（用户安装）发现。每个钩子是一个包含 `HOOK.yaml` 清单和 `handler.py` 的目录。
 
-## Memory Provider Integration
+## 记忆提供商集成
 
-When a memory provider plugin (e.g., Honcho) is enabled:
+当记忆提供商插件（例如 Honcho）启用时：
 
-1. Gateway creates an `AIAgent` per message with the session ID
-2. The `MemoryManager` initializes the provider with the session context
-3. Provider tools (e.g., `honcho_profile`, `viking_search`) are routed through:
+1. 网关为每条消息创建一个带有会话 ID 的 `AIAgent`
+2. `MemoryManager` 用会话上下文初始化提供商
+3. 提供商工具（例如 `honcho_profile`、`viking_search`）通过以下路径路由：
 
 ```text
 AIAgent._invoke_tool()
@@ -221,39 +221,39 @@ AIAgent._invoke_tool()
     → provider.handle_tool_call(name, args)
 ```
 
-4. On session end/reset, `on_session_end()` fires for cleanup and final data flush
+4. 会话结束/重置时，`on_session_end()` 触发清理和最终数据刷新
 
-### Memory Flush Lifecycle
+### 记忆刷新生命周期
 
-When a session is reset, resumed, or expires:
-1. Built-in memories are flushed to disk
-2. Memory provider's `on_session_end()` hook fires
-3. A temporary `AIAgent` runs a memory-only conversation turn
-4. Context is then discarded or archived
+当会话重置、恢复或过期时：
+1. 内置记忆刷新到磁盘
+2. 记忆提供商的 `on_session_end()` 钩子触发
+3. 临时 `AIAgent` 运行仅记忆的对话轮次
+4. 上下文随后被丢弃或归档
 
-## Background Maintenance
+## 后台维护
 
-The gateway runs periodic maintenance alongside message handling:
+网关在消息处理旁运行定期维护：
 
-- **Cron ticking** — checks job schedules and fires due jobs
-- **Session expiry** — cleans up abandoned sessions after timeout
-- **Memory flush** — proactively flushes memory before session expiry
-- **Cache refresh** — refreshes model lists and provider status
+- **定时任务 tick** — 检查任务调度并触发到期任务
+- **会话过期** — 超时后清理废弃会话
+- **记忆刷新** — 在会话过期前主动刷新记忆
+- **缓存刷新** — 刷新模型列表和提供商状态
 
-## Process Management
+## 进程管理
 
-The gateway runs as a long-lived process, managed via:
+网关作为长期进程运行，通过以下方式管理：
 
-- `hermes gateway start` / `hermes gateway stop` — manual control
-- `systemctl` (Linux) or `launchctl` (macOS) — service management
-- PID file at `~/.hermes/gateway.pid` — profile-scoped process tracking
+- `hermes gateway start` / `hermes gateway stop` — 手动控制
+- `systemctl`（Linux）或 `launchctl`（macOS）— 服务管理
+- `~/.hermes/gateway.pid` 的 PID 文件 — 配置文件范围的进程跟踪
 
-**Profile-scoped vs global**: `start_gateway()` uses profile-scoped PID files. `hermes gateway stop` stops only the current profile's gateway. `hermes gateway stop --all` uses global `ps aux` scanning to kill all gateway processes (used during updates).
+**配置文件范围 vs 全局**：`start_gateway()` 使用配置文件范围的 PID 文件。`hermes gateway stop` 仅停止当前配置文件的网关。`hermes gateway stop --all` 使用全局 `ps aux` 扫描来杀死所有网关进程（在更新期间使用）。
 
-## Related Docs
+## 相关文档
 
-- [Session Storage](./session-storage.md)
-- [Cron Internals](./cron-internals.md)
-- [ACP Internals](./acp-internals.md)
-- [Agent Loop Internals](./agent-loop.md)
-- [Messaging Gateway (User Guide)](/docs/user-guide/messaging)
+- [会话存储](./session-storage.md)
+- [定时任务内部机制](./cron-internals.md)
+- [ACP 内部机制](./acp-internals.md)
+- [代理循环内部机制](./agent-loop.md)
+- [消息网关（用户指南）](/docs/user-guide/messaging)

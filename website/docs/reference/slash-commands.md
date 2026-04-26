@@ -1,159 +1,159 @@
 ---
 sidebar_position: 2
-title: "Slash Commands Reference"
-description: "Complete reference for interactive CLI and messaging slash commands"
+title: "斜杠命令参考"
+description: "交互式 CLI 和消息斜杠命令的完整参考"
 ---
 
-# Slash Commands Reference
+# 斜杠命令参考
 
-Hermes has two slash-command surfaces, both driven by a central `COMMAND_REGISTRY` in `hermes_cli/commands.py`:
+Hermes 有两个斜杠命令界面，都由 `hermes_cli/commands.py` 中的中央 `COMMAND_REGISTRY` 驱动：
 
-- **Interactive CLI slash commands** — dispatched by `cli.py`, with autocomplete from the registry
-- **Messaging slash commands** — dispatched by `gateway/run.py`, with help text and platform menus generated from the registry
+- **交互式 CLI 斜杠命令** — 由 `cli.py` 分发，带有来自注册表的自动补全
+- **消息斜杠命令** — 由 `gateway/run.py` 分发，带有从注册表生成的帮助文本和平台菜单
 
-Installed skills are also exposed as dynamic slash commands on both surfaces. That includes bundled skills like `/plan`, which opens plan mode and saves markdown plans under `.hermes/plans/` relative to the active workspace/backend working directory.
+已安装的技能也会作为动态斜杠命令在这两个界面上暴露。这包括像 `/plan` 这样的捆绑技能，它打开计划模式并将 markdown 计划保存在活动工作区/后端工作目录下的 `.hermes/plans/` 中。
 
-## Interactive CLI slash commands
+## 交互式 CLI 斜杠命令
 
-Type `/` in the CLI to open the autocomplete menu. Built-in commands are case-insensitive.
+在 CLI 中输入 `/` 打开自动补全菜单。内置命令不区分大小写。
 
-### Session
+### 会话
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/new` (alias: `/reset`) | Start a new session (fresh session ID + history) |
-| `/clear` | Clear screen and start a new session |
-| `/history` | Show conversation history |
-| `/save` | Save the current conversation |
-| `/retry` | Retry the last message (resend to agent) |
-| `/undo` | Remove the last user/assistant exchange |
-| `/title` | Set a title for the current session (usage: /title My Session Name) |
-| `/compress [focus topic]` | Manually compress conversation context (flush memories + summarize). Optional focus topic narrows what the summary preserves. |
-| `/rollback` | List or restore filesystem checkpoints (usage: /rollback [number]) |
-| `/snapshot [create\|restore <id>\|prune]` (alias: `/snap`) | Create or restore state snapshots of Hermes config/state. `create [label]` saves a snapshot, `restore <id>` reverts to it, `prune [N]` removes old snapshots, or list all with no args. |
-| `/stop` | Kill all running background processes |
-| `/queue <prompt>` (alias: `/q`) | Queue a prompt for the next turn (doesn't interrupt the current agent response). **Note:** `/q` is claimed by both `/queue` and `/quit`; the last registration wins, so `/q` resolves to `/quit` in practice. Use `/queue` explicitly. |
-| `/resume [name]` | Resume a previously-named session |
-| `/status` | Show session info |
-| `/agents` (alias: `/tasks`) | Show active agents and running tasks across the current session. |
-| `/background <prompt>` (alias: `/bg`) | Run a prompt in a separate background session. The agent processes your prompt independently — your current session stays free for other work. Results appear as a panel when the task finishes. See [CLI Background Sessions](/docs/user-guide/cli#background-sessions). |
-| `/btw <question>` | Ephemeral side question using session context (no tools, not persisted). Useful for quick clarifications without affecting the conversation history. |
-| `/branch [name]` (alias: `/fork`) | Branch the current session (explore a different path) |
+| `/new`（别名：`/reset`） | 开始新会话（新的会话 ID + 历史记录） |
+| `/clear` | 清屏并开始新会话 |
+| `/history` | 显示对话历史 |
+| `/save` | 保存当前对话 |
+| `/retry` | 重试上一条消息（重新发送给代理） |
+| `/undo` | 移除最后一次用户/助手交换 |
+| `/title` | 为当前会话设置标题（用法：/title 我的会话名称） |
+| `/compress [焦点主题]` | 手动压缩对话上下文（刷新记忆 + 摘要）。可选的焦点主题缩小摘要保留的范围。 |
+| `/rollback` | 列出或恢复文件系统检查点（用法：/rollback [编号]） |
+| `/snapshot [create\|restore <id>\|prune]`（别名：`/snap`） | 创建或恢复 Hermes 配置/状态的状态快照。`create [标签]` 保存快照，`restore <id>` 回滚到它，`prune [N]` 移除旧快照，或无参数列出所有。 |
+| `/stop` | 终止所有正在运行的后台进程 |
+| `/queue <提示>`（别名：`/q`） | 为下一轮排队一个提示（不中断当前代理响应）。**注意：** `/q` 被 `/queue` 和 `/quit` 同时声明；最后注册的获胜，所以 `/q` 在实践中解析为 `/quit`。请显式使用 `/queue`。 |
+| `/resume [名称]` | 恢复之前命名的会话 |
+| `/status` | 显示会话信息 |
+| `/agents`（别名：`/tasks`） | 显示当前会话中的活跃代理和正在运行的任务。 |
+| `/background <提示>`（别名：`/bg`） | 在单独的后台会话中运行提示。代理独立处理你的提示——你当前的会话保持空闲以处理其他工作。任务完成时结果作为面板显示。参见 [CLI 后台会话](/docs/user-guide/cli#background-sessions)。 |
+| `/btw <问题>` | 使用会话上下文的临时旁路问题（无工具，不持久化）。用于快速澄清而不影响对话历史。 |
+| `/branch [名称]`（别名：`/fork`） | 分支当前会话（探索不同的路径） |
 
-### Configuration
+### 配置
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/config` | Show current configuration |
-| `/model [model-name]` | Show or change the current model. Supports: `/model claude-sonnet-4`, `/model provider:model` (switch providers), `/model custom:model` (custom endpoint), `/model custom:name:model` (named custom provider), `/model custom` (auto-detect from endpoint). Use `--global` to persist the change to config.yaml. **Note:** `/model` can only switch between already-configured providers. To add a new provider, exit the session and run `hermes model` from your terminal. |
-| `/personality` | Set a predefined personality |
-| `/verbose` | Cycle tool progress display: off → new → all → verbose. Can be [enabled for messaging](#notes) via config. |
-| `/fast [normal\|fast\|status]` | Toggle fast mode — OpenAI Priority Processing / Anthropic Fast Mode. Options: `normal`, `fast`, `status`. |
-| `/reasoning` | Manage reasoning effort and display (usage: /reasoning [level\|show\|hide]) |
-| `/skin` | Show or change the display skin/theme |
-| `/statusbar` (alias: `/sb`) | Toggle the context/model status bar on or off |
-| `/voice [on\|off\|tts\|status]` | Toggle CLI voice mode and spoken playback. Recording uses `voice.record_key` (default: `Ctrl+B`). |
-| `/yolo` | Toggle YOLO mode — skip all dangerous command approval prompts. |
+| `/config` | 显示当前配置 |
+| `/model [模型名称]` | 显示或更改当前模型。支持：`/model claude-sonnet-4`、`/model provider:model`（切换提供者）、`/model custom:model`（自定义端点）、`/model custom:name:model`（命名自定义提供者）、`/model custom`（从端点自动检测）。使用 `--global` 将更改持久化到 config.yaml。**注意：** `/model` 只能在已配置的提供者之间切换。要添加新提供者，退出会话并在终端运行 `hermes model`。 |
+| `/personality` | 设置预定义的人格 |
+| `/verbose` | 循环工具进度显示：关闭 → 新增 → 全部 → 详细。可以通过配置为[消息平台启用](#备注)。 |
+| `/fast [normal\|fast\|status]` | 切换快速模式 — OpenAI 优先处理 / Anthropic 快速模式。选项：`normal`、`fast`、`status`。 |
+| `/reasoning` | 管理推理力度和显示（用法：/reasoning [级别\|显示\|隐藏]） |
+| `/skin` | 显示或更改显示皮肤/主题 |
+| `/statusbar`（别名：`/sb`） | 切换上下文/模型状态栏的开或关 |
+| `/voice [on\|off\|tts\|status]` | 切换 CLI 语音模式和语音播放。录音使用 `voice.record_key`（默认：`Ctrl+B`）。 |
+| `/yolo` | 切换 YOLO 模式 — 跳过所有危险命令审批提示。 |
 
-### Tools & Skills
+### 工具和技能
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/tools [list\|disable\|enable] [name...]` | Manage tools: list available tools, or disable/enable specific tools for the current session. Disabling a tool removes it from the agent's toolset and triggers a session reset. |
-| `/toolsets` | List available toolsets |
-| `/browser [connect\|disconnect\|status]` | Manage local Chrome CDP connection. `connect` attaches browser tools to a running Chrome instance (default: `ws://localhost:9222`). `disconnect` detaches. `status` shows current connection. Auto-launches Chrome if no debugger is detected. |
-| `/skills` | Search, install, inspect, or manage skills from online registries |
-| `/cron` | Manage scheduled tasks (list, add/create, edit, pause, resume, run, remove) |
-| `/reload-mcp` (alias: `/reload_mcp`) | Reload MCP servers from config.yaml |
-| `/reload` | Reload `.env` variables into the running session (picks up new API keys without restarting) |
-| `/plugins` | List installed plugins and their status |
+| `/tools [list\|disable\|enable] [名称...]` | 管理工具：列出可用工具，或为当前会话禁用/启用特定工具。禁用工具会将其从代理的工具集中移除并触发会话重置。 |
+| `/toolsets` | 列出可用工具集 |
+| `/browser [connect\|disconnect\|status]` | 管理本地 Chrome CDP 连接。`connect` 将浏览器工具附加到正在运行的 Chrome 实例（默认：`ws://localhost:9222`）。`disconnect` 断开连接。`status` 显示当前连接。如果未检测到调试器，自动启动 Chrome。 |
+| `/skills` | 从在线注册表搜索、安装、检查或管理技能 |
+| `/cron` | 管理定时任务（列出、添加/创建、编辑、暂停、恢复、运行、移除） |
+| `/reload-mcp`（别名：`/reload_mcp`） | 从 config.yaml 重新加载 MCP 服务器 |
+| `/reload` | 将 `.env` 变量重新加载到正在运行的会话中（获取新的 API 密钥而无需重启） |
+| `/plugins` | 列出已安装的插件及其状态 |
 
-### Info
+### 信息
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/help` | Show this help message |
-| `/usage` | Show token usage, cost breakdown, and session duration |
-| `/insights` | Show usage insights and analytics (last 30 days) |
-| `/platforms` (alias: `/gateway`) | Show gateway/messaging platform status |
-| `/paste` | Attach a clipboard image |
-| `/copy [number]` | Copy the last assistant response to clipboard (or the Nth-from-last with a number). CLI-only. |
-| `/image <path>` | Attach a local image file for your next prompt. |
-| `/terminal-setup [auto\|vscode\|cursor\|windsurf]` | TUI-only: configure local VS Code-family terminal bindings for better multiline + undo/redo parity. |
-| `/debug` | Upload debug report (system info + logs) and get shareable links. Also available in messaging. |
-| `/profile` | Show active profile name and home directory |
-| `/gquota` | Show Google Gemini Code Assist quota usage with progress bars (only available when the `google-gemini-cli` provider is active). |
+| `/help` | 显示此帮助消息 |
+| `/usage` | 显示令牌使用量、成本明细和会话持续时间 |
+| `/insights` | 显示使用洞察和分析（过去 30 天） |
+| `/platforms`（别名：`/gateway`） | 显示网关/消息平台状态 |
+| `/paste` | 附加剪贴板图像 |
+| `/copy [编号]` | 将最后一次助手响应复制到剪贴板（或倒数第 N 次，带编号）。仅限 CLI。 |
+| `/image <路径>` | 为你的下一个提示附加本地图像文件。 |
+| `/terminal-setup [auto\|vscode\|cursor\|windsurf]` | 仅限 TUI：配置本地 VS Code 系列终端绑定，以获得更好的多行 + 撤销/重做一致性。 |
+| `/debug` | 上传调试报告（系统信息 + 日志）并获取可分享链接。消息平台也可用。 |
+| `/profile` | 显示活跃的 profile 名称和主目录 |
+| `/gquota` | 显示 Google Gemini Code Assist 配额使用情况（仅在 `google-gemini-cli` 提供者活跃时可用）。 |
 
-### Exit
+### 退出
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/quit` | Exit the CLI (also: `/exit`). See note on `/q` under `/queue` above. |
+| `/quit` | 退出 CLI（也：`/exit`）。参见上面 `/queue` 下关于 `/q` 的说明。 |
 
-### Dynamic CLI slash commands
+### 动态 CLI 斜杠命令
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/<skill-name>` | Load any installed skill as an on-demand command. Example: `/gif-search`, `/github-pr-workflow`, `/excalidraw`. |
-| `/skills ...` | Search, browse, inspect, install, audit, publish, and configure skills from registries and the official optional-skills catalog. |
+| `/<技能名称>` | 将任何已安装的技能作为按需命令加载。示例：`/gif-search`、`/github-pr-workflow`、`/excalidraw`。 |
+| `/skills ...` | 从注册表和官方可选技能目录中搜索、浏览、检查、安装、审计、发布和配置技能。 |
 
-### Quick Commands
+### 快速命令
 
-User-defined quick commands map a short alias to a longer prompt. Configure them in `~/.hermes/config.yaml`:
+用户定义的快速命令将短别名映射到较长的提示。在 `~/.hermes/config.yaml` 中配置它们：
 
 ```yaml
 quick_commands:
-  review: "Review my latest git diff and suggest improvements"
-  deploy: "Run the deployment script at scripts/deploy.sh and verify the output"
-  morning: "Check my calendar, unread emails, and summarize today's priorities"
+  review: "审查我最新的 git diff 并建议改进"
+  deploy: "运行 scripts/deploy.sh 中的部署脚本并验证输出"
+  morning: "检查我的日历、未读邮件，并总结今天的优先事项"
 ```
 
-Then type `/review`, `/deploy`, or `/morning` in the CLI. Quick commands are resolved at dispatch time and are not shown in the built-in autocomplete/help tables.
+然后在 CLI 中输入 `/review`、`/deploy` 或 `/morning`。快速命令在分发时解析，不会显示在内置自动补全/帮助表中。
 
-### Alias Resolution
+### 别名解析
 
-Commands support prefix matching: typing `/h` resolves to `/help`, `/mod` resolves to `/model`. When a prefix is ambiguous (matches multiple commands), the first match in registry order wins. Full command names and registered aliases always take priority over prefix matches.
+命令支持前缀匹配：输入 `/h` 解析为 `/help`，`/mod` 解析为 `/model`。当一个前缀有歧义（匹配多个命令）时，注册顺序中的第一个匹配获胜。完整的命令名称和注册的别名始终优先于前缀匹配。
 
-## Messaging slash commands
+## 消息斜杠命令
 
-The messaging gateway supports the following built-in commands inside Telegram, Discord, Slack, WhatsApp, Signal, Email, and Home Assistant chats:
+消息网关支持以下内置命令，可在 Telegram、Discord、Slack、WhatsApp、Signal、Email 和 Home Assistant 聊天中使用：
 
-| Command | Description |
+| 命令 | 描述 |
 |---------|-------------|
-| `/new` | Start a new conversation. |
-| `/reset` | Reset conversation history. |
-| `/status` | Show session info. |
-| `/stop` | Kill all running background processes and interrupt the running agent. |
-| `/model [provider:model]` | Show or change the model. Supports provider switches (`/model zai:glm-5`), custom endpoints (`/model custom:model`), named custom providers (`/model custom:local:qwen`), and auto-detect (`/model custom`). Use `--global` to persist the change to config.yaml. **Note:** `/model` can only switch between already-configured providers. To add a new provider or set up API keys, use `hermes model` from your terminal (outside the chat session). |
-| `/personality [name]` | Set a personality overlay for the session. |
-| `/fast [normal\|fast\|status]` | Toggle fast mode — OpenAI Priority Processing / Anthropic Fast Mode. |
-| `/retry` | Retry the last message. |
-| `/undo` | Remove the last exchange. |
-| `/sethome` (alias: `/set-home`) | Mark the current chat as the platform home channel for deliveries. |
-| `/compress [focus topic]` | Manually compress conversation context. Optional focus topic narrows what the summary preserves. |
-| `/title [name]` | Set or show the session title. |
-| `/resume [name]` | Resume a previously named session. |
-| `/usage` | Show token usage, estimated cost breakdown (input/output), context window state, and session duration. |
-| `/insights [days]` | Show usage analytics. |
-| `/reasoning [level\|show\|hide]` | Change reasoning effort or toggle reasoning display. |
-| `/voice [on\|off\|tts\|join\|channel\|leave\|status]` | Control spoken replies in chat. `join`/`channel`/`leave` manage Discord voice-channel mode. |
-| `/rollback [number]` | List or restore filesystem checkpoints. |
-| `/background <prompt>` | Run a prompt in a separate background session. Results are delivered back to the same chat when the task finishes. See [Messaging Background Sessions](/docs/user-guide/messaging/#background-sessions). |
-| `/reload-mcp` (alias: `/reload_mcp`) | Reload MCP servers from config. |
-| `/yolo` | Toggle YOLO mode — skip all dangerous command approval prompts. |
-| `/commands [page]` | Browse all commands and skills (paginated). |
-| `/approve [session\|always]` | Approve and execute a pending dangerous command. `session` approves for this session only; `always` adds to permanent allowlist. |
-| `/deny` | Reject a pending dangerous command. |
-| `/update` | Update Hermes Agent to the latest version. |
-| `/restart` | Gracefully restart the gateway after draining active runs. When the gateway comes back online, it sends a confirmation to the requester's chat/thread. |
-| `/debug` | Upload debug report (system info + logs) and get shareable links. |
-| `/help` | Show messaging help. |
-| `/<skill-name>` | Invoke any installed skill by name. |
+| `/new` | 开始新对话。 |
+| `/reset` | 重置对话历史。 |
+| `/status` | 显示会话信息。 |
+| `/stop` | 终止所有正在运行的后台进程并中断正在运行的代理。 |
+| `/model [provider:model]` | 显示或更改模型。支持提供者切换（`/model zai:glm-5`）、自定义端点（`/model custom:model`）、命名自定义提供者（`/model custom:local:qwen`）和自动检测（`/model custom`）。使用 `--global` 将更改持久化到 config.yaml。**注意：** `/model` 只能在已配置的提供者之间切换。要添加新提供者或设置 API 密钥，在终端中使用 `hermes model`（在聊天会话之外）。 |
+| `/personality [名称]` | 为会话设置人格覆盖。 |
+| `/fast [normal\|fast\|status]` | 切换快速模式 — OpenAI 优先处理 / Anthropic 快速模式。 |
+| `/retry` | 重试上一条消息。 |
+| `/undo` | 移除最后一次交换。 |
+| `/sethome`（别名：`/set-home`） | 将当前聊天标记为平台家庭频道以接收投递。 |
+| `/compress [焦点主题]` | 手动压缩对话上下文。可选的焦点主题缩小摘要保留的范围。 |
+| `/title [名称]` | 设置或显示会话标题。 |
+| `/resume [名称]` | 恢复之前命名的会话。 |
+| `/usage` | 显示令牌使用量、估算成本明细（输入/输出）、上下文窗口状态和会话持续时间。 |
+| `/insights [天数]` | 显示使用分析。 |
+| `/reasoning [级别\|显示\|隐藏]` | 更改推理力度或切换推理显示。 |
+| `/voice [on\|off\|tts\|join\|channel\|leave\|status]` | 控制聊天中的语音回复。`join`/`channel`/`leave` 管理 Discord 语音频道模式。 |
+| `/rollback [编号]` | 列出或恢复文件系统检查点。 |
+| `/background <提示>` | 在单独的后台会话中运行提示。任务完成时结果会投递回同一聊天。参见 [消息后台会话](/docs/user-guide/messaging/#background-sessions)。 |
+| `/reload-mcp`（别名：`/reload_mcp`） | 从配置重新加载 MCP 服务器。 |
+| `/yolo` | 切换 YOLO 模式 — 跳过所有危险命令审批提示。 |
+| `/commands [页码]` | 浏览所有命令和技能（分页）。 |
+| `/approve [session\|always]` | 批准并执行待处理的危险命令。`session` 仅对此会话批准；`always` 添加到永久允许列表。 |
+| `/deny` | 拒绝待处理的危险命令。 |
+| `/update` | 将 Hermes Agent 更新到最新版本。 |
+| `/restart` | 在排空活跃运行后优雅重启网关。当网关重新上线时，它会向请求者的聊天/线程发送确认。 |
+| `/debug` | 上传调试报告（系统信息 + 日志）并获取可分享链接。 |
+| `/help` | 显示消息帮助。 |
+| `/<技能名称>` | 按名称调用任何已安装的技能。 |
 
-## Notes
+## 备注
 
-- `/skin`, `/snapshot`, `/gquota`, `/reload`, `/tools`, `/toolsets`, `/browser`, `/config`, `/cron`, `/skills`, `/platforms`, `/paste`, `/image`, `/terminal-setup`, `/statusbar`, and `/plugins` are **CLI-only** commands.
-- `/verbose` is **CLI-only by default**, but can be enabled for messaging platforms by setting `display.tool_progress_command: true` in `config.yaml`. When enabled, it cycles the `display.tool_progress` mode and saves to config.
-- `/sethome`, `/update`, `/restart`, `/approve`, `/deny`, and `/commands` are **messaging-only** commands.
-- `/status`, `/background`, `/voice`, `/reload-mcp`, `/rollback`, `/debug`, `/fast`, and `/yolo` work in **both** the CLI and the messaging gateway.
-- `/voice join`, `/voice channel`, and `/voice leave` are only meaningful on Discord.
+- `/skin`、`/snapshot`、`/gquota`、`/reload`、`/tools`、`/toolsets`、`/browser`、`/config`、`/cron`、`/skills`、`/platforms`、`/paste`、`/image`、`/terminal-setup`、`/statusbar` 和 `/plugins` 是**仅限 CLI** 的命令。
+- `/verbose` **默认仅限 CLI**，但可以通过在 `config.yaml` 中设置 `display.tool_progress_command: true` 为消息平台启用。启用后，它会循环 `display.tool_progress` 模式并保存到配置。
+- `/sethome`、`/update`、`/restart`、`/approve`、`/deny` 和 `/commands` 是**仅限消息** 的命令。
+- `/status`、`/background`、`/voice`、`/reload-mcp`、`/rollback`、`/debug`、`/fast` 和 `/yolo` 在 CLI 和消息网关中都**可用**。
+- `/voice join`、`/voice channel` 和 `/voice leave` 仅在 Discord 上有意义。

@@ -1,53 +1,53 @@
 ---
 sidebar_position: 11
-title: "ACP Editor Integration"
-description: "Use Hermes Agent inside ACP-compatible editors such as VS Code, Zed, and JetBrains"
+title: "ACP 编辑器集成"
+description: "在 ACP 兼容编辑器（如 VS Code、Zed 和 JetBrains）中使用 Hermes Agent"
 ---
 
-# ACP Editor Integration
+# ACP 编辑器集成
 
-Hermes Agent can run as an ACP server, letting ACP-compatible editors talk to Hermes over stdio and render:
+Hermes Agent 可以作为 ACP 服务器运行，让 ACP 兼容编辑器通过 stdio 与 Hermes 通信并渲染：
 
-- chat messages
-- tool activity
-- file diffs
-- terminal commands
-- approval prompts
-- streamed thinking / response chunks
+- 聊天消息
+- 工具活动
+- 文件 diff
+- 终端命令
+- 审批提示
+- 流式思考/响应块
 
-ACP is a good fit when you want Hermes to behave like an editor-native coding agent instead of a standalone CLI or messaging bot.
+当你希望 Hermes 像编辑器原生编码代理一样工作，而不是独立的 CLI 或消息机器人时，ACP 是一个很好的选择。
 
-## What Hermes exposes in ACP mode
+## Hermes 在 ACP 模式下暴露什么
 
-Hermes runs with a curated `hermes-acp` toolset designed for editor workflows. It includes:
+Hermes 使用为编辑器工作流设计的精选 `hermes-acp` 工具集运行。它包括：
 
-- file tools: `read_file`, `write_file`, `patch`, `search_files`
-- terminal tools: `terminal`, `process`
-- web/browser tools
-- memory, todo, session search
-- skills
-- execute_code and delegate_task
-- vision
+- 文件工具：`read_file`、`write_file`、`patch`、`search_files`
+- 终端工具：`terminal`、`process`
+- 网页/浏览器工具
+- 记忆、待办、会话搜索
+- 技能
+- execute_code 和 delegate_task
+- 视觉
 
-It intentionally excludes things that do not fit typical editor UX, such as messaging delivery and cronjob management.
+它有意排除了不适合典型编辑器 UX 的内容，如消息传递和定时任务管理。
 
-## Installation
+## 安装
 
-Install Hermes normally, then add the ACP extra:
+正常安装 Hermes，然后添加 ACP 额外依赖：
 
 ```bash
 pip install -e '.[acp]'
 ```
 
-This installs the `agent-client-protocol` dependency and enables:
+这会安装 `agent-client-protocol` 依赖并启用：
 
 - `hermes acp`
 - `hermes-acp`
 - `python -m acp_adapter`
 
-## Launching the ACP server
+## 启动 ACP 服务器
 
-Any of the following starts Hermes in ACP mode:
+以下任一命令都可以以 ACP 模式启动 Hermes：
 
 ```bash
 hermes acp
@@ -61,15 +61,15 @@ hermes-acp
 python -m acp_adapter
 ```
 
-Hermes logs to stderr so stdout remains reserved for ACP JSON-RPC traffic.
+Hermes 将日志输出到 stderr，因此 stdout 保留给 ACP JSON-RPC 通信。
 
-## Editor setup
+## 编辑器设置
 
 ### VS Code
 
-Install an ACP client extension, then point it at the repo's `acp_registry/` directory.
+安装 ACP 客户端扩展，然后将其指向仓库的 `acp_registry/` 目录。
 
-Example settings snippet:
+示例设置片段：
 
 ```json
 {
@@ -84,7 +84,7 @@ Example settings snippet:
 
 ### Zed
 
-Example settings snippet:
+示例设置片段：
 
 ```json
 {
@@ -100,78 +100,78 @@ Example settings snippet:
 
 ### JetBrains
 
-Use an ACP-compatible plugin and point it at:
+使用 ACP 兼容插件并将其指向：
 
 ```text
 /path/to/hermes-agent/acp_registry
 ```
 
-## Registry manifest
+## 注册表清单
 
-The ACP registry manifest lives at:
+ACP 注册表清单位于：
 
 ```text
 acp_registry/agent.json
 ```
 
-It advertises a command-based agent whose launch command is:
+它宣告一个基于命令的代理，其启动命令为：
 
 ```text
 hermes acp
 ```
 
-## Configuration and credentials
+## 配置和凭据
 
-ACP mode uses the same Hermes configuration as the CLI:
+ACP 模式使用与 CLI 相同的 Hermes 配置：
 
 - `~/.hermes/.env`
 - `~/.hermes/config.yaml`
 - `~/.hermes/skills/`
 - `~/.hermes/state.db`
 
-Provider resolution uses Hermes' normal runtime resolver, so ACP inherits the currently configured provider and credentials.
+提供商解析使用 Hermes 的正常运行时解析器，因此 ACP 继承当前配置的提供商和凭据。
 
-## Session behavior
+## 会话行为
 
-ACP sessions are tracked by the ACP adapter's in-memory session manager while the server is running.
+ACP 会话在服务器运行时由 ACP 适配器的内存会话管理器跟踪。
 
-Each session stores:
+每个会话存储：
 
-- session ID
-- working directory
-- selected model
-- current conversation history
-- cancel event
+- 会话 ID
+- 工作目录
+- 选择的模型
+- 当前对话历史
+- 取消事件
 
-The underlying `AIAgent` still uses Hermes' normal persistence/logging paths, but ACP `list/load/resume/fork` are scoped to the currently running ACP server process.
+底层 `AIAgent` 仍然使用 Hermes 的正常持久化/日志路径，但 ACP 的 `list/load/resume/fork` 限定到当前运行的 ACP 服务器进程。
 
-## Working directory behavior
+## 工作目录行为
 
-ACP sessions bind the editor's cwd to the Hermes task ID so file and terminal tools run relative to the editor workspace, not the server process cwd.
+ACP 会话将编辑器的 cwd 绑定到 Hermes 任务 ID，因此文件和终端工具相对于编辑器工作区运行，而不是服务器进程 cwd。
 
-## Approvals
+## 审批
 
-Dangerous terminal commands can be routed back to the editor as approval prompts. ACP approval options are simpler than the CLI flow:
+危险终端命令可以作为审批提示路由回编辑器。ACP 审批选项比 CLI 流程更简单：
 
-- allow once
-- allow always
-- deny
+- 允许一次
+- 始终允许
+- 拒绝
 
-On timeout or error, the approval bridge denies the request.
+超时或错误时，审批桥拒绝请求。
 
-## Troubleshooting
+## 故障排除
 
-### ACP agent does not appear in the editor
+### ACP 代理未出现在编辑器中
 
-Check:
+检查：
 
-- the editor is pointed at the correct `acp_registry/` path
-- Hermes is installed and on your PATH
-- the ACP extra is installed (`pip install -e '.[acp]'`)
+- 编辑器指向正确的 `acp_registry/` 路径
+- Hermes 已安装且在你的 PATH 中
+- ACP 额外依赖已安装（`pip install -e '.[acp]'`）
 
-### ACP starts but immediately errors
+### ACP 启动但立即出错
 
-Try these checks:
+尝试这些检查：
 
 ```bash
 hermes doctor
@@ -179,18 +179,18 @@ hermes status
 hermes acp
 ```
 
-### Missing credentials
+### 缺少凭据
 
-ACP mode does not have its own login flow. It uses Hermes' existing provider setup. Configure credentials with:
+ACP 模式没有自己的登录流程。它使用 Hermes 现有的提供商设置。使用以下命令配置凭据：
 
 ```bash
 hermes model
 ```
 
-or by editing `~/.hermes/.env`.
+或编辑 `~/.hermes/.env`。
 
-## See also
+## 另请参见
 
-- [ACP Internals](../../developer-guide/acp-internals.md)
-- [Provider Runtime Resolution](../../developer-guide/provider-runtime.md)
-- [Tools Runtime](../../developer-guide/tools-runtime.md)
+- [ACP 内部机制](../../developer-guide/acp-internals.md)
+- [提供商运行时解析](../../developer-guide/provider-runtime.md)
+- [工具运行时](../../developer-guide/tools-runtime.md)

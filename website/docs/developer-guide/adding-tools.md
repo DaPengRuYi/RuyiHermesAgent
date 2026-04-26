@@ -1,29 +1,29 @@
 ---
 sidebar_position: 2
-title: "Adding Tools"
-description: "How to add a new tool to Hermes Agent — schemas, handlers, registration, and toolsets"
+title: "添加工具"
+description: "如何向 Hermes Agent 添加新工具 — schema、处理器、注册和工具集"
 ---
 
-# Adding Tools
+# 添加工具
 
-Before writing a tool, ask yourself: **should this be a [skill](creating-skills.md) instead?**
+在编写工具之前，先问自己：**这应该是一个[技能](creating-skills.md)吗？**
 
-Make it a **Skill** when the capability can be expressed as instructions + shell commands + existing tools (arXiv search, git workflows, Docker management, PDF processing).
+当功能可以表示为指令 + shell 命令 + 现有工具时，将其作为**技能**（arXiv 搜索、git 工作流、Docker 管理、PDF 处理）。
 
-Make it a **Tool** when it requires end-to-end integration with API keys, custom processing logic, binary data handling, or streaming (browser automation, TTS, vision analysis).
+当需要与 API 密钥、自定义处理逻辑、二进制数据处理或流式传输进行端到端集成时，将其作为**工具**（浏览器自动化、TTS、视觉分析）。
 
-## Overview
+## 概述
 
-Adding a tool touches **2 files**:
+添加工具涉及 **2 个文件**：
 
-1. **`tools/your_tool.py`** — handler, schema, check function, `registry.register()` call
-2. **`toolsets.py`** — add tool name to `_HERMES_CORE_TOOLS` (or a specific toolset)
+1. **`tools/your_tool.py`** — 处理器、schema、检查函数、`registry.register()` 调用
+2. **`toolsets.py`** — 将工具名称添加到 `_HERMES_CORE_TOOLS`（或特定工具集）
 
-Any `tools/*.py` file with a top-level `registry.register()` call is auto-discovered at startup — no manual import list required.
+任何具有顶层 `registry.register()` 调用的 `tools/*.py` 文件都会在启动时自动发现 — 无需手动导入列表。
 
-## Step 1: Create the Tool File
+## 步骤 1：创建工具文件
 
-Every tool file follows the same structure:
+每个工具文件遵循相同的结构：
 
 ```python
 # tools/weather_tool.py
@@ -97,27 +97,27 @@ registry.register(
 )
 ```
 
-### Key Rules
+### 关键规则
 
-:::danger Important
-- Handlers **MUST** return a JSON string (via `json.dumps()`), never raw dicts
-- Errors **MUST** be returned as `{"error": "message"}`, never raised as exceptions
-- The `check_fn` is called when building tool definitions — if it returns `False`, the tool is silently excluded
-- The `handler` receives `(args: dict, **kwargs)` where `args` is the LLM's tool call arguments
+:::danger 重要
+- 处理器**必须**返回 JSON 字符串（通过 `json.dumps()`），不要返回原始字典
+- 错误**必须**作为 `{"error": "message"}` 返回，不要作为异常抛出
+- `check_fn` 在构建工具定义时被调用 — 如果返回 `False`，工具会被静默排除
+- `handler` 接收 `(args: dict, **kwargs)`，其中 `args` 是 LLM 的工具调用参数
 :::
 
-## Step 2: Add to a Toolset
+## 步骤 2：添加到工具集
 
-In `toolsets.py`, add the tool name:
+在 `toolsets.py` 中，添加工具名称：
 
 ```python
-# If it should be available on all platforms (CLI + messaging):
+# 如果应该在所有平台上可用（CLI + 消息）：
 _HERMES_CORE_TOOLS = [
     ...
-    "weather",  # <-- add here
+    "weather",  # <-- 添加到这里
 ]
 
-# Or create a new standalone toolset:
+# 或者创建新的独立工具集：
 "weather": {
     "description": "Weather lookup tools",
     "tools": ["weather"],
@@ -125,13 +125,13 @@ _HERMES_CORE_TOOLS = [
 },
 ```
 
-## ~~Step 3: Add Discovery Import~~ (No longer needed)
+## ~~步骤 3：添加发现导入~~（不再需要）
 
-Tool modules with a top-level `registry.register()` call are auto-discovered by `discover_builtin_tools()` in `tools/registry.py`. No manual import list to maintain — just create your file in `tools/` and it's picked up at startup.
+具有顶层 `registry.register()` 调用的工具模块会被 `tools/registry.py` 中的 `discover_builtin_tools()` 自动发现。无需维护手动导入列表 — 只需在 `tools/` 中创建你的文件，它就会在启动时被拾取。
 
-## Async Handlers
+## 异步处理器
 
-If your handler needs async code, mark it with `is_async=True`:
+如果你的处理器需要异步代码，用 `is_async=True` 标记它：
 
 ```python
 async def weather_tool_async(location: str) -> str:
@@ -149,11 +149,11 @@ registry.register(
 )
 ```
 
-The registry handles async bridging transparently — you never call `asyncio.run()` yourself.
+注册表透明地处理异步桥接 — 你永远不需要自己调用 `asyncio.run()`。
 
-## Handlers That Need task_id
+## 需要 task_id 的处理器
 
-Tools that manage per-session state receive `task_id` via `**kwargs`:
+管理每会话状态的工具通过 `**kwargs` 接收 `task_id`：
 
 ```python
 def _handle_weather(args, **kw):
@@ -167,13 +167,13 @@ registry.register(
 )
 ```
 
-## Agent-Loop Intercepted Tools
+## 代理循环拦截工具
 
-Some tools (`todo`, `memory`, `session_search`, `delegate_task`) need access to per-session agent state. These are intercepted by `run_agent.py` before reaching the registry. The registry still holds their schemas, but `dispatch()` returns a fallback error if the intercept is bypassed.
+一些工具（`todo`、`memory`、`session_search`、`delegate_task`）需要访问每会话的代理状态。这些在到达注册表之前被 `run_agent.py` 拦截。注册表仍然持有它们的 schema，但如果拦截被绕过，`dispatch()` 会返回回退错误。
 
-## Optional: Setup Wizard Integration
+## 可选：设置向导集成
 
-If your tool requires an API key, add it to `hermes_cli/config.py`:
+如果你的工具需要 API 密钥，请将其添加到 `hermes_cli/config.py`：
 
 ```python
 OPTIONAL_ENV_VARS = {
@@ -188,12 +188,12 @@ OPTIONAL_ENV_VARS = {
 }
 ```
 
-## Checklist
+## 清单
 
-- [ ] Tool file created with handler, schema, check function, and registration
-- [ ] Added to appropriate toolset in `toolsets.py`
-- [ ] Discovery import added to `model_tools.py`
-- [ ] Handler returns JSON strings, errors returned as `{"error": "..."}`
-- [ ] Optional: API key added to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py`
-- [ ] Optional: Added to `toolset_distributions.py` for batch processing
-- [ ] Tested with `hermes chat -q "Use the weather tool for London"`
+- [ ] 已创建工具文件，包含处理器、schema、检查函数和注册
+- [ ] 已添加到 `toolsets.py` 中的适当工具集
+- [ ] 已添加到 `model_tools.py` 中的发现导入
+- [ ] 处理器返回 JSON 字符串，错误作为 `{"error": "..."}` 返回
+- [ ] 可选：API 密钥已添加到 `hermes_cli/config.py` 中的 `OPTIONAL_ENV_VARS`
+- [ ] 可选：已添加到 `toolset_distributions.py` 用于批量处理
+- [ ] 已用 `hermes chat -q "Use the weather tool for London"` 测试

@@ -1,224 +1,224 @@
 ---
 sidebar_position: 10
-title: "Tutorial: GitHub PR Review Agent"
-description: "Build an automated AI code reviewer that monitors your repos, reviews pull requests, and delivers feedback — hands-free"
+title: "教程：GitHub PR 审查代理"
+description: "构建一个自动化的 AI 代码审查器，监控你的仓库、审查拉取请求并投递反馈 — 免手动操作"
 ---
 
-# Tutorial: Build a GitHub PR Review Agent
+# 教程：构建 GitHub PR 审查代理
 
-**The problem:** Your team opens PRs faster than you can review them. PRs sit for days waiting for eyeballs. Junior devs merge bugs because nobody had time to check. You spend your mornings catching up on diffs instead of building.
+**问题：** 你的团队打开 PR 的速度比你能审查的快。PR 等待数天等待关注。初级开发者合并了 bug 因为没人有时间检查。你花早上时间追赶 diff 而不是构建。
 
-**The solution:** An AI agent that watches your repos around the clock, reviews every new PR for bugs, security issues, and code quality, and sends you a summary — so you only spend time on PRs that actually need human judgment.
+**解决方案：** 一个 AI 代理全天候监视你的仓库，审查每个新 PR 的 bug、安全问题和代码质量，并发送摘要 — 你只需在真正需要人工判断的 PR 上花时间。
 
-**What you'll build:**
+**你将构建什么：**
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
 │                                                                   │
-│   Cron Timer  ──▶  Hermes Agent  ──▶  GitHub API  ──▶  Review     │
-│   (every 2h)       + gh CLI           (PR diffs)       delivery   │
-│                    + skill                             (Telegram, │
-│                    + memory                            Discord,   │
-│                                                        local)     │
+│   Cron 定时器  ──▶  Hermes Agent  ──▶  GitHub API  ──▶  审查     │
+│   （每 2 小时）    + gh CLI            (PR diff)       投递       │
+│                    + 技能                             (Telegram, │
+│                    + 记忆                            Discord,     │
+│                                                      本地)        │
 │                                                                   │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-This guide uses **cron jobs** to poll for PRs on a schedule — no server or public endpoint needed. Works behind NAT and firewalls.
+本指南使用 **cron 作业**按调度轮询 PR — 无需服务器或公共端点。在 NAT 和防火墙后工作。
 
-:::tip Want real-time reviews instead?
-If you have a public endpoint available, check out [Automated GitHub PR Comments with Webhooks](./webhook-github-pr-review.md) — GitHub pushes events to Hermes instantly when PRs are opened or updated.
+:::tip 想要实时审查？
+如果你有可用的公共端点，请查看[使用 Webhook 自动化 GitHub PR 评论](./webhook-github-pr-review.md) — GitHub 在 PR 打开或更新时立即将事件推送到 Hermes。
 :::
 
 ---
 
-## Prerequisites
+## 前提条件
 
-- **Hermes Agent installed** — see the [Installation guide](/docs/getting-started/installation)
-- **Gateway running** for cron jobs:
+- **Hermes Agent 已安装** — 参见[安装指南](/docs/getting-started/installation)
+- **网关在运行** 用于 cron 作业：
   ```bash
-  hermes gateway install   # Install as a service
-  # or
-  hermes gateway           # Run in foreground
+  hermes gateway install   # 安装为服务
+  # 或
+  hermes gateway           # 在前台运行
   ```
-- **GitHub CLI (`gh`) installed and authenticated**:
+- **GitHub CLI（`gh`）已安装并认证**：
   ```bash
-  # Install
+  # 安装
   brew install gh        # macOS
   sudo apt install gh    # Ubuntu/Debian
 
-  # Authenticate
+  # 认证
   gh auth login
   ```
-- **Messaging configured** (optional) — [Telegram](/docs/user-guide/messaging/telegram) or [Discord](/docs/user-guide/messaging/discord)
+- **消息已配置**（可选） — [Telegram](/docs/user-guide/messaging/telegram) 或 [Discord](/docs/user-guide/messaging/discord)
 
-:::tip No messaging? No problem
-Use `deliver: "local"` to save reviews to `~/.hermes/cron/output/`. Great for testing before wiring up notifications.
+:::tip 没有消息平台？没问题
+使用 `deliver: "local"` 将审查保存到 `~/.hermes/cron/output/`。在连接通知前测试很好。
 :::
 
 ---
 
-## Step 1: Verify the Setup
+## 步骤 1：验证设置
 
-Make sure Hermes can access GitHub. Start a chat:
+确保 Hermes 可以访问 GitHub。启动聊天：
 
 ```bash
 hermes
 ```
 
-Test with a simple command:
+用简单命令测试：
 
 ```
 Run: gh pr list --repo NousResearch/hermes-agent --state open --limit 3
 ```
 
-You should see a list of open PRs. If this works, you're ready.
+你应该看到打开的 PR 列表。如果这有效，你就准备好了。
 
 ---
 
-## Step 2: Try a Manual Review
+## 步骤 2：尝试手动审查
 
-Still in the chat, ask Hermes to review a real PR:
+仍在聊天中，让 Hermes 审查真实 PR：
 
 ```
-Review this pull request. Read the diff, check for bugs, security issues,
-and code quality. Be specific about line numbers and quote problematic code.
+审查这个拉取请求。阅读 diff，检查 bug、安全问题和代码质量。
+对行号要具体并引用有问题的代码。
 
 Run: gh pr diff 3888 --repo NousResearch/hermes-agent
 ```
 
-Hermes will:
-1. Execute `gh pr diff` to fetch the code changes
-2. Read through the entire diff
-3. Produce a structured review with specific findings
+Hermes 将：
+1. 执行 `gh pr diff` 获取代码更改
+2. 阅读整个 diff
+3. 生成带有具体发现的结构化审查
 
-If you're happy with the quality, time to automate it.
+如果你对质量满意，是时候自动化了。
 
 ---
 
-## Step 3: Create a Review Skill
+## 步骤 3：创建审查技能
 
-A skill gives Hermes consistent review guidelines that persist across sessions and cron runs. Without one, review quality varies.
+技能给 Hermes 一致的审查指南，跨会话和 cron 运行持久化。没有它，审查质量会变化。
 
 ```bash
 mkdir -p ~/.hermes/skills/code-review
 ```
 
-Create `~/.hermes/skills/code-review/SKILL.md`:
+创建 `~/.hermes/skills/code-review/SKILL.md`：
 
 ```markdown
 ---
 name: code-review
-description: Review pull requests for bugs, security issues, and code quality
+description: 审查拉取请求的 bug、安全问题和代码质量
 ---
 
-# Code Review Guidelines
+# 代码审查指南
 
-When reviewing a pull request:
+审查拉取请求时：
 
-## What to Check
-1. **Bugs** — Logic errors, off-by-one, null/undefined handling
-2. **Security** — Injection, auth bypass, secrets in code, SSRF
-3. **Performance** — N+1 queries, unbounded loops, memory leaks
-4. **Style** — Naming conventions, dead code, missing error handling
-5. **Tests** — Are changes tested? Do tests cover edge cases?
+## 检查什么
+1. **Bug** — 逻辑错误、差一错误、null/undefined 处理
+2. **安全** — 注入、认证绕过、代码中的密钥、SSRF
+3. **性能** — N+1 查询、无界循环、内存泄漏
+4. **风格** — 命名规范、死代码、缺少错误处理
+5. **测试** — 更改是否被测试？测试是否覆盖边界情况？
 
-## Output Format
-For each finding:
-- **File:Line** — exact location
-- **Severity** — Critical / Warning / Suggestion
-- **What's wrong** — one sentence
-- **Fix** — how to fix it
+## 输出格式
+对每个发现：
+- **File:Line** — 确切位置
+- **严重性** — Critical / Warning / Suggestion
+- **问题** — 一句话
+- **修复** — 如何修复
 
-## Rules
-- Be specific. Quote the problematic code.
-- Don't flag style nitpicks unless they affect readability.
-- If the PR looks good, say so. Don't invent problems.
-- End with: APPROVE / REQUEST_CHANGES / COMMENT
+## 规则
+- 要具体。引用有问题的代码。
+- 除非影响可读性，否则不要标记风格挑剔。
+- 如果 PR 看起来不错，就说。不要编造问题。
+- 结尾：APPROVE / REQUEST_CHANGES / COMMENT
 ```
 
-Verify it loaded — start `hermes` and you should see `code-review` in the skills list at startup.
-
----
-
-## Step 4: Teach It Your Conventions
-
-This is what makes the reviewer actually useful. Start a session and teach Hermes your team's standards:
-
-```
-Remember: In our backend repo, we use Python with FastAPI.
-All endpoints must have type annotations and Pydantic models.
-We don't allow raw SQL — only SQLAlchemy ORM.
-Test files go in tests/ and must use pytest fixtures.
-```
-
-```
-Remember: In our frontend repo, we use TypeScript with React.
-No `any` types allowed. All components must have props interfaces.
-We use React Query for data fetching, never useEffect for API calls.
-```
-
-These memories persist forever — the reviewer will enforce your conventions without being told each time.
+验证它已加载 — 启动 `hermes`，你应该在启动时的技能列表中看到 `code-review`。
 
 ---
 
-## Step 5: Create the Automated Cron Job
+## 步骤 4：教它你的规范
 
-Now wire it all together. Create a cron job that runs every 2 hours:
+这是让审查者真正有用的关键。启动会话并教 Hermes 你团队的标准：
+
+```
+记住：在我们的后端仓库中，我们使用 Python 和 FastAPI。
+所有端点必须有类型注解和 Pydantic 模型。
+我们不允许原始 SQL — 只用 SQLAlchemy ORM。
+测试文件在 tests/ 中，必须使用 pytest fixtures。
+```
+
+```
+记住：在我们的前端仓库中，我们使用 TypeScript 和 React。
+不允许 `any` 类型。所有组件必须有 props 接口。
+我们使用 React Query 获取数据，从不使用 useEffect 进行 API 调用。
+```
+
+这些记忆永久持久化 — 审查者会在每次被告知的情况下强制执行你的规范。
+
+---
+
+## 步骤 5：创建自动化 Cron 作业
+
+现在把它们连接在一起。创建一个每 2 小时运行的 cron 作业：
 
 ```bash
 hermes cron create "0 */2 * * *" \
-  "Check for new open PRs and review them.
+  "检查新的打开 PR 并审查它们。
 
-Repos to monitor:
+要监控的仓库：
 - myorg/backend-api
 - myorg/frontend-app
 
-Steps:
+步骤：
 1. Run: gh pr list --repo REPO --state open --limit 5 --json number,title,author,createdAt
-2. For each PR created or updated in the last 4 hours:
+2. 对于过去 4 小时内创建或更新的每个 PR：
    - Run: gh pr diff NUMBER --repo REPO
-   - Review the diff using the code-review guidelines
-3. Format output as:
+   - 使用 code-review 指南审查 diff
+3. 格式化输出为：
 
-## PR Reviews — today
+## PR 审查 — 今天
 
 ### [repo] #[number]: [title]
-**Author:** [name] | **Verdict:** APPROVE/REQUEST_CHANGES/COMMENT
-[findings]
+**作者：** [name] | **结论：** APPROVE/REQUEST_CHANGES/COMMENT
+[发现]
 
-If no new PRs found, say: No new PRs to review." \
+如果没有找到新 PR，说：没有新 PR 需要审查。" \
   --name "pr-review" \
   --deliver telegram \
   --skill code-review
 ```
 
-Verify it's scheduled:
+验证已调度：
 
 ```bash
 hermes cron list
 ```
 
-### Other useful schedules
+### 其他有用的调度
 
-| Schedule | When |
+| 调度 | 时间 |
 |----------|------|
-| `0 */2 * * *` | Every 2 hours |
-| `0 9,13,17 * * 1-5` | Three times a day, weekdays only |
-| `0 9 * * 1` | Weekly Monday morning roundup |
-| `30m` | Every 30 minutes (high-traffic repos) |
+| `0 */2 * * *` | 每 2 小时 |
+| `0 9,13,17 * * 1-5` | 每天三次，仅工作日 |
+| `0 9 * * 1` | 每周一早上汇总 |
+| `30m` | 每 30 分钟（高流量仓库） |
 
 ---
 
-## Step 6: Run It On Demand
+## 步骤 6：按需运行
 
-Don't want to wait for the schedule? Trigger it manually:
+不想等调度？手动触发：
 
 ```bash
 hermes cron run pr-review
 ```
 
-Or from within a chat session:
+或在聊天会话中：
 
 ```
 /cron run pr-review
@@ -226,78 +226,78 @@ Or from within a chat session:
 
 ---
 
-## Going Further
+## 更进一步
 
-### Post Reviews Directly to GitHub
+### 直接将审查发布到 GitHub
 
-Instead of delivering to Telegram, have the agent comment on the PR itself:
+与其投递到 Telegram，让代理直接在 PR 上评论：
 
-Add this to your cron prompt:
+在你的 cron 提示中添加：
 
 ```
-After reviewing, post your review:
-- For issues: gh pr review NUMBER --repo REPO --comment --body "YOUR_REVIEW"
-- For critical issues: gh pr review NUMBER --repo REPO --request-changes --body "YOUR_REVIEW"
-- For clean PRs: gh pr review NUMBER --repo REPO --approve --body "Looks good"
+审查后，发布你的审查：
+- 对问题：gh pr review NUMBER --repo REPO --comment --body "YOUR_REVIEW"
+- 对严重问题：gh pr review NUMBER --repo REPO --request-changes --body "YOUR_REVIEW"
+- 对干净的 PR：gh pr review NUMBER --repo REPO --approve --body "Looks good"
 ```
 
 :::caution
-Make sure `gh` has a token with `repo` scope. Reviews are posted as whoever `gh` is authenticated as.
+确保 `gh` 有 `repo` 范围的令牌。审查以 `gh` 认证的身份发布。
 :::
 
-### Weekly PR Dashboard
+### 周 PR 仪表板
 
-Create a Monday morning overview of all your repos:
+创建周一早上的所有仓库概览：
 
 ```bash
 hermes cron create "0 9 * * 1" \
-  "Generate a weekly PR dashboard:
+  "生成周 PR 仪表板：
 - myorg/backend-api
 - myorg/frontend-app
 - myorg/infra
 
-For each repo show:
-1. Open PR count and oldest PR age
-2. PRs merged this week
-3. Stale PRs (older than 5 days)
-4. PRs with no reviewer assigned
+对每个仓库显示：
+1. 打开的 PR 数量和最旧 PR 的年龄
+2. 本周合并的 PR
+3. 过期 PR（超过 5 天）
+4. 没有分配审查者的 PR
 
-Format as a clean summary." \
+格式化为干净的摘要。" \
   --name "weekly-dashboard" \
   --deliver telegram
 ```
 
-### Multi-Repo Monitoring
+### 多仓库监控
 
-Scale up by adding more repos to the prompt. The agent processes them sequentially — no extra setup needed.
+通过在提示中添加更多仓库来扩展。代理顺序处理它们 — 无需额外设置。
 
 ---
 
-## Troubleshooting
+## 故障排除
 
 ### "gh: command not found"
-The gateway runs in a minimal environment. Ensure `gh` is in the system PATH and restart the gateway.
+网关在最小环境中运行。确保 `gh` 在系统 PATH 中并重启网关。
 
-### Reviews are too generic
-1. Add the `code-review` skill (Step 3)
-2. Teach Hermes your conventions via memory (Step 4)
-3. The more context it has about your stack, the better the reviews
+### 审查太泛泛
+1. 添加 `code-review` 技能（步骤 3）
+2. 通过记忆教 Hermes 你的规范（步骤 4）
+3. 它对你技术栈的上下文越多，审查越好
 
-### Cron job doesn't run
+### Cron 作业不运行
 ```bash
-hermes gateway status    # Is the gateway running?
-hermes cron list         # Is the job enabled?
+hermes gateway status    # 网关在运行吗？
+hermes cron list         # 作业启用了吗？
 ```
 
-### Rate limits
-GitHub allows 5,000 API requests/hour for authenticated users. Each PR review uses ~3-5 requests (list + diff + optional comments). Even reviewing 100 PRs/day stays well within limits.
+### 速率限制
+GitHub 允许认证用户每小时 5,000 次 API 请求。每个 PR 审查使用约 3-5 个请求（列表 + diff + 可选评论）。即使每天审查 100 个 PR 也在限制范围内。
 
 ---
 
-## What's Next?
+## 下一步？
 
-- **[Webhook-Based PR Reviews](./webhook-github-pr-review.md)** — get instant reviews when PRs are opened (requires a public endpoint)
-- **[Daily Briefing Bot](/docs/guides/daily-briefing-bot)** — combine PR reviews with your morning news digest
-- **[Build a Plugin](/docs/guides/build-a-hermes-plugin)** — wrap the review logic into a shareable plugin
-- **[Profiles](/docs/user-guide/profiles)** — run a dedicated reviewer profile with its own memory and config
-- **[Fallback Providers](/docs/user-guide/features/fallback-providers)** — ensure reviews run even when one provider is down
+- **[基于 Webhook 的 PR 审查](./webhook-github-pr-review.md)** — PR 打开时获得即时审查（需要公共端点）
+- **[每日简报机器人](/docs/guides/daily-briefing-bot)** — 将 PR 审查与你的早间新闻文摘结合
+- **[构建插件](/docs/guides/build-a-hermes-plugin)** — 将审查逻辑包装为可分享的插件
+- **[Profiles](/docs/user-guide/profiles)** — 运行具有自己记忆和配置的专用审查者 profile
+- **[回退提供者](/docs/user-guide/features/fallback-providers)** — 确保即使一个提供者宕机审查也能运行

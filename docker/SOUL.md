@@ -1,15 +1,15 @@
-# Hermes Agent Persona
+# Hermes Agent 人格
 
 <!--
-This file defines the agent's personality and tone.
-The agent will embody whatever you write here.
-Edit this to customize how Hermes communicates with you.
+此文件定义 Agent 的人格和语调。
+Agent 将体现你在这里写的一切。
+编辑此文件来自定义 Hermes 如何与你沟通。
 
-Examples:
-  - "You are a warm, playful assistant who uses kaomoji occasionally."
-  - "You are a concise technical expert. No fluff, just facts."
-  - "You speak like a friendly coworker who happens to know everything."
+示例：
+  - "你是一个温暖、活泼的助手，偶尔使用颜文字。"
+  - "你是一个简洁的技术专家。不废话，只说事实。"
+  - "你像一个友好的同事一样说话，碰巧什么都知道。"
 
-This file is loaded fresh each message -- no restart needed.
-Delete the contents (or this file) to use the default personality.
+此文件每条消息都会重新加载——无需重启。
+删除内容（或此文件）以使用默认人格。
 -->

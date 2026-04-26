@@ -1,60 +1,60 @@
 ---
 sidebar_position: 6
-title: "Use MCP with Hermes"
-description: "A practical guide to connecting MCP servers to Hermes Agent, filtering their tools, and using them safely in real workflows"
+title: "在 Hermes 中使用 MCP"
+description: "将 MCP 服务器连接到 Hermes Agent、过滤其工具并在真实工作流中安全使用的实用指南"
 ---
 
-# Use MCP with Hermes
+# 在 Hermes 中使用 MCP
 
-This guide shows how to actually use MCP with Hermes Agent in day-to-day workflows.
+本指南展示如何在日常工作中实际使用 MCP 与 Hermes Agent。
 
-If the feature page explains what MCP is, this guide is about how to get value from it quickly and safely.
+如果功能页面解释了 MCP 是什么，本指南是关于如何快速安全地从中获得价值。
 
-## When should you use MCP?
+## 何时应该使用 MCP？
 
-Use MCP when:
-- a tool already exists in MCP form and you do not want to build a native Hermes tool
-- you want Hermes to operate against a local or remote system through a clean RPC layer
-- you want fine-grained per-server exposure control
-- you want to connect Hermes to internal APIs, databases, or company systems without modifying Hermes core
+在以下情况下使用 MCP：
+- 工具已经以 MCP 形式存在，你不想构建原生 Hermes 工具
+- 你想要 Hermes 通过干净的 RPC 层操作本地或远程系统
+- 你想要细粒度的每服务器暴露控制
+- 你想要将 Hermes 连接到内部 API、数据库或公司系统而不修改 Hermes 核心
 
-Do not use MCP when:
-- a built-in Hermes tool already solves the job well
-- the server exposes a huge dangerous tool surface and you are not prepared to filter it
-- you only need one very narrow integration and a native tool would be simpler and safer
+在以下情况下不要使用 MCP：
+- 内置的 Hermes 工具已经很好地解决了工作
+- 服务器暴露了巨大的危险工具面，而你没有准备好过滤它
+- 你只需要一个非常窄的集成，原生工具会更简单更安全
 
-## Mental model
+## 心智模型
 
-Think of MCP as an adapter layer:
+将 MCP 视为适配器层：
 
-- Hermes remains the agent
-- MCP servers contribute tools
-- Hermes discovers those tools at startup or reload time
-- the model can use them like normal tools
-- you control how much of each server is visible
+- Hermes 仍然是代理
+- MCP 服务器贡献工具
+- Hermes 在启动或重载时发现这些工具
+- 模型可以像普通工具一样使用它们
+- 你控制每个服务器的可见程度
 
-That last part matters. Good MCP usage is not just “connect everything.” It is “connect the right thing, with the smallest useful surface.”
+最后一点很重要。好的 MCP 使用不仅仅是 "连接一切"。它是 "连接正确的东西，以最小的有用面"。
 
-## Step 1: install MCP support
+## 步骤 1：安装 MCP 支持
 
-If you installed Hermes with the standard install script, MCP support is already included (the installer runs `uv pip install -e ".[all]"`).
+如果你使用标准安装脚本安装了 Hermes，MCP 支持已经包含（安装器运行 `uv pip install -e ".[all]"`）。
 
-If you installed without extras and need to add MCP separately:
+如果你没有安装额外依赖并需要单独添加 MCP：
 
 ```bash
 cd ~/.hermes/hermes-agent
 uv pip install -e ".[mcp]"
 ```
 
-For npm-based servers, make sure Node.js and `npx` are available.
+对于基于 npm 的服务器，确保 Node.js 和 `npx` 可用。
 
-For many Python MCP servers, `uvx` is a nice default.
+对于许多 Python MCP 服务器，`uvx` 是一个好的默认。
 
-## Step 2: add one server first
+## 步骤 2：先添加一个服务器
 
-Start with a single, safe server.
+从一个单一、安全的服务器开始。
 
-Example: filesystem access to one project directory only.
+示例：仅对一个项目目录的文件系统访问。
 
 ```yaml
 mcp_servers:
@@ -63,38 +63,38 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/my-project"]
 ```
 
-Then start Hermes:
+然后启动 Hermes：
 
 ```bash
 hermes chat
 ```
 
-Now ask something concrete:
+现在问一些具体的事情：
 
 ```text
-Inspect this project and summarize the repo layout.
+检查这个项目并总结仓库布局。
 ```
 
-## Step 3: verify MCP loaded
+## 步骤 3：验证 MCP 已加载
 
-You can verify MCP in a few ways:
+你可以通过几种方式验证 MCP：
 
-- Hermes banner/status should show MCP integration when configured
-- ask Hermes what tools it has available
-- use `/reload-mcp` after config changes
-- check logs if the server failed to connect
+- 配置后 Hermes 横幅/状态应显示 MCP 集成
+- 问 Hermes 它有什么可用的工具
+- 配置更改后使用 `/reload-mcp`
+- 如果服务器连接失败，检查日志
 
-A practical test prompt:
+实用的测试提示：
 
 ```text
-Tell me which MCP-backed tools are available right now.
+告诉我现在有哪些 MCP 支持的工具可用。
 ```
 
-## Step 4: start filtering immediately
+## 步骤 4：立即开始过滤
 
-Do not wait until later if the server exposes a lot of tools.
+如果服务器暴露了很多工具，不要等到以后。
 
-### Example: whitelist only what you want
+### 示例：只白名单你想要的
 
 ```yaml
 mcp_servers:
@@ -107,9 +107,9 @@ mcp_servers:
       include: [list_issues, create_issue, search_code]
 ```
 
-This is usually the best default for sensitive systems.
+这通常是敏感系统的最佳默认。
 
-### Example: blacklist dangerous actions
+### 示例：黑名单危险操作
 
 ```yaml
 mcp_servers:
@@ -121,7 +121,7 @@ mcp_servers:
       exclude: [delete_customer, refund_payment]
 ```
 
-### Example: disable utility wrappers too
+### 示例：也禁用实用工具包装器
 
 ```yaml
 mcp_servers:
@@ -132,41 +132,41 @@ mcp_servers:
       resources: false
 ```
 
-## What does filtering actually affect?
+## 过滤实际影响什么？
 
-There are two categories of MCP-exposed functionality in Hermes:
+Hermes 中有两类 MCP 暴露的功能：
 
-1. Server-native MCP tools
-- filtered with:
+1. 服务器原生 MCP 工具
+- 通过以下过滤：
   - `tools.include`
   - `tools.exclude`
 
-2. Hermes-added utility wrappers
-- filtered with:
+2. Hermes 添加的实用工具包装器
+- 通过以下过滤：
   - `tools.resources`
   - `tools.prompts`
 
-### Utility wrappers you may see
+### 你可能看到的实用工具包装器
 
-Resources:
+资源：
 - `list_resources`
 - `read_resource`
 
-Prompts:
+提示：
 - `list_prompts`
 - `get_prompt`
 
-These wrappers only appear if:
-- your config allows them, and
-- the MCP server session actually supports those capabilities
+这些包装器仅在以下情况下出现：
+- 你的配置允许它们，并且
+- MCP 服务器会话实际支持这些能力
 
-So Hermes will not pretend a server has resources/prompts if it does not.
+所以 Hermes 不会假装服务器有资源/提示如果它没有的话。
 
-## Common patterns
+## 常见模式
 
-### Pattern 1: local project assistant
+### 模式 1：本地项目助手
 
-Use MCP for a repo-local filesystem or git server when you want Hermes to reason over a bounded workspace.
+当你想要 Hermes 在有界工作区上推理时，使用 MCP 进行仓库本地文件系统或 git 服务器。
 
 ```yaml
 mcp_servers:
@@ -179,17 +179,17 @@ mcp_servers:
     args: ["mcp-server-git", "--repository", "/home/user/project"]
 ```
 
-Good prompts:
+好的提示：
 
 ```text
-Review the project structure and identify where configuration lives.
+审查项目结构并识别配置在哪里。
 ```
 
 ```text
-Check the local git state and summarize what changed recently.
+检查本地 git 状态并总结最近的变化。
 ```
 
-### Pattern 2: GitHub triage assistant
+### 模式 2：GitHub 分类助手
 
 ```yaml
 mcp_servers:
@@ -204,17 +204,17 @@ mcp_servers:
       resources: false
 ```
 
-Good prompts:
+好的提示：
 
 ```text
-List open issues about MCP, cluster them by theme, and draft a high-quality issue for the most common bug.
+列出关于 MCP 的打开 issue，按主题分组，并为最常见的 bug 起草一个高质量的 issue。
 ```
 
 ```text
-Search the repo for uses of _discover_and_register_server and explain how MCP tools are registered.
+在仓库中搜索 _discover_and_register_server 的使用并解释 MCP 工具是如何注册的。
 ```
 
-### Pattern 3: internal API assistant
+### 模式 3：内部 API 助手
 
 ```yaml
 mcp_servers:
@@ -228,17 +228,17 @@ mcp_servers:
       prompts: false
 ```
 
-Good prompts:
+好的提示：
 
 ```text
-Look up customer ACME Corp and summarize recent invoice activity.
+查找客户 ACME Corp 并总结最近的发票活动。
 ```
 
-This is the sort of place where a strict whitelist is far better than an exclude list.
+这是严格白名单比排除列表好得多的地方。
 
-### Pattern 4: documentation / knowledge servers
+### 模式 4：文档/知识服务器
 
-Some MCP servers expose prompts or resources that are more like shared knowledge assets than direct actions.
+一些 MCP 服务器暴露的提示或资源更像是共享知识资产而非直接操作。
 
 ```yaml
 mcp_servers:
@@ -249,21 +249,21 @@ mcp_servers:
       resources: true
 ```
 
-Good prompts:
+好的提示：
 
 ```text
-List available MCP resources from the docs server, then read the onboarding guide and summarize it.
+列出文档服务器的可用 MCP 资源，然后阅读入门指南并总结它。
 ```
 
 ```text
-List prompts exposed by the docs server and tell me which ones would help with incident response.
+列出文档服务器暴露的提示并告诉我哪些有助于事件响应。
 ```
 
-## Tutorial: end-to-end setup with filtering
+## 教程：带过滤的端到端设置
 
-Here is a practical progression.
+这是一个实用的渐进过程。
 
-### Phase 1: add GitHub MCP with a tight whitelist
+### 阶段 1：添加 GitHub MCP 带严格白名单
 
 ```yaml
 mcp_servers:
@@ -278,28 +278,28 @@ mcp_servers:
       resources: false
 ```
 
-Start Hermes and ask:
+启动 Hermes 并问：
 
 ```text
-Search the codebase for references to MCP and summarize the main integration points.
+在代码库中搜索 MCP 的引用并总结主要的集成点。
 ```
 
-### Phase 2: expand only when needed
+### 阶段 2：仅在需要时扩展
 
-If you later need issue updates too:
+如果你后来也需要 issue 更新：
 
 ```yaml
 tools:
   include: [list_issues, create_issue, update_issue, search_code]
 ```
 
-Then reload:
+然后重载：
 
 ```text
 /reload-mcp
 ```
 
-### Phase 3: add a second server with different policy
+### 阶段 3：添加具有不同策略的第二个服务器
 
 ```yaml
 mcp_servers:
@@ -318,25 +318,25 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/project"]
 ```
 
-Now Hermes can combine them:
+现在 Hermes 可以组合它们：
 
 ```text
-Inspect the local project files, then create a GitHub issue summarizing the bug you find.
+检查本地项目文件，然后创建一个 GitHub issue 总结你发现的 bug。
 ```
 
-That is where MCP gets powerful: multi-system workflows without changing Hermes core.
+这就是 MCP 变得强大的地方：多系统工作流而不改变 Hermes 核心。
 
-## Safe usage recommendations
+## 安全使用建议
 
-### Prefer allowlists for dangerous systems
+### 对危险系统偏好允许列表
 
-For anything financial, customer-facing, or destructive:
-- use `tools.include`
-- start with the smallest set possible
+对于任何金融、面向客户或破坏性的：
+- 使用 `tools.include`
+- 从最小的可能集合开始
 
-### Disable unused utilities
+### 禁用未使用的实用工具
 
-If you do not want the model browsing server-provided resources/prompts, turn them off:
+如果你不想要模型浏览服务器提供的资源/提示，关闭它们：
 
 ```yaml
 tools:
@@ -344,72 +344,72 @@ tools:
   prompts: false
 ```
 
-### Keep servers scoped narrowly
+### 保持服务器范围窄
 
-Examples:
-- filesystem server rooted to one project dir, not your whole home directory
-- git server pointed at one repo
-- internal API server with read-heavy tool exposure by default
+示例：
+- 文件系统服务器根目录到一个项目目录，而不是你的整个主目录
+- git 服务器指向一个仓库
+- 内部 API 服务器默认暴露读重工具
 
-### Reload after config changes
+### 配置更改后重载
 
 ```text
 /reload-mcp
 ```
 
-Do this after changing:
-- include/exclude lists
-- enabled flags
-- resources/prompts toggles
-- auth headers / env
+在更改以下内容后执行：
+- include/exclude 列表
+- enabled 标志
+- resources/prompts 开关
+- 认证头/环境变量
 
-## Troubleshooting by symptom
+## 按症状故障排除
 
-### "The server connects but the tools I expected are missing"
+### "服务器连接但我期望的工具缺失"
 
-Possible causes:
-- filtered by `tools.include`
-- excluded by `tools.exclude`
-- utility wrappers disabled via `resources: false` or `prompts: false`
-- server does not actually support resources/prompts
+可能原因：
+- 被 `tools.include` 过滤
+- 被 `tools.exclude` 排除
+- 通过 `resources: false` 或 `prompts: false` 禁用了实用工具包装器
+- 服务器实际上不支持资源/提示
 
-### "The server is configured but nothing loads"
+### "服务器已配置但什么都不加载"
 
-Check:
-- `enabled: false` was not left in config
-- command/runtime exists (`npx`, `uvx`, etc.)
-- HTTP endpoint is reachable
-- auth env or headers are correct
+检查：
+- `enabled: false` 没有留在配置中
+- 命令/运行时存在（`npx`、`uvx` 等）
+- HTTP 端点可达
+- 认证环境变量或头正确
 
-### "Why do I see fewer tools than the MCP server advertises?"
+### "为什么我看到的工具比 MCP 服务器广告的少？"
 
-Because Hermes now respects your per-server policy and capability-aware registration. That is expected, and usually desirable.
+因为 Hermes 现在尊重你的每服务器策略和能力感知注册。这是预期的，通常也是可取的。
 
-### "How do I remove an MCP server without deleting the config?"
+### "如何在不删除配置的情况下移除 MCP 服务器？"
 
-Use:
+使用：
 
 ```yaml
 enabled: false
 ```
 
-That keeps the config around but prevents connection and registration.
+这保留配置但防止连接和注册。
 
-## Recommended first MCP setups
+## 推荐的首次 MCP 设置
 
-Good first servers for most users:
-- filesystem
+对大多数用户好的首个服务器：
+- 文件系统
 - git
 - GitHub
-- fetch / documentation MCP servers
-- one narrow internal API
+- fetch / 文档 MCP 服务器
+- 一个窄的内部 API
 
-Not-great first servers:
-- giant business systems with lots of destructive actions and no filtering
-- anything you do not understand well enough to constrain
+不好的首个服务器：
+- 有很多破坏性操作且没有过滤的大型业务系统
+- 任何你不够了解无法约束的东西
 
-## Related docs
+## 相关文档
 
-- [MCP (Model Context Protocol)](/docs/user-guide/features/mcp)
+- [MCP（模型上下文协议）](/docs/user-guide/features/mcp)
 - [FAQ](/docs/reference/faq)
-- [Slash Commands](/docs/reference/slash-commands)
+- [斜杠命令](/docs/reference/slash-commands)

@@ -1,14 +1,14 @@
 ---
 sidebar_position: 2
-title: "Installation"
-description: "Install Hermes Agent on Linux, macOS, WSL2, or Android via Termux"
+title: "安装指南"
+description: "在 Linux、macOS、WSL2 或通过 Termux 在 Android 上安装 Hermes Agent"
 ---
 
-# Installation
+# 安装指南
 
-Get Hermes Agent up and running in under two minutes with the one-line installer.
+使用一键安装脚本，在两分钟内完成 Hermes Agent 的安装和运行。
 
-## Quick Install
+## 快速安装
 
 ### Linux / macOS / WSL2
 
@@ -18,82 +18,82 @@ curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scri
 
 ### Android / Termux
 
-Hermes now ships a Termux-aware installer path too:
+Hermes 现在也提供了 Termux 适配的安装路径：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 ```
 
-The installer detects Termux automatically and switches to a tested Android flow:
-- uses Termux `pkg` for system dependencies (`git`, `python`, `nodejs`, `ripgrep`, `ffmpeg`, build tools)
-- creates the virtualenv with `python -m venv`
-- exports `ANDROID_API_LEVEL` automatically for Android wheel builds
-- installs a curated `.[termux]` extra with `pip`
-- skips the untested browser / WhatsApp bootstrap by default
+安装程序会自动检测 Termux 环境并切换到经过测试的 Android 安装流程：
+- 使用 Termux 的 `pkg` 安装系统依赖（`git`、`python`、`nodejs`、`ripgrep`、`ffmpeg`、构建工具）
+- 使用 `python -m venv` 创建虚拟环境
+- 自动导出 `ANDROID_API_LEVEL` 以支持 Android 轮子构建
+- 使用 `pip` 安装精选的 `.[termux]` 扩展
+- 默认跳过未经测试的浏览器 / WhatsApp 引导程序
 
-If you want the fully explicit path, follow the dedicated [Termux guide](./termux.md).
+如果你需要完整的详细步骤，请参阅专门的 [Termux 指南](./termux.md)。
 
-:::warning Windows
-Native Windows is **not supported**. Please install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and run Hermes Agent from there. The install command above works inside WSL2.
+:::warning Windows 系统
+**不支持**原生 Windows 系统。请安装 [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)，然后在其中运行 Hermes Agent。上述安装命令在 WSL2 内部可以正常工作。
 :::
 
-### What the Installer Does
+### 安装程序的功能
 
-The installer handles everything automatically — all dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `hermes` command setup, and LLM provider configuration. By the end, you're ready to chat.
+安装程序会自动处理所有事项——包括所有依赖项（Python、Node.js、ripgrep、ffmpeg）、仓库克隆、虚拟环境创建、全局 `hermes` 命令设置以及 LLM 提供商配置。安装完成后即可开始聊天。
 
-### After Installation
+### 安装后操作
 
-Reload your shell and start chatting:
+重新加载你的 shell 并开始聊天：
 
 ```bash
-source ~/.bashrc   # or: source ~/.zshrc
-hermes             # Start chatting!
+source ~/.bashrc   # 或者：source ~/.zshrc
+hermes             # 开始聊天！
 ```
 
-To reconfigure individual settings later, use the dedicated commands:
+如需后续修改各项设置，请使用专用命令：
 
 ```bash
-hermes model          # Choose your LLM provider and model
-hermes tools          # Configure which tools are enabled
-hermes gateway setup  # Set up messaging platforms
-hermes config set     # Set individual config values
-hermes setup          # Or run the full setup wizard to configure everything at once
+hermes model          # 选择你的 LLM 提供商和模型
+hermes tools          # 配置启用哪些工具
+hermes gateway setup  # 设置消息平台
+hermes config set     # 设置单个配置值
+hermes setup          # 或运行完整的设置向导，一次性配置所有内容
 ```
 
 ---
 
-## Prerequisites
+## 前置条件
 
-The only prerequisite is **Git**. The installer automatically handles everything else:
+唯一的前置条件是 **Git**。安装程序会自动处理其他所有内容：
 
-- **uv** (fast Python package manager)
-- **Python 3.11** (via uv, no sudo needed)
-- **Node.js v22** (for browser automation and WhatsApp bridge)
-- **ripgrep** (fast file search)
-- **ffmpeg** (audio format conversion for TTS)
+- **uv**（快速 Python 包管理器）
+- **Python 3.11**（通过 uv 安装，无需 sudo）
+- **Node.js v22**（用于浏览器自动化和 WhatsApp 桥接）
+- **ripgrep**（快速文件搜索）
+- **ffmpeg**（TTS 音频格式转换）
 
 :::info
-You do **not** need to install Python, Node.js, ripgrep, or ffmpeg manually. The installer detects what's missing and installs it for you. Just make sure `git` is available (`git --version`).
+你**不需要**手动安装 Python、Node.js、ripgrep 或 ffmpeg。安装程序会检测缺失的组件并自动安装。只需确保 `git` 可用即可（`git --version`）。
 :::
 
-:::tip Nix users
-If you use Nix (on NixOS, macOS, or Linux), there's a dedicated setup path with a Nix flake, declarative NixOS module, and optional container mode. See the **[Nix & NixOS Setup](./nix-setup.md)** guide.
+:::tip Nix 用户
+如果你使用 Nix（在 NixOS、macOS 或 Linux 上），有一套专用的设置路径，包含 Nix flake、声明式 NixOS 模块和可选的容器模式。请参阅 **[Nix & NixOS 设置](./nix-setup.md)** 指南。
 :::
 
 ---
 
-## Manual / Developer Installation
+## 手动 / 开发者安装
 
-If you want to clone the repo and install from source — for contributing, running from a specific branch, or having full control over the virtual environment — see the [Development Setup](../developer-guide/contributing.md#development-setup) section in the Contributing guide.
+如果你想克隆仓库并从源码安装——用于贡献代码、运行特定分支或完全控制虚拟环境——请参阅贡献指南中的[开发环境搭建](../developer-guide/contributing.md#development-setup)章节。
 
 ---
 
-## Troubleshooting
+## 故障排除
 
-| Problem | Solution |
+| 问题 | 解决方案 |
 |---------|----------|
-| `hermes: command not found` | Reload your shell (`source ~/.bashrc`) or check PATH |
-| `API key not set` | Run `hermes model` to configure your provider, or `hermes config set OPENROUTER_API_KEY your_key` |
-| Missing config after update | Run `hermes config check` then `hermes config migrate` |
+| `hermes: command not found` | 重新加载你的 shell（`source ~/.bashrc`）或检查 PATH |
+| `API key not set` | 运行 `hermes model` 配置你的提供商，或运行 `hermes config set OPENROUTER_API_KEY your_key` |
+| 更新后配置缺失 | 运行 `hermes config check` 然后运行 `hermes config migrate` |
 
-For more diagnostics, run `hermes doctor` — it will tell you exactly what's missing and how to fix it.
+如需更多诊断信息，请运行 `hermes doctor`——它会准确告诉你缺少什么以及如何修复。

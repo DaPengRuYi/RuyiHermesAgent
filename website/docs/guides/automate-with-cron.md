@@ -1,28 +1,28 @@
 ---
 sidebar_position: 11
-title: "Automate Anything with Cron"
-description: "Real-world automation patterns using Hermes cron — monitoring, reports, pipelines, and multi-skill workflows"
+title: "使用 Cron 自动化任何事情"
+description: "使用 Hermes cron 的真实自动化模式 — 监控、报告、管道和多技能工作流"
 ---
 
-# Automate Anything with Cron
+# 使用 Cron 自动化任何事情
 
-The [daily briefing bot tutorial](/docs/guides/daily-briefing-bot) covers the basics. This guide goes further — five real-world automation patterns you can adapt for your own workflows.
+[每日简报机器人教程](/docs/guides/daily-briefing-bot)涵盖了基础知识。本指南更进一步 — 五个你可以改编用于自己工作流的真实自动化模式。
 
-For the full feature reference, see [Scheduled Tasks (Cron)](/docs/user-guide/features/cron).
+有关完整功能参考，请参见[定时任务（Cron）](/docs/user-guide/features/cron)。
 
-:::info Key Concept
-Cron jobs run in fresh agent sessions with no memory of your current chat. Prompts must be **completely self-contained** — include everything the agent needs to know.
+:::info 关键概念
+Cron 作业在全新的代理会话中运行，没有你当前聊天的记忆。提示必须**完全自包含** — 包含代理需要知道的一切。
 :::
 
 ---
 
-## Pattern 1: Website Change Monitor
+## 模式 1：网站变更监控
 
-Watch a URL for changes and get notified only when something is different.
+监视 URL 的变化，只在有不同时获得通知。
 
-The `script` parameter is the secret weapon here. A Python script runs before each execution, and its stdout becomes context for the agent. The script handles the mechanical work (fetching, diffing); the agent handles the reasoning (is this change interesting?).
+`script` 参数是这里的秘密武器。Python 脚本在每次执行前运行，其 stdout 成为代理的上下文。脚本处理机械工作（获取、差异比较）；代理处理推理（这个变化有趣吗？）。
 
-Create the monitoring script:
+创建监控脚本：
 
 ```bash
 mkdir -p ~/.hermes/scripts
@@ -34,22 +34,22 @@ import hashlib, json, os, urllib.request
 URL = "https://example.com/pricing"
 STATE_FILE = os.path.expanduser("~/.hermes/scripts/.watch-site-state.json")
 
-# Fetch current content
+# 获取当前内容
 req = urllib.request.Request(URL, headers={"User-Agent": "Hermes-Monitor/1.0"})
 content = urllib.request.urlopen(req, timeout=30).read().decode()
 current_hash = hashlib.sha256(content.encode()).hexdigest()
 
-# Load previous state
+# 加载之前的状态
 prev_hash = None
 if os.path.exists(STATE_FILE):
     with open(STATE_FILE) as f:
         prev_hash = json.load(f).get("hash")
 
-# Save current state
+# 保存当前状态
 with open(STATE_FILE, "w") as f:
     json.dump({"hash": current_hash, "url": URL}, f)
 
-# Output for the agent
+# 输出给代理
 if prev_hash and prev_hash != current_hash:
     print(f"CHANGE DETECTED on {URL}")
     print(f"Previous hash: {prev_hash}")
@@ -59,73 +59,73 @@ else:
     print("NO_CHANGE")
 ```
 
-Set up the cron job:
+设置 cron 作业：
 
 ```bash
-/cron add "every 1h" "If the script output says CHANGE DETECTED, summarize what changed on the page and why it might matter. If it says NO_CHANGE, respond with just [SILENT]." --script ~/.hermes/scripts/watch-site.py --name "Pricing monitor" --deliver telegram
+/cron add "every 1h" "如果脚本输出说 CHANGE DETECTED，总结页面上发生了什么变化以及为什么重要。如果它说 NO_CHANGE，只回复 [SILENT]。" --script ~/.hermes/scripts/watch-site.py --name "价格监控" --deliver telegram
 ```
 
-:::tip The [SILENT] Trick
-When the agent's final response contains `[SILENT]`, delivery is suppressed. This means you only get notified when something actually happens — no spam on quiet hours.
+:::tip [SILENT] 技巧
+当代理的最终响应包含 `[SILENT]` 时，投递会被抑制。这意味着你只在实际发生事情时才收到通知 — 安静时段没有垃圾信息。
 :::
 
 ---
 
-## Pattern 2: Weekly Report
+## 模式 2：周报
 
-Compile information from multiple sources into a formatted summary. This runs once a week and delivers to your home channel.
+从多个来源编译信息到格式化的摘要中。每周运行一次并投递到你的主频道。
 
 ```bash
-/cron add "0 9 * * 1" "Generate a weekly report covering:
+/cron add "0 9 * * 1" "生成一份周报，涵盖：
 
-1. Search the web for the top 5 AI news stories from the past week
-2. Search GitHub for trending repositories in the 'machine-learning' topic
-3. Check Hacker News for the most discussed AI/ML posts
+1. 搜索过去一周的前 5 条 AI 新闻
+2. 在 GitHub 上搜索 'machine-learning' 主题的热门仓库
+3. 在 Hacker News 上查看讨论最多的 AI/ML 帖子
 
-Format as a clean summary with sections for each source. Include links.
-Keep it under 500 words — highlight only what matters." --name "Weekly AI digest" --deliver telegram
+格式化为带有各来源部分的干净摘要。包含链接。
+保持在 500 字以内 — 只突出重要内容。" --name "每周 AI 文摘" --deliver telegram
 ```
 
-From the CLI:
+从 CLI：
 
 ```bash
 hermes cron create "0 9 * * 1" \
-  "Generate a weekly report covering the top AI news, trending ML GitHub repos, and most-discussed HN posts. Format with sections, include links, keep under 500 words." \
-  --name "Weekly AI digest" \
+  "生成一份涵盖顶级 AI 新闻、热门 ML GitHub 仓库和讨论最多 HN 帖子的周报。带部分格式化，包含链接，保持在 500 字以内。" \
+  --name "每周 AI 文摘" \
   --deliver telegram
 ```
 
-The `0 9 * * 1` is a standard cron expression: 9:00 AM every Monday.
+`0 9 * * 1` 是标准 cron 表达式：每周一上午 9:00。
 
 ---
 
-## Pattern 3: GitHub Repository Watcher
+## 模式 3：GitHub 仓库监视器
 
-Monitor a repository for new issues, PRs, or releases.
+监控仓库的新 issue、PR 或发布。
 
 ```bash
-/cron add "every 6h" "Check the GitHub repository NousResearch/hermes-agent for:
-- New issues opened in the last 6 hours
-- New PRs opened or merged in the last 6 hours
-- Any new releases
+/cron add "every 6h" "检查 GitHub 仓库 NousResearch/hermes-agent：
+- 过去 6 小时内新开的 issue
+- 过去 6 小时内新开或合并的 PR
+- 任何新发布
 
-Use the terminal to run gh commands:
+使用终端运行 gh 命令：
   gh issue list --repo NousResearch/hermes-agent --state open --json number,title,author,createdAt --limit 10
   gh pr list --repo NousResearch/hermes-agent --state all --json number,title,author,createdAt,mergedAt --limit 10
 
-Filter to only items from the last 6 hours. If nothing new, respond with [SILENT].
-Otherwise, provide a concise summary of the activity." --name "Repo watcher" --deliver discord
+过滤只保留过去 6 小时内的项目。如果没有新内容，回复 [SILENT]。
+否则，提供活动的简要摘要。" --name "仓库监视器" --deliver discord
 ```
 
-:::warning Self-Contained Prompts
-Notice how the prompt includes the exact `gh` commands. The cron agent has no memory of previous runs or your preferences — spell everything out.
+:::warning 自包含提示
+注意提示包含了确切的 `gh` 命令。Cron 代理没有之前运行或你偏好的记忆 — 把所有东西都写清楚。
 :::
 
 ---
 
-## Pattern 4: Data Collection Pipeline
+## 模式 4：数据收集管道
 
-Scrape data at regular intervals, save to files, and detect trends over time. This pattern combines a script (for collection) with the agent (for analysis).
+定期抓取数据，保存到文件，并检测趋势。此模式将脚本（用于收集）与代理（用于分析）结合。
 
 ```python title="~/.hermes/scripts/collect-prices.py"
 import json, os, urllib.request
@@ -134,21 +134,21 @@ from datetime import datetime
 DATA_DIR = os.path.expanduser("~/.hermes/data/prices")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Fetch current data (example: crypto prices)
+# 获取当前数据（示例：加密货币价格）
 url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
 data = json.loads(urllib.request.urlopen(url, timeout=30).read())
 
-# Append to history file
+# 追加到历史文件
 entry = {"timestamp": datetime.now().isoformat(), "prices": data}
 history_file = os.path.join(DATA_DIR, "history.jsonl")
 with open(history_file, "a") as f:
     f.write(json.dumps(entry) + "\n")
 
-# Load recent history for analysis
+# 加载最近的历史用于分析
 lines = open(history_file).readlines()
-recent = [json.loads(l) for l in lines[-24:]]  # Last 24 data points
+recent = [json.loads(l) for l in lines[-24:]]  # 最近 24 个数据点
 
-# Output for the agent
+# 输出给代理
 print(f"Current: BTC=${data['bitcoin']['usd']}, ETH=${data['ethereum']['usd']}")
 print(f"Data points collected: {len(lines)} total, showing last {len(recent)}")
 print(f"\nRecent history:")
@@ -157,105 +157,105 @@ for r in recent[-6:]:
 ```
 
 ```bash
-/cron add "every 1h" "Analyze the price data from the script output. Report:
-1. Current prices
-2. Trend direction over the last 6 data points (up/down/flat)
-3. Any notable movements (>5% change)
+/cron add "every 1h" "分析脚本输出中的价格数据。报告：
+1. 当前价格
+2. 最近 6 个数据点的趋势方向（上涨/下跌/持平）
+3. 任何显著的变动（>5% 变化）
 
-If prices are flat and nothing notable, respond with [SILENT].
-If there's a significant move, explain what happened." \
+如果价格持平且没有值得注意的，回复 [SILENT]。
+如果有显著变动，解释发生了什么。" \
   --script ~/.hermes/scripts/collect-prices.py \
-  --name "Price tracker" \
+  --name "价格追踪器" \
   --deliver telegram
 ```
 
-The script does the mechanical collection; the agent adds the reasoning layer.
+脚本做机械收集；代理添加推理层。
 
 ---
 
-## Pattern 5: Multi-Skill Workflow
+## 模式 5：多技能工作流
 
-Chain skills together for complex scheduled tasks. Skills are loaded in order before the prompt executes.
+将技能链接在一起用于复杂的定时任务。技能在提示执行前按顺序加载。
 
 ```bash
-# Use the arxiv skill to find papers, then the obsidian skill to save notes
-/cron add "0 8 * * *" "Search arXiv for the 3 most interesting papers on 'language model reasoning' from the past day. For each paper, create an Obsidian note with the title, authors, abstract summary, and key contribution." \
+# 使用 arxiv 技能查找论文，然后使用 obsidian 技能保存笔记
+/cron add "0 8 * * *" "搜索 arXiv 上关于 'language model reasoning' 过去一天最有趣的 3 篇论文。为每篇论文创建一个 Obsidian 笔记，包含标题、作者、摘要总结和关键贡献。" \
   --skill arxiv \
   --skill obsidian \
-  --name "Paper digest"
+  --name "论文文摘"
 ```
 
-From the tool directly:
+直接从工具：
 
 ```python
 cronjob(
     action="create",
     skills=["arxiv", "obsidian"],
-    prompt="Search arXiv for papers on 'language model reasoning' from the past day. Save the top 3 as Obsidian notes.",
+    prompt="搜索 arXiv 上关于 'language model reasoning' 过去一天的论文。将前 3 篇保存为 Obsidian 笔记。",
     schedule="0 8 * * *",
-    name="Paper digest",
+    name="论文文摘",
     deliver="local"
 )
 ```
 
-Skills are loaded in order — `arxiv` first (teaches the agent how to search papers), then `obsidian` (teaches how to write notes). The prompt ties them together.
+技能按顺序加载 — 先 `arxiv`（教代理如何搜索论文），然后 `obsidian`（教如何写笔记）。提示将它们连接在一起。
 
 ---
 
-## Managing Your Jobs
+## 管理你的作业
 
 ```bash
-# List all active jobs
+# 列出所有活动作业
 /cron list
 
-# Trigger a job immediately (for testing)
+# 立即触发作业（用于测试）
 /cron run <job_id>
 
-# Pause a job without deleting it
+# 暂停作业而不删除
 /cron pause <job_id>
 
-# Edit a running job's schedule or prompt
+# 编辑运行中作业的调度或提示
 /cron edit <job_id> --schedule "every 4h"
-/cron edit <job_id> --prompt "Updated task description"
+/cron edit <job_id> --prompt "更新的任务描述"
 
-# Add or remove skills from an existing job
+# 为现有作业添加或移除技能
 /cron edit <job_id> --skill arxiv --skill obsidian
 /cron edit <job_id> --clear-skills
 
-# Remove a job permanently
+# 永久移除作业
 /cron remove <job_id>
 ```
 
 ---
 
-## Delivery Targets
+## 投递目标
 
-The `--deliver` flag controls where results go:
+`--deliver` 标志控制结果发送到哪里：
 
-| Target | Example | Use case |
+| 目标 | 示例 | 用例 |
 |--------|---------|----------|
-| `origin` | `--deliver origin` | Same chat that created the job (default) |
-| `local` | `--deliver local` | Save to local file only |
-| `telegram` | `--deliver telegram` | Your Telegram home channel |
-| `discord` | `--deliver discord` | Your Discord home channel |
-| `slack` | `--deliver slack` | Your Slack home channel |
-| Specific chat | `--deliver telegram:-1001234567890` | A specific Telegram group |
-| Threaded | `--deliver telegram:-1001234567890:17585` | A specific Telegram topic thread |
+| `origin` | `--deliver origin` | 创建作业的同一聊天（默认） |
+| `local` | `--deliver local` | 仅保存到本地文件 |
+| `telegram` | `--deliver telegram` | 你的 Telegram 主频道 |
+| `discord` | `--deliver discord` | 你的 Discord 主频道 |
+| `slack` | `--deliver slack` | 你的 Slack 主频道 |
+| 特定聊天 | `--deliver telegram:-1001234567890` | 特定 Telegram 群组 |
+| 线程化 | `--deliver telegram:-1001234567890:17585` | 特定 Telegram 话题线程 |
 
 ---
 
-## Tips
+## 提示
 
-**Make prompts self-contained.** The agent in a cron job has no memory of your conversations. Include URLs, repo names, format preferences, and delivery instructions directly in the prompt.
+**使提示自包含。** Cron 作业中的代理没有你对话的记忆。直接在提示中包含 URL、仓库名称、格式偏好和投递指令。
 
-**Use `[SILENT]` liberally.** For monitoring jobs, always include instructions like "if nothing changed, respond with `[SILENT]`." This prevents notification noise.
+**大量使用 `[SILENT]`。** 对于监控作业，始终包含类似 "如果没有变化，回复 `[SILENT]`" 的指令。这可以防止通知噪音。
 
-**Use scripts for data collection.** The `script` parameter lets a Python script handle the boring parts (HTTP requests, file I/O, state tracking). The agent only sees the script's stdout and applies reasoning to it. This is cheaper and more reliable than having the agent do the fetching itself.
+**使用脚本进行数据收集。** `script` 参数让 Python 脚本处理无聊的部分（HTTP 请求、文件 I/O、状态跟踪）。代理只看到脚本的 stdout 并对其应用推理。这比让代理自己获取更便宜更可靠。
 
-**Test with `/cron run`.** Before waiting for the schedule to trigger, use `/cron run <job_id>` to execute immediately and verify the output looks right.
+**用 `/cron run` 测试。** 在等待调度触发之前，使用 `/cron run <job_id>` 立即执行并验证输出是否正确。
 
-**Schedule expressions.** Supported formats: relative delays (`30m`), intervals (`every 2h`), standard cron expressions (`0 9 * * *`), and ISO timestamps (`2025-06-15T09:00:00`). Natural language like `daily at 9am` is not supported — use `0 9 * * *` instead.
+**调度表达式。** 支持的格式：相对延迟（`30m`）、间隔（`every 2h`）、标准 cron 表达式（`0 9 * * *`）和 ISO 时间戳（`2025-06-15T09:00:00`）。不支持自然语言如 `daily at 9am` — 改用 `0 9 * * *`。
 
 ---
 
-*For the complete cron reference — all parameters, edge cases, and internals — see [Scheduled Tasks (Cron)](/docs/user-guide/features/cron).*
+*有关完整的 cron 参考 — 所有参数、边缘情况和内部机制 — 请参见[定时任务（Cron）](/docs/user-guide/features/cron)。*

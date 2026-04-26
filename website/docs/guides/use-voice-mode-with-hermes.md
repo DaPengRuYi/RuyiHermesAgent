@@ -1,90 +1,90 @@
 ---
 sidebar_position: 8
-title: "Use Voice Mode with Hermes"
-description: "A practical guide to setting up and using Hermes voice mode across CLI, Telegram, Discord, and Discord voice channels"
+title: "在 Hermes 中使用语音模式"
+description: "在 CLI、Telegram、Discord 和 Discord 语音频道中设置和使用 Hermes 语音模式的实用指南"
 ---
 
-# Use Voice Mode with Hermes
+# 在 Hermes 中使用语音模式
 
-This guide is the practical companion to the [Voice Mode feature reference](/docs/user-guide/features/voice-mode).
+本指南是[语音模式功能参考](/docs/user-guide/features/voice-mode)的实用伴侣。
 
-If the feature page explains what voice mode can do, this guide shows how to actually use it well.
+如果功能页面解释了语音模式能做什么，本指南展示如何实际很好地使用它。
 
-## What voice mode is good for
+## 语音模式适合什么
 
-Voice mode is especially useful when:
-- you want a hands-free CLI workflow
-- you want spoken responses in Telegram or Discord
-- you want Hermes sitting in a Discord voice channel for live conversation
-- you want quick idea capture, debugging, or back-and-forth while walking around instead of typing
+语音模式在以下情况特别有用：
+- 你想要免提 CLI 工作流
+- 你想要 Telegram 或 Discord 中的语音回复
+- 你想要 Hermes 坐在 Discord 语音频道中进行实时对话
+- 你想要快速的想法捕捉、调试或在走动时来回交流而不是打字
 
-## Choose your voice mode setup
+## 选择你的语音模式设置
 
-There are really three different voice experiences in Hermes.
+Hermes 中实际上有三种不同的语音体验。
 
-| Mode | Best for | Platform |
+| 模式 | 最适合 | 平台 |
 |---|---|---|
-| Interactive microphone loop | Personal hands-free use while coding or researching | CLI |
-| Voice replies in chat | Spoken responses alongside normal messaging | Telegram, Discord |
-| Live voice channel bot | Group or personal live conversation in a VC | Discord voice channels |
+| 交互式麦克风循环 | 编码或研究时的个人免提使用 | CLI |
+| 聊天中的语音回复 | 在正常消息旁的语音回复 | Telegram、Discord |
+| 实时语音频道机器人 | VC 中的群组或个人实时对话 | Discord 语音频道 |
 
-A good path is:
-1. get text working first
-2. enable voice replies second
-3. move to Discord voice channels last if you want the full experience
+一个好的路径是：
+1. 先让文本工作
+2. 其次启用语音回复
+3. 如果你想要完整体验，最后转到 Discord 语音频道
 
-## Step 1: make sure normal Hermes works first
+## 步骤 1：确保正常的 Hermes 先工作
 
-Before touching voice mode, verify that:
-- Hermes starts
-- your provider is configured
-- the agent can answer text prompts normally
+在接触语音模式之前，验证：
+- Hermes 启动
+- 你的提供者已配置
+- 代理可以正常回答文本提示
 
 ```bash
 hermes
 ```
 
-Ask something simple:
+问一些简单的事情：
 
 ```text
-What tools do you have available?
+你有什么可用的工具？
 ```
 
-If that is not solid yet, fix text mode first.
+如果这还不稳固，先修复文本模式。
 
-## Step 2: install the right extras
+## 步骤 2：安装正确的额外依赖
 
-### CLI microphone + playback
+### CLI 麦克风 + 播放
 
 ```bash
 pip install "hermes-agent[voice]"
 ```
 
-### Messaging platforms
+### 消息平台
 
 ```bash
 pip install "hermes-agent[messaging]"
 ```
 
-### Premium ElevenLabs TTS
+### 高级 ElevenLabs TTS
 
 ```bash
 pip install "hermes-agent[tts-premium]"
 ```
 
-### Local NeuTTS (optional)
+### 本地 NeuTTS（可选）
 
 ```bash
 python -m pip install -U neutts[all]
 ```
 
-### Everything
+### 全部
 
 ```bash
 pip install "hermes-agent[all]"
 ```
 
-## Step 3: install system dependencies
+## 步骤 3：安装系统依赖
 
 ### macOS
 
@@ -100,64 +100,64 @@ sudo apt install portaudio19-dev ffmpeg libopus0
 sudo apt install espeak-ng
 ```
 
-Why these matter:
-- `portaudio` → microphone input / playback for CLI voice mode
-- `ffmpeg` → audio conversion for TTS and messaging delivery
-- `opus` → Discord voice codec support
-- `espeak-ng` → phonemizer backend for NeuTTS
+为什么这些重要：
+- `portaudio` → CLI 语音模式的麦克风输入/播放
+- `ffmpeg` → TTS 和消息投递的音频转换
+- `opus` → Discord 语音编解码器支持
+- `espeak-ng` → NeuTTS 的音素化后端
 
-## Step 4: choose STT and TTS providers
+## 步骤 4：选择 STT 和 TTS 提供者
 
-Hermes supports both local and cloud speech stacks.
+Hermes 支持本地和云端语音栈。
 
-### Easiest / cheapest setup
+### 最简单/最便宜的设置
 
-Use local STT and free Edge TTS:
-- STT provider: `local`
-- TTS provider: `edge`
+使用本地 STT 和免费的 Edge TTS：
+- STT 提供者：`local`
+- TTS 提供者：`edge`
 
-This is usually the best place to start.
+这通常是最佳起点。
 
-### Environment file example
+### 环境文件示例
 
-Add to `~/.hermes/.env`:
+添加到 `~/.hermes/.env`：
 
 ```bash
-# Cloud STT options (local needs no key)
+# 云 STT 选项（本地不需要密钥）
 GROQ_API_KEY=***
 VOICE_TOOLS_OPENAI_KEY=***
 
-# Premium TTS (optional)
+# 高级 TTS（可选）
 ELEVENLABS_API_KEY=***
 ```
 
-### Provider recommendations
+### 提供者推荐
 
-#### Speech-to-text
+#### 语音转文本
 
-- `local` → best default for privacy and zero-cost use
-- `groq` → very fast cloud transcription
-- `openai` → good paid fallback
+- `local` → 隐私和零成本使用的最佳默认
+- `groq` → 非常快的云转录
+- `openai` → 好的付费回退
 
-#### Text-to-speech
+#### 文本转语音
 
-- `edge` → free and good enough for most users
-- `neutts` → free local/on-device TTS
-- `elevenlabs` → best quality
-- `openai` → good middle ground
-- `mistral` → multilingual, native Opus
+- `edge` → 免费且对大多数用户足够好
+- `neutts` → 免费本地/设备端 TTS
+- `elevenlabs` → 最佳质量
+- `openai` → 好的中间选择
+- `mistral` → 多语言，原生 Opus
 
-### If you use `hermes setup`
+### 如果你使用 `hermes setup`
 
-If you choose NeuTTS in the setup wizard, Hermes checks whether `neutts` is already installed. If it is missing, the wizard tells you NeuTTS needs the Python package `neutts` and the system package `espeak-ng`, offers to install them for you, installs `espeak-ng` with your platform package manager, and then runs:
+如果你在设置向导中选择 NeuTTS，Hermes 会检查 `neutts` 是否已安装。如果缺失，向导告诉你 NeuTTS 需要 Python 包 `neutts` 和系统包 `espeak-ng`，主动为你安装它们，使用你的平台包管理器安装 `espeak-ng`，然后运行：
 
 ```bash
 python -m pip install -U neutts[all]
 ```
 
-If you skip that install or it fails, the wizard falls back to Edge TTS.
+如果你跳过该安装或失败，向导回退到 Edge TTS。
 
-## Step 5: recommended config
+## 步骤 5：推荐配置
 
 ```yaml
 voice:
@@ -179,9 +179,9 @@ tts:
     voice: "en-US-AriaNeural"
 ```
 
-This is a good conservative default for most people.
+这对大多数人来说是一个好的保守默认值。
 
-If you want local TTS instead, switch the `tts` block to:
+如果你想要本地 TTS，将 `tts` 块切换为：
 
 ```yaml
 tts:
@@ -193,36 +193,36 @@ tts:
     device: cpu
 ```
 
-## Use case 1: CLI voice mode
+## 用例 1：CLI 语音模式
 
-## Turn it on
+## 开启
 
-Start Hermes:
+启动 Hermes：
 
 ```bash
 hermes
 ```
 
-Inside the CLI:
+在 CLI 中：
 
 ```text
 /voice on
 ```
 
-### Recording flow
+### 录制流程
 
-Default key:
+默认键：
 - `Ctrl+B`
 
-Workflow:
-1. press `Ctrl+B`
-2. speak
-3. wait for silence detection to stop recording automatically
-4. Hermes transcribes and responds
-5. if TTS is on, it speaks the answer
-6. the loop can automatically restart for continuous use
+工作流：
+1. 按 `Ctrl+B`
+2. 说话
+3. 等待静音检测自动停止录制
+4. Hermes 转录并回复
+5. 如果 TTS 开启，它说出答案
+6. 循环可以自动重新开始以持续使用
 
-### Useful commands
+### 有用的命令
 
 ```text
 /voice
@@ -232,136 +232,136 @@ Workflow:
 /voice status
 ```
 
-### Good CLI workflows
+### 好的 CLI 工作流
 
-#### Walk-up debugging
+#### 走上来调试
 
-Say:
+说：
 
 ```text
-I keep getting a docker permission error. Help me debug it.
+我一直遇到 docker 权限错误。帮我调试。
 ```
 
-Then continue hands-free:
-- "Read the last error again"
-- "Explain the root cause in simpler terms"
-- "Now give me the exact fix"
+然后免提继续：
+- "再读一遍最后一个错误"
+- "用更简单的术语解释根本原因"
+- "现在给我确切的修复方法"
 
-#### Research / brainstorming
+#### 研究/头脑风暴
 
-Great for:
-- walking around while thinking
-- dictating half-formed ideas
-- asking Hermes to structure your thoughts in real time
+非常适合：
+- 走动时思考
+- 口述半成形的想法
+- 让 Hermes 实时结构化你的想法
 
-#### Accessibility / low-typing sessions
+#### 无障碍/少打字会话
 
-If typing is inconvenient, voice mode is one of the fastest ways to stay in the full Hermes loop.
+如果打字不方便，语音模式是保持在完整 Hermes 循环中的最快方式之一。
 
-## Tuning CLI behavior
+## 调整 CLI 行为
 
-### Silence threshold
+### 静音阈值
 
-If Hermes starts/stops too aggressively, tune:
+如果 Hermes 开始/停止太激进，调整：
 
 ```yaml
 voice:
   silence_threshold: 250
 ```
 
-Higher threshold = less sensitive.
+更高的阈值 = 更不敏感。
 
-### Silence duration
+### 静音持续时间
 
-If you pause a lot between sentences, increase:
+如果你在句子之间停顿很多，增加：
 
 ```yaml
 voice:
   silence_duration: 4.0
 ```
 
-### Record key
+### 录制键
 
-If `Ctrl+B` conflicts with your terminal or tmux habits:
+如果 `Ctrl+B` 与你的终端或 tmux 习惯冲突：
 
 ```yaml
 voice:
   record_key: "ctrl+space"
 ```
 
-## Use case 2: voice replies in Telegram or Discord
+## 用例 2：Telegram 或 Discord 中的语音回复
 
-This mode is simpler than full voice channels.
+此模式比完整的语音频道更简单。
 
-Hermes stays a normal chat bot, but can speak replies.
+Hermes 保持为普通聊天机器人，但可以说出回复。
 
-### Start the gateway
+### 启动网关
 
 ```bash
 hermes gateway
 ```
 
-### Turn on voice replies
+### 开启语音回复
 
-Inside Telegram or Discord:
+在 Telegram 或 Discord 中：
 
 ```text
 /voice on
 ```
 
-or
+或
 
 ```text
 /voice tts
 ```
 
-### Modes
+### 模式
 
-| Mode | Meaning |
+| 模式 | 含义 |
 |---|---|
-| `off` | text only |
-| `voice_only` | speak only when the user sent voice |
-| `all` | speak every reply |
+| `off` | 仅文本 |
+| `voice_only` | 仅当用户发送语音时说话 |
+| `all` | 说出每个回复 |
 
-### When to use which mode
+### 何时使用哪种模式
 
-- `/voice on` if you want spoken replies only for voice-originating messages
-- `/voice tts` if you want a full spoken assistant all the time
+- `/voice on` 如果你只想要语音来源消息的语音回复
+- `/voice tts` 如果你想要始终完整的语音助手
 
-### Good messaging workflows
+### 好的消息工作流
 
-#### Telegram assistant on your phone
+#### 手机上的 Telegram 助手
 
-Use when:
-- you are away from your machine
-- you want to send voice notes and get quick spoken replies
-- you want Hermes to function like a portable research or ops assistant
+在以下情况使用：
+- 你离开了机器
+- 你想要发送语音笔记并获得快速语音回复
+- 你想要 Hermes 像一个便携式研究或运维助手一样运作
 
-#### Discord DMs with spoken output
+#### Discord DM 带语音输出
 
-Useful when you want private interaction without server-channel mention behavior.
+当你想要私密交互而没有服务器频道提及行为时有用。
 
-## Use case 3: Discord voice channels
+## 用例 3：Discord 语音频道
 
-This is the most advanced mode.
+这是最高级的模式。
 
-Hermes joins a Discord VC, listens to user speech, transcribes it, runs the normal agent pipeline, and speaks replies back into the channel.
+Hermes 加入 Discord VC，监听用户语音，转录它，运行正常的代理管道，并将回复说回频道。
 
-## Required Discord permissions
+## 所需的 Discord 权限
 
-In addition to the normal text-bot setup, make sure the bot has:
+除了正常的文本机器人设置，确保机器人有：
 - Connect
 - Speak
-- preferably Use Voice Activity
+- 最好 Use Voice Activity
 
-Also enable privileged intents in the Developer Portal:
+同时在开发者门户中启用特权意图：
 - Presence Intent
 - Server Members Intent
 - Message Content Intent
 
-## Join and leave
+## 加入和离开
 
-In a Discord text channel where the bot is present:
+在机器人所在的 Discord 文本频道中：
 
 ```text
 /voice join
@@ -369,88 +369,88 @@ In a Discord text channel where the bot is present:
 /voice status
 ```
 
-### What happens when joined
+### 加入后发生什么
 
-- users speak in the VC
-- Hermes detects speech boundaries
-- transcripts are posted in the associated text channel
-- Hermes responds in text and audio
-- the text channel is the one where `/voice join` was issued
+- 用户在 VC 中说话
+- Hermes 检测语音边界
+- 转录发布在关联的文本频道中
+- Hermes 以文本和音频回复
+- 文本频道是发出 `/voice join` 的那个
 
-### Best practices for Discord VC use
+### Discord VC 使用的最佳实践
 
-- keep `DISCORD_ALLOWED_USERS` tight
-- use a dedicated bot/testing channel at first
-- verify STT and TTS work in ordinary text-chat voice mode before trying VC mode
+- 保持 `DISCORD_ALLOWED_USERS` 严格
+- 先使用专用的机器人/测试频道
+- 在尝试 VC 模式之前，在普通文本聊天语音模式下验证 STT 和 TTS 工作
 
-## Voice quality recommendations
+## 语音质量推荐
 
-### Best quality setup
+### 最佳质量设置
 
-- STT: local `large-v3` or Groq `whisper-large-v3`
-- TTS: ElevenLabs
+- STT：本地 `large-v3` 或 Groq `whisper-large-v3`
+- TTS：ElevenLabs
 
-### Best speed / convenience setup
+### 最佳速度/便利设置
 
-- STT: local `base` or Groq
-- TTS: Edge
+- STT：本地 `base` 或 Groq
+- TTS：Edge
 
-### Best zero-cost setup
+### 最佳零成本设置
 
-- STT: local
-- TTS: Edge
+- STT：本地
+- TTS：Edge
 
-## Common failure modes
+## 常见失败模式
 
 ### "No audio device found"
 
-Install `portaudio`.
+安装 `portaudio`。
 
 ### "Bot joins but hears nothing"
 
-Check:
-- your Discord user ID is in `DISCORD_ALLOWED_USERS`
-- you are not muted
-- privileged intents are enabled
-- the bot has Connect/Speak permissions
+检查：
+- 你的 Discord 用户 ID 在 `DISCORD_ALLOWED_USERS` 中
+- 你没有被静音
+- 特权意图已启用
+- 机器人有 Connect/Speak 权限
 
 ### "It transcribes but does not speak"
 
-Check:
-- TTS provider config
-- API key / quota for ElevenLabs or OpenAI
-- `ffmpeg` install for Edge conversion paths
+检查：
+- TTS 提供者配置
+- ElevenLabs 或 OpenAI 的 API 密钥/配额
+- Edge 转换路径的 `ffmpeg` 安装
 
 ### "Whisper outputs garbage"
 
-Try:
-- quieter environment
-- higher `silence_threshold`
-- different STT provider/model
-- shorter, clearer utterances
+尝试：
+- 更安静的环境
+- 更高的 `silence_threshold`
+- 不同的 STT 提供者/模型
+- 更短、更清晰的语句
 
 ### "It works in DMs but not in server channels"
 
-That is often mention policy.
+这通常是提及策略。
 
-By default, the bot needs an `@mention` in Discord server text channels unless configured otherwise.
+默认情况下，机器人在 Discord 服务器文本频道中需要 `@mention`，除非另有配置。
 
-## Suggested first-week setup
+## 建议的第一周设置
 
-If you want the shortest path to success:
+如果你想要最短的成功路径：
 
-1. get text Hermes working
-2. install `hermes-agent[voice]`
-3. use CLI voice mode with local STT + Edge TTS
-4. then enable `/voice on` in Telegram or Discord
-5. only after that, try Discord VC mode
+1. 让文本 Hermes 工作
+2. 安装 `hermes-agent[voice]`
+3. 使用本地 STT + Edge TTS 的 CLI 语音模式
+4. 然后在 Telegram 或 Discord 中启用 `/voice on`
+5. 之后才尝试 Discord VC 模式
 
-That progression keeps the debugging surface small.
+这个进度保持调试面小。
 
-## Where to read next
+## 接下来阅读
 
-- [Voice Mode feature reference](/docs/user-guide/features/voice-mode)
-- [Messaging Gateway](/docs/user-guide/messaging)
-- [Discord setup](/docs/user-guide/messaging/discord)
-- [Telegram setup](/docs/user-guide/messaging/telegram)
-- [Configuration](/docs/user-guide/configuration)
+- [语音模式功能参考](/docs/user-guide/features/voice-mode)
+- [消息网关](/docs/user-guide/messaging)
+- [Discord 设置](/docs/user-guide/messaging/discord)
+- [Telegram 设置](/docs/user-guide/messaging/telegram)
+- [配置](/docs/user-guide/configuration)

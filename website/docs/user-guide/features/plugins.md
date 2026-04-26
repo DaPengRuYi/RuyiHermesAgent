@@ -1,33 +1,33 @@
 ---
 sidebar_position: 11
-sidebar_label: "Plugins"
-title: "Plugins"
-description: "Extend Hermes with custom tools, hooks, and integrations via the plugin system"
+sidebar_label: "插件"
+title: "插件"
+description: "通过插件系统使用自定义工具、钩子和集成扩展 Hermes"
 ---
 
-# Plugins
+# 插件
 
-Hermes has a plugin system for adding custom tools, hooks, and integrations without modifying core code.
+Hermes 有插件系统，用于添加自定义工具、钩子和集成而无需修改核心代码。
 
-**→ [Build a Hermes Plugin](/docs/guides/build-a-hermes-plugin)** — step-by-step guide with a complete working example.
+**→ [构建 Hermes 插件](/docs/guides/build-a-hermes-plugin)** — 带完整工作示例的分步指南。
 
-## Quick overview
+## 快速概览
 
-Drop a directory into `~/.hermes/plugins/` with a `plugin.yaml` and Python code:
+将目录放入 `~/.hermes/plugins/`，包含 `plugin.yaml` 和 Python 代码：
 
 ```
 ~/.hermes/plugins/my-plugin/
-├── plugin.yaml      # manifest
-├── __init__.py      # register() — wires schemas to handlers
-├── schemas.py       # tool schemas (what the LLM sees)
-└── tools.py         # tool handlers (what runs when called)
+├── plugin.yaml      # 清单
+├── __init__.py      # register() — 将模式连接到处理器
+├── schemas.py       # 工具模式（LLM 看到的）
+└── tools.py         # 工具处理器（调用时运行的）
 ```
 
-Start Hermes — your tools appear alongside built-in tools. The model can call them immediately.
+启动 Hermes——你的工具出现在内置工具旁边。模型可以立即调用它们。
 
-### Minimal working example
+### 最小工作示例
 
-Here is a complete plugin that adds a `hello_world` tool and logs every tool call via a hook.
+这是一个完整的插件，添加 `hello_world` 工具并通过钩子记录每次工具调用。
 
 **`~/.hermes/plugins/hello-world/plugin.yaml`**
 
@@ -73,105 +73,105 @@ def register(ctx):
     ctx.register_hook("post_tool_call", on_tool_call)
 ```
 
-Drop both files into `~/.hermes/plugins/hello-world/`, restart Hermes, and the model can immediately call `hello_world`. The hook prints a log line after every tool invocation.
+将两个文件放入 `~/.hermes/plugins/hello-world/`，重启 Hermes，模型就可以立即调用 `hello_world`。钩子在每次工具调用后打印日志行。
 
-Project-local plugins under `./.hermes/plugins/` are disabled by default. Enable them only for trusted repositories by setting `HERMES_ENABLE_PROJECT_PLUGINS=true` before starting Hermes.
+项目本地插件在 `./.hermes/plugins/` 下默认禁用。仅对受信任的仓库通过在启动 Hermes 前设置 `HERMES_ENABLE_PROJECT_PLUGINS=true` 启用。
 
-## What plugins can do
+## 插件能做什么
 
-| Capability | How |
-|-----------|-----|
-| Add tools | `ctx.register_tool(name, schema, handler)` |
-| Add hooks | `ctx.register_hook("post_tool_call", callback)` |
-| Add slash commands | `ctx.register_command(name, handler, description)` — adds `/name` in CLI and gateway sessions |
-| Add CLI commands | `ctx.register_cli_command(name, help, setup_fn, handler_fn)` — adds `hermes <plugin> <subcommand>` |
-| Inject messages | `ctx.inject_message(content, role="user")` — see [Injecting Messages](#injecting-messages) |
-| Ship data files | `Path(__file__).parent / "data" / "file.yaml"` |
-| Bundle skills | `ctx.register_skill(name, path)` — namespaced as `plugin:skill`, loaded via `skill_view("plugin:skill")` |
-| Gate on env vars | `requires_env: [API_KEY]` in plugin.yaml — prompted during `hermes plugins install` |
-| Distribute via pip | `[project.entry-points."hermes_agent.plugins"]` |
+| 能力 | 方式 |
+|------|------|
+| 添加工具 | `ctx.register_tool(name, schema, handler)` |
+| 添加钩子 | `ctx.register_hook("post_tool_call", callback)` |
+| 添加斜杠命令 | `ctx.register_command(name, handler, description)` — 在 CLI 和网关会话中添加 `/name` |
+| 添加 CLI 命令 | `ctx.register_cli_command(name, help, setup_fn, handler_fn)` — 添加 `hermes <plugin> <subcommand>` |
+| 注入消息 | `ctx.inject_message(content, role="user")` — 参见[注入消息](#注入消息) |
+| 附带数据文件 | `Path(__file__).parent / "data" / "file.yaml"` |
+| 捆绑技能 | `ctx.register_skill(name, path)` — 命名空间为 `plugin:skill`，通过 `skill_view("plugin:skill")` 加载 |
+| 环境变量门控 | `plugin.yaml` 中的 `requires_env: [API_KEY]` — `hermes plugins install` 期间提示 |
+| 通过 pip 分发 | `[project.entry-points."hermes_agent.plugins"]` |
 
-## Plugin discovery
+## 插件发现
 
-| Source | Path | Use case |
-|--------|------|----------|
-| Bundled | `<repo>/plugins/` | Ships with Hermes — see [Built-in Plugins](/docs/user-guide/features/built-in-plugins) |
-| User | `~/.hermes/plugins/` | Personal plugins |
-| Project | `.hermes/plugins/` | Project-specific plugins (requires `HERMES_ENABLE_PROJECT_PLUGINS=true`) |
-| pip | `hermes_agent.plugins` entry_points | Distributed packages |
+| 来源 | 路径 | 用例 |
+|------|------|------|
+| 捆绑 | `<repo>/plugins/` | 随 Hermes 附带——参见[内置插件](/docs/user-guide/features/built-in-plugins) |
+| 用户 | `~/.hermes/plugins/` | 个人插件 |
+| 项目 | `.hermes/plugins/` | 项目特定插件（需要 `HERMES_ENABLE_PROJECT_PLUGINS=true`） |
+| pip | `hermes_agent.plugins` entry_points | 分发包 |
 
-Later sources override earlier ones on name collision, so a user plugin with the same name as a bundled plugin replaces it.
+名称冲突时后面的来源覆盖前面的，因此与捆绑插件同名的用户插件会替换它。
 
-## Plugins are opt-in
+## 插件是选择启用的
 
-**Every plugin — user-installed, bundled, or pip — is disabled by default.** Discovery finds them (so they show up in `hermes plugins` and `/plugins`), but nothing loads until you add the plugin's name to `plugins.enabled` in `~/.hermes/config.yaml`. This stops anything with hooks or tools from running without your explicit consent.
+**每个插件——用户安装、捆绑或 pip——默认禁用。** 发现会找到它们（因此它们出现在 `hermes plugins` 和 `/plugins` 中），但在你将插件名称添加到 `~/.hermes/config.yaml` 的 `plugins.enabled` 之前不会加载。这阻止任何带钩子或工具的内容未经你明确同意运行。
 
 ```yaml
 plugins:
   enabled:
     - my-tool-plugin
     - disk-cleanup
-  disabled:       # optional deny-list — always wins if a name appears in both
+  disabled:       # 可选拒绝列表——如果名称同时出现在两者中始终获胜
     - noisy-plugin
 ```
 
-Three ways to flip state:
+三种切换状态的方式：
 
 ```bash
-hermes plugins                    # interactive toggle (space to check/uncheck)
-hermes plugins enable <name>      # add to allow-list
-hermes plugins disable <name>     # remove from allow-list + add to disabled
+hermes plugins                    # 交互式切换（空格选中/取消选中）
+hermes plugins enable <name>      # 添加到允许列表
+hermes plugins disable <name>     # 从允许列表移除 + 添加到禁用
 ```
 
-After `hermes plugins install owner/repo`, you're asked `Enable 'name' now? [y/N]` — defaults to no. Skip the prompt for scripted installs with `--enable` or `--no-enable`.
+`hermes plugins install owner/repo` 后，你会被问 `Enable 'name' now? [y/N]` — 默认为否。用 `--enable` 或 `--no-enable` 跳过脚本化安装的提示。
 
-### Migration for existing users
+### 现有用户的迁移
 
-When you upgrade to a version of Hermes that has opt-in plugins (config schema v21+), any user plugins already installed under `~/.hermes/plugins/` that weren't already in `plugins.disabled` are **automatically grandfathered** into `plugins.enabled`. Your existing setup keeps working. Bundled plugins are NOT grandfathered — even existing users have to opt in explicitly.
+当你升级到具有选择启用插件的 Hermes 版本（配置模式 v21+）时，已安装在 `~/.hermes/plugins/` 下且未在 `plugins.disabled` 中的任何用户插件被**自动继承**到 `plugins.enabled` 中。你的现有设置继续工作。捆绑插件不会被继承——即使是现有用户也必须明确选择启用。
 
-## Available hooks
+## 可用钩子
 
-Plugins can register callbacks for these lifecycle events. See the **[Event Hooks page](/docs/user-guide/features/hooks#plugin-hooks)** for full details, callback signatures, and examples.
+插件可以为这些生命周期事件注册回调。参见 **[事件钩子页面](/docs/user-guide/features/hooks#plugin-hooks)** 获取完整详情、回调签名和示例。
 
-| Hook | Fires when |
-|------|-----------|
-| [`pre_tool_call`](/docs/user-guide/features/hooks#pre_tool_call) | Before any tool executes |
-| [`post_tool_call`](/docs/user-guide/features/hooks#post_tool_call) | After any tool returns |
-| [`pre_llm_call`](/docs/user-guide/features/hooks#pre_llm_call) | Once per turn, before the LLM loop — can return `{"context": "..."}` to [inject context into the user message](/docs/user-guide/features/hooks#pre_llm_call) |
-| [`post_llm_call`](/docs/user-guide/features/hooks#post_llm_call) | Once per turn, after the LLM loop (successful turns only) |
-| [`on_session_start`](/docs/user-guide/features/hooks#on_session_start) | New session created (first turn only) |
-| [`on_session_end`](/docs/user-guide/features/hooks#on_session_end) | End of every `run_conversation` call + CLI exit handler |
-| [`pre_gateway_dispatch`](/docs/user-guide/features/hooks#pre_gateway_dispatch) | Gateway received a user message, before auth + dispatch. Return `{"action": "skip" \| "rewrite" \| "allow", ...}` to influence flow. |
+| 钩子 | 触发时机 |
+|------|---------|
+| [`pre_tool_call`](/docs/user-guide/features/hooks#pre_tool_call) | 任何工具执行前 |
+| [`post_tool_call`](/docs/user-guide/features/hooks#post_tool_call) | 任何工具返回后 |
+| [`pre_llm_call`](/docs/user-guide/features/hooks#pre_llm_call) | 每轮一次，LLM 循环前——可返回 `{"context": "..."}` 以[向用户消息注入上下文](/docs/user-guide/features/hooks#pre_llm_call) |
+| [`post_llm_call`](/docs/user-guide/features/hooks#post_llm_call) | 每轮一次，LLM 循环后（仅成功轮次） |
+| [`on_session_start`](/docs/user-guide/features/hooks#on_session_start) | 新会话创建（仅第一轮） |
+| [`on_session_end`](/docs/user-guide/features/hooks#on_session_end) | 每次 `run_conversation` 调用结束 + CLI 退出处理器 |
+| [`pre_gateway_dispatch`](/docs/user-guide/features/hooks#pre_gateway_dispatch) | 网关收到用户消息，认证 + 调度前。返回 `{"action": "skip" \| "rewrite" \| "allow", ...}` 以影响流程。 |
 
-## Plugin types
+## 插件类型
 
-Hermes has three kinds of plugins:
+Hermes 有三种插件：
 
-| Type | What it does | Selection | Location |
-|------|-------------|-----------|----------|
-| **General plugins** | Add tools, hooks, slash commands, CLI commands | Multi-select (enable/disable) | `~/.hermes/plugins/` |
-| **Memory providers** | Replace or augment built-in memory | Single-select (one active) | `plugins/memory/` |
-| **Context engines** | Replace the built-in context compressor | Single-select (one active) | `plugins/context_engine/` |
+| 类型 | 功能 | 选择方式 | 位置 |
+|------|------|---------|------|
+| **通用插件** | 添加工具、钩子、斜杠命令、CLI 命令 | 多选（启用/禁用） | `~/.hermes/plugins/` |
+| **记忆提供商** | 替换或增强内置记忆 | 单选（一个活跃） | `plugins/memory/` |
+| **上下文引擎** | 替换内置上下文压缩器 | 单选（一个活跃） | `plugins/context_engine/` |
 
-Memory providers and context engines are **provider plugins** — only one of each type can be active at a time. General plugins can be enabled in any combination.
+记忆提供商和上下文引擎是**提供商插件**——每种类型一次只能有一个活跃。通用插件可以任意组合启用。
 
-## Managing plugins
+## 管理插件
 
 ```bash
-hermes plugins                               # unified interactive UI
-hermes plugins list                          # table: enabled / disabled / not enabled
-hermes plugins install user/repo             # install from Git, then prompt Enable? [y/N]
-hermes plugins install user/repo --enable    # install AND enable (no prompt)
-hermes plugins install user/repo --no-enable # install but leave disabled (no prompt)
-hermes plugins update my-plugin              # pull latest
-hermes plugins remove my-plugin              # uninstall
-hermes plugins enable my-plugin              # add to allow-list
-hermes plugins disable my-plugin             # remove from allow-list + add to disabled
+hermes plugins                               # 统一交互式 UI
+hermes plugins list                          # 表格：启用 / 禁用 / 未启用
+hermes plugins install user/repo             # 从 Git 安装，然后提示 Enable? [y/N]
+hermes plugins install user/repo --enable    # 安装并启用（无提示）
+hermes plugins install user/repo --no-enable # 安装但保持禁用（无提示）
+hermes plugins update my-plugin              # 拉取最新
+hermes plugins remove my-plugin              # 卸载
+hermes plugins enable my-plugin              # 添加到允许列表
+hermes plugins disable my-plugin             # 从允许列表移除 + 添加到禁用
 ```
 
-### Interactive UI
+### 交互式 UI
 
-Running `hermes plugins` with no arguments opens a composite interactive screen:
+运行不带参数的 `hermes plugins` 打开组合交互屏幕：
 
 ```
 Plugins
@@ -187,55 +187,55 @@ Plugins
      Context Engine           ▸ compressor
 ```
 
-- **General Plugins section** — checkboxes, toggle with SPACE. Checked = in `plugins.enabled`, unchecked = in `plugins.disabled` (explicit off).
-- **Provider Plugins section** — shows current selection. Press ENTER to drill into a radio picker where you choose one active provider.
-- Bundled plugins appear in the same list with a `[bundled]` tag.
+- **通用插件部分** — 复选框，用空格切换。选中 = 在 `plugins.enabled`，未选中 = 在 `plugins.disabled`（明确关闭）。
+- **提供商插件部分** — 显示当前选择。按 Enter 进入单选选择器，选择一个活跃提供商。
+- 捆绑插件在同一列表中出现，带有 `[bundled]` 标签。
 
-Provider plugin selections are saved to `config.yaml`:
+提供商插件选择保存到 `config.yaml`：
 
 ```yaml
 memory:
-  provider: "honcho"      # empty string = built-in only
+  provider: "honcho"      # 空字符串 = 仅内置
 
 context:
-  engine: "compressor"    # default built-in compressor
+  engine: "compressor"    # 默认内置压缩器
 ```
 
-### Enabled vs. disabled vs. neither
+### 启用 vs 禁用 vs 都不是
 
-Plugins occupy one of three states:
+插件占据三种状态之一：
 
-| State | Meaning | In `plugins.enabled`? | In `plugins.disabled`? |
-|---|---|---|---|
-| `enabled` | Loaded on next session | Yes | No |
-| `disabled` | Explicitly off — won't load even if also in `enabled` | (irrelevant) | Yes |
-| `not enabled` | Discovered but never opted in | No | No |
+| 状态 | 含义 | 在 `plugins.enabled` 中？ | 在 `plugins.disabled` 中？ |
+|------|------|-------------------------|--------------------------|
+| `enabled` | 下次会话加载 | 是 | 否 |
+| `disabled` | 明确关闭——即使也在 `enabled` 中也不会加载 | （无关） | 是 |
+| `not enabled` | 已发现但从未选择启用 | 否 | 否 |
 
-The default for a newly-installed or bundled plugin is `not enabled`. `hermes plugins list` shows all three distinct states so you can tell what's been explicitly turned off vs. what's just waiting to be enabled.
+新安装或捆绑插件的默认状态是 `not enabled`。`hermes plugins list` 显示所有三种不同状态，以便你可以区分什么是被明确关闭的 vs 什么是仅等待启用的。
 
-In a running session, `/plugins` shows which plugins are currently loaded.
+在运行中的会话中，`/plugins` 显示当前加载了哪些插件。
 
-## Injecting Messages
+## 注入消息
 
-Plugins can inject messages into the active conversation using `ctx.inject_message()`:
+插件可以使用 `ctx.inject_message()` 向活跃对话注入消息：
 
 ```python
 ctx.inject_message("New data arrived from the webhook", role="user")
 ```
 
-**Signature:** `ctx.inject_message(content: str, role: str = "user") -> bool`
+**签名：** `ctx.inject_message(content: str, role: str = "user") -> bool`
 
-How it works:
+工作原理：
 
-- If the agent is **idle** (waiting for user input), the message is queued as the next input and starts a new turn.
-- If the agent is **mid-turn** (actively running), the message interrupts the current operation — the same as a user typing a new message and pressing Enter.
-- For non-`"user"` roles, the content is prefixed with `[role]` (e.g. `[system] ...`).
-- Returns `True` if the message was queued successfully, `False` if no CLI reference is available (e.g. in gateway mode).
+- 如果代理**空闲**（等待用户输入），消息排队为下一个输入并开始新轮次。
+- 如果代理**在轮次中**（活跃运行），消息中断当前操作——与用户输入新消息并按 Enter 相同。
+- 对于非 `"user"` 角色，内容以 `[role]` 为前缀（例如 `[system] ...`）。
+- 如果消息成功排队返回 `True`，如果没有可用的 CLI 引用（例如在网关模式下）返回 `False`。
 
-This enables plugins like remote control viewers, messaging bridges, or webhook receivers to feed messages into the conversation from external sources.
+这使得远程控制查看器、消息桥接或 webhook 接收器等插件可以从外部来源向对话提取消息。
 
 :::note
-`inject_message` is only available in CLI mode. In gateway mode, there is no CLI reference and the method returns `False`.
+`inject_message` 仅在 CLI 模式下可用。在网关模式下，没有 CLI 引用，方法返回 `False`。
 :::
 
-See the **[full guide](/docs/guides/build-a-hermes-plugin)** for handler contracts, schema format, hook behavior, error handling, and common mistakes.
+参见 **[完整指南](/docs/guides/build-a-hermes-plugin)** 获取处理器契约、模式格式、钩子行为、错误处理和常见错误。

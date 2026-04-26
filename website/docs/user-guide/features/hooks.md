@@ -1,34 +1,34 @@
 ---
 sidebar_position: 6
-title: "Event Hooks"
-description: "Run custom code at key lifecycle points — log activity, send alerts, post to webhooks"
+title: "事件钩子"
+description: "在关键生命周期点运行自定义代码——记录活动、发送警报、发布到 webhook"
 ---
 
-# Event Hooks
+# 事件钩子
 
-Hermes has three hook systems that run custom code at key lifecycle points:
+Hermes 有三个钩子系统，在关键生命周期点运行自定义代码：
 
-| System | Registered via | Runs in | Use case |
-|--------|---------------|---------|----------|
-| **[Gateway hooks](#gateway-event-hooks)** | `HOOK.yaml` + `handler.py` in `~/.hermes/hooks/` | Gateway only | Logging, alerts, webhooks |
-| **[Plugin hooks](#plugin-hooks)** | `ctx.register_hook()` in a [plugin](/docs/user-guide/features/plugins) | CLI + Gateway | Tool interception, metrics, guardrails |
-| **[Shell hooks](#shell-hooks)** | `hooks:` block in `~/.hermes/config.yaml` pointing at shell scripts | CLI + Gateway | Drop-in scripts for blocking, auto-formatting, context injection |
+| 系统 | 注册方式 | 运行环境 | 用例 |
+|------|---------|---------|------|
+| **[网关钩子](#网关事件钩子)** | `HOOK.yaml` + `handler.py` 在 `~/.hermes/hooks/` | 仅网关 | 日志记录、警报、webhook |
+| **[插件钩子](#插件钩子)** | `ctx.register_hook()` 在[插件](/docs/user-guide/features/plugins)中 | CLI + 网关 | 工具拦截、指标、护栏 |
+| **[Shell 钩子](#shell-钩子)** | `~/.hermes/config.yaml` 中的 `hooks:` 块指向 shell 脚本 | CLI + 网关 | 即用脚本用于阻止、自动格式化、上下文注入 |
 
-All three systems are non-blocking — errors in any hook are caught and logged, never crashing the agent.
+所有三个系统都是非阻塞的——任何钩子中的错误被捕获并记录，永远不会崩溃代理。
 
-## Gateway Event Hooks
+## 网关事件钩子
 
-Gateway hooks fire automatically during gateway operation (Telegram, Discord, Slack, WhatsApp) without blocking the main agent pipeline.
+网关钩子在网关运行期间（Telegram、Discord、Slack、WhatsApp）自动触发，不阻塞主管线。
 
-### Creating a Hook
+### 创建钩子
 
-Each hook is a directory under `~/.hermes/hooks/` containing two files:
+每个钩子是 `~/.hermes/hooks/` 下的目录，包含两个文件：
 
 ```text
 ~/.hermes/hooks/
 └── my-hook/
-    ├── HOOK.yaml      # Declares which events to listen for
-    └── handler.py     # Python handler function
+    ├── HOOK.yaml      # 声明要监听的事件
+    └── handler.py     # Python 处理函数
 ```
 
 #### HOOK.yaml
@@ -42,7 +42,7 @@ events:
   - agent:step
 ```
 
-The `events` list determines which events trigger your handler. You can subscribe to any combination of events, including wildcards like `command:*`.
+`events` 列表决定哪些事件触发你的处理器。你可以订阅任何事件组合，包括通配符如 `command:*`。
 
 #### handler.py
 
@@ -64,36 +64,36 @@ async def handle(event_type: str, context: dict):
         f.write(json.dumps(entry) + "\n")
 ```
 
-**Handler rules:**
-- Must be named `handle`
-- Receives `event_type` (string) and `context` (dict)
-- Can be `async def` or regular `def` — both work
-- Errors are caught and logged, never crashing the agent
+**处理器规则：**
+- 必须命名为 `handle`
+- 接收 `event_type`（字符串）和 `context`（字典）
+- 可以是 `async def` 或普通 `def`——两者都有效
+- 错误被捕获并记录，永远不会崩溃代理
 
-### Available Events
+### 可用事件
 
-| Event | When it fires | Context keys |
-|-------|---------------|--------------|
-| `gateway:startup` | Gateway process starts | `platforms` (list of active platform names) |
-| `session:start` | New messaging session created | `platform`, `user_id`, `session_id`, `session_key` |
-| `session:end` | Session ended (before reset) | `platform`, `user_id`, `session_key` |
-| `session:reset` | User ran `/new` or `/reset` | `platform`, `user_id`, `session_key` |
-| `agent:start` | Agent begins processing a message | `platform`, `user_id`, `session_id`, `message` |
-| `agent:step` | Each iteration of the tool-calling loop | `platform`, `user_id`, `session_id`, `iteration`, `tool_names` |
-| `agent:end` | Agent finishes processing | `platform`, `user_id`, `session_id`, `message`, `response` |
-| `command:*` | Any slash command executed | `platform`, `user_id`, `command`, `args` |
+| 事件 | 触发时机 | 上下文键 |
+|------|---------|---------|
+| `gateway:startup` | 网关进程启动 | `platforms`（活跃平台名称列表） |
+| `session:start` | 新消息会话创建 | `platform`、`user_id`、`session_id`、`session_key` |
+| `session:end` | 会话结束（重置前） | `platform`、`user_id`、`session_key` |
+| `session:reset` | 用户运行 `/new` 或 `/reset` | `platform`、`user_id`、`session_key` |
+| `agent:start` | 代理开始处理消息 | `platform`、`user_id`、`session_id`、`message` |
+| `agent:step` | 工具调用循环的每次迭代 | `platform`、`user_id`、`session_id`、`iteration`、`tool_names` |
+| `agent:end` | 代理完成处理 | `platform`、`user_id`、`session_id`、`message`、`response` |
+| `command:*` | 执行任何斜杠命令 | `platform`、`user_id`、`command`、`args` |
 
-#### Wildcard Matching
+#### 通配符匹配
 
-Handlers registered for `command:*` fire for any `command:` event (`command:model`, `command:reset`, etc.). Monitor all slash commands with a single subscription.
+为 `command:*` 注册的处理器对任何 `command:` 事件触发（`command:model`、`command:reset` 等）。用单个订阅监控所有斜杠命令。
 
-### Examples
+### 示例
 
-#### Boot Checklist (BOOT.md) — Built-in
+#### 启动检查清单（BOOT.md）——内置
 
-The gateway ships with a built-in `boot-md` hook that looks for `~/.hermes/BOOT.md` on every startup. If the file exists, the agent runs its instructions in a background session. No installation needed — just create the file.
+网关附带内置的 `boot-md` 钩子，每次启动时查找 `~/.hermes/BOOT.md`。如果文件存在，代理在后台会话中运行其指令。无需安装——只需创建文件。
 
-**Create `~/.hermes/BOOT.md`:**
+**创建 `~/.hermes/BOOT.md`：**
 
 ```markdown
 # Startup Checklist
@@ -103,15 +103,15 @@ The gateway ships with a built-in `boot-md` hook that looks for `~/.hermes/BOOT.
 3. Check if /opt/app/deploy.log has any errors from the last 24 hours
 ```
 
-The agent runs these instructions in a background thread so it doesn't block gateway startup. If nothing needs attention, the agent replies with `[SILENT]` and no message is delivered.
+代理在后台线程中运行这些指令，因此不阻塞网关启动。如果无需关注，代理回复 `[SILENT]`，不投递消息。
 
 :::tip
-No BOOT.md? The hook silently skips — zero overhead. Create the file whenever you need startup automation, delete it when you don't.
+没有 BOOT.md？钩子静默跳过——零开销。需要启动自动化时创建文件，不需要时删除。
 :::
 
-#### Telegram Alert on Long Tasks
+#### 长任务 Telegram 警报
 
-Send yourself a message when the agent takes more than 10 steps:
+当代理执行超过 10 步时给自己发送消息：
 
 ```yaml
 # ~/.hermes/hooks/long-task-alert/HOOK.yaml
@@ -142,9 +142,9 @@ async def handle(event_type: str, context: dict):
             )
 ```
 
-#### Command Usage Logger
+#### 命令使用记录器
 
-Track which slash commands are used:
+跟踪哪些斜杠命令被使用：
 
 ```yaml
 # ~/.hermes/hooks/command-logger/HOOK.yaml
@@ -175,9 +175,9 @@ def handle(event_type: str, context: dict):
         f.write(json.dumps(entry) + "\n")
 ```
 
-#### Session Start Webhook
+#### 会话启动 Webhook
 
-POST to an external service on new sessions:
+新会话时 POST 到外部服务：
 
 ```yaml
 # ~/.hermes/hooks/session-webhook/HOOK.yaml
@@ -202,21 +202,21 @@ async def handle(event_type: str, context: dict):
         }, timeout=5)
 ```
 
-### How It Works
+### 工作原理
 
-1. On gateway startup, `HookRegistry.discover_and_load()` scans `~/.hermes/hooks/`
-2. Each subdirectory with `HOOK.yaml` + `handler.py` is loaded dynamically
-3. Handlers are registered for their declared events
-4. At each lifecycle point, `hooks.emit()` fires all matching handlers
-5. Errors in any handler are caught and logged — a broken hook never crashes the agent
+1. 网关启动时，`HookRegistry.discover_and_load()` 扫描 `~/.hermes/hooks/`
+2. 每个包含 `HOOK.yaml` + `handler.py` 的子目录被动态加载
+3. 处理器注册其声明的事件
+4. 在每个生命周期点，`hooks.emit()` 触发所有匹配的处理器
+5. 任何处理器中的错误被捕获并记录——损坏的钩子永远不会崩溃代理
 
 :::info
-Gateway hooks only fire in the **gateway** (Telegram, Discord, Slack, WhatsApp). The CLI does not load gateway hooks. For hooks that work everywhere, use [plugin hooks](#plugin-hooks).
+网关钩子仅在**网关**（Telegram、Discord、Slack、WhatsApp）中触发。CLI 不加载网关钩子。要在所有地方工作的钩子，请使用[插件钩子](#插件钩子)。
 :::
 
-## Plugin Hooks
+## 插件钩子
 
-[Plugins](/docs/user-guide/features/plugins) can register hooks that fire in **both CLI and gateway** sessions. These are registered programmatically via `ctx.register_hook()` in your plugin's `register()` function.
+[插件](/docs/user-guide/features/plugins)可以注册在 **CLI 和网关**会话中都触发的钩子。这些通过插件 `register()` 函数中的 `ctx.register_hook()` 编程式注册。
 
 ```python
 def register(ctx):
@@ -228,58 +228,58 @@ def register(ctx):
     ctx.register_hook("on_session_end", my_cleanup_callback)
 ```
 
-**General rules for all hooks:**
+**所有钩子的通用规则：**
 
-- Callbacks receive **keyword arguments**. Always accept `**kwargs` for forward compatibility — new parameters may be added in future versions without breaking your plugin.
-- If a callback **crashes**, it's logged and skipped. Other hooks and the agent continue normally. A misbehaving plugin can never break the agent.
-- Two hooks' return values affect behavior: [`pre_tool_call`](#pre_tool_call) can **block** the tool, and [`pre_llm_call`](#pre_llm_call) can **inject context** into the LLM call. All other hooks are fire-and-forget observers.
+- 回调接收**关键字参数**。始终接受 `**kwargs` 以实现前向兼容——未来版本可能添加新参数而不破坏你的插件。
+- 如果回调**崩溃**，它被记录并跳过。其他钩子和代理正常继续。行为不端的插件永远不会破坏代理。
+- 两个钩子的返回值影响行为：[`pre_tool_call`](#pre_tool_call) 可以**阻止**工具，[`pre_llm_call`](#pre_llm_call) 可以向 LLM 调用**注入上下文**。所有其他钩子是发射即忘的观察者。
 
-### Quick reference
+### 快速参考
 
-| Hook | Fires when | Returns |
-|------|-----------|---------|
-| [`pre_tool_call`](#pre_tool_call) | Before any tool executes | `{"action": "block", "message": str}` to veto the call |
-| [`post_tool_call`](#post_tool_call) | After any tool returns | ignored |
-| [`pre_llm_call`](#pre_llm_call) | Once per turn, before the tool-calling loop | `{"context": str}` to prepend context to the user message |
-| [`post_llm_call`](#post_llm_call) | Once per turn, after the tool-calling loop | ignored |
-| [`on_session_start`](#on_session_start) | New session created (first turn only) | ignored |
-| [`on_session_end`](#on_session_end) | Session ends | ignored |
-| [`on_session_finalize`](#on_session_finalize) | CLI/gateway tears down an active session (flush, save, stats) | ignored |
-| [`on_session_reset`](#on_session_reset) | Gateway swaps in a fresh session key (e.g. `/new`, `/reset`) | ignored |
-| [`subagent_stop`](#subagent_stop) | A `delegate_task` child has exited | ignored |
-| [`pre_gateway_dispatch`](#pre_gateway_dispatch) | Gateway received a user message, before auth + dispatch | `{"action": "skip" \| "rewrite" \| "allow", ...}` to influence flow |
+| 钩子 | 触发时机 | 返回值 |
+|------|---------|--------|
+| [`pre_tool_call`](#pre_tool_call) | 任何工具执行前 | `{"action": "block", "message": str}` 以否决调用 |
+| [`post_tool_call`](#post_tool_call) | 任何工具返回后 | 忽略 |
+| [`pre_llm_call`](#pre_llm_call) | 每轮一次，工具调用循环前 | `{"context": str}` 以向前置上下文到用户消息 |
+| [`post_llm_call`](#post_llm_call) | 每轮一次，工具调用循环后 | 忽略 |
+| [`on_session_start`](#on_session_start) | 新会话创建（仅第一轮） | 忽略 |
+| [`on_session_end`](#on_session_end) | 会话结束 | 忽略 |
+| [`on_session_finalize`](#on_session_finalize) | CLI/网关拆卸活跃会话（刷新、保存、统计） | 忽略 |
+| [`on_session_reset`](#on_session_reset) | 网关交换新会话键（例如 `/new`、`/reset`） | 忽略 |
+| [`subagent_stop`](#subagent_stop) | `delegate_task` 子级已退出 | 忽略 |
+| [`pre_gateway_dispatch`](#pre_gateway_dispatch) | 网关收到用户消息，认证 + 调度前 | `{"action": "skip" \| "rewrite" \| "allow", ...}` 以影响流程 |
 
 ---
 
 ### `pre_tool_call`
 
-Fires **immediately before** every tool execution — built-in tools and plugin tools alike.
+在每次工具执行**之前**触发——内置工具和插件工具都是如此。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(tool_name: str, args: dict, task_id: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `tool_name` | `str` | Name of the tool about to execute (e.g. `"terminal"`, `"web_search"`, `"read_file"`) |
-| `args` | `dict` | The arguments the model passed to the tool |
-| `task_id` | `str` | Session/task identifier. Empty string if not set. |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `tool_name` | `str` | 即将执行的工具名称（例如 `"terminal"`、`"web_search"`、`"read_file"`） |
+| `args` | `dict` | 模型传递给工具的参数 |
+| `task_id` | `str` | 会话/任务标识符。如果未设置则为空字符串 |
 
-**Fires:** In `model_tools.py`, inside `handle_function_call()`, before the tool's handler runs. Fires once per tool call — if the model calls 3 tools in parallel, this fires 3 times.
+**触发位置：** 在 `model_tools.py` 中，`handle_function_call()` 内部，工具处理器运行之前。每次工具调用触发一次——如果模型并行调用 3 个工具，这触发 3 次。
 
-**Return value — veto the call:**
+**返回值——否决调用：**
 
 ```python
 return {"action": "block", "message": "Reason the tool call was blocked"}
 ```
 
-The agent short-circuits the tool with `message` as the error returned to the model. The first matching block directive wins (Python plugins registered first, then shell hooks). Any other return value is ignored, so existing observer-only callbacks keep working unchanged.
+代理用 `message` 作为返回给模型的错误短路工具。第一个匹配的阻止指令获胜（Python 插件先注册，然后是 shell 钩子）。任何其他返回值被忽略，因此现有的仅观察回调保持不变。
 
-**Use cases:** Logging, audit trails, tool call counters, blocking dangerous operations, rate limiting, per-user policy enforcement.
+**用例：** 日志记录、审计跟踪、工具调用计数器、阻止危险操作、速率限制、每用户策略执行。
 
-**Example — tool call audit log:**
+**示例——工具调用审计日志：**
 
 ```python
 import json, logging
@@ -295,7 +295,7 @@ def register(ctx):
     ctx.register_hook("pre_tool_call", audit_tool_call)
 ```
 
-**Example — warn on dangerous tools:**
+**示例——危险工具警告：**
 
 ```python
 DANGEROUS = {"terminal", "write_file", "patch"}
@@ -312,30 +312,30 @@ def register(ctx):
 
 ### `post_tool_call`
 
-Fires **immediately after** every tool execution returns.
+在每次工具执行返回**之后**触发。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(tool_name: str, args: dict, result: str, task_id: str,
                 duration_ms: int, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `tool_name` | `str` | Name of the tool that just executed |
-| `args` | `dict` | The arguments the model passed to the tool |
-| `result` | `str` | The tool's return value (always a JSON string) |
-| `task_id` | `str` | Session/task identifier. Empty string if not set. |
-| `duration_ms` | `int` | How long the tool's dispatch took, in milliseconds (measured with `time.monotonic()` around `registry.dispatch()`). |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `tool_name` | `str` | 刚执行的工具名称 |
+| `args` | `dict` | 模型传递给工具的参数 |
+| `result` | `str` | 工具的返回值（始终是 JSON 字符串） |
+| `task_id` | `str` | 会话/任务标识符。如果未设置则为空字符串 |
+| `duration_ms` | `int` | 工具调度耗时，毫秒（用 `time.monotonic()` 在 `registry.dispatch()` 周围测量） |
 
-**Fires:** In `model_tools.py`, inside `handle_function_call()`, after the tool's handler returns. Fires once per tool call. Does **not** fire if the tool raised an unhandled exception (the error is caught and returned as an error JSON string instead, and `post_tool_call` fires with that error string as `result`).
+**触发位置：** 在 `model_tools.py` 中，`handle_function_call()` 内部，工具处理器返回之后。每次工具调用触发一次。如果工具引发未处理异常则**不**触发（错误被捕获并作为错误 JSON 字符串返回，`post_tool_call` 以该错误字符串作为 `result` 触发）。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Logging tool results, metrics collection, tracking tool success/failure rates, latency dashboards, per-tool budget alerts, sending notifications when specific tools complete.
+**用例：** 记录工具结果、指标收集、跟踪工具成功/失败率、延迟仪表板、每工具预算警报、特定工具完成时发送通知。
 
-**Example — track tool usage metrics:**
+**示例——跟踪工具使用指标：**
 
 ```python
 from collections import Counter, defaultdict
@@ -363,48 +363,48 @@ def register(ctx):
 
 ### `pre_llm_call`
 
-Fires **once per turn**, before the tool-calling loop begins. This is the **only hook whose return value is used** — it can inject context into the current turn's user message.
+**每轮一次**，工具调用循环开始前触发。这是**唯一使用返回值的钩子**——它可以向当前轮次的用户消息注入上下文。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(session_id: str, user_message: str, conversation_history: list,
                 is_first_turn: bool, model: str, platform: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | `str` | Unique identifier for the current session |
-| `user_message` | `str` | The user's original message for this turn (before any skill injection) |
-| `conversation_history` | `list` | Copy of the full message list (OpenAI format: `[{"role": "user", "content": "..."}]`) |
-| `is_first_turn` | `bool` | `True` if this is the first turn of a new session, `False` on subsequent turns |
-| `model` | `str` | The model identifier (e.g. `"anthropic/claude-sonnet-4.6"`) |
-| `platform` | `str` | Where the session is running: `"cli"`, `"telegram"`, `"discord"`, etc. |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `session_id` | `str` | 当前会话的唯一标识符 |
+| `user_message` | `str` | 用户此轮的原始消息（任何技能注入之前） |
+| `conversation_history` | `list` | 完整消息列表的副本（OpenAI 格式：`[{"role": "user", "content": "..."}]`） |
+| `is_first_turn` | `bool` | 如果是新会话的第一轮则为 `True`，后续轮次为 `False` |
+| `model` | `str` | 模型标识符（例如 `"anthropic/claude-sonnet-4.6"`） |
+| `platform` | `str` | 会话运行位置：`"cli"`、`"telegram"`、`"discord"` 等 |
 
-**Fires:** In `run_agent.py`, inside `run_conversation()`, after context compression but before the main `while` loop. Fires once per `run_conversation()` call (i.e. once per user turn), not once per API call within the tool loop.
+**触发位置：** 在 `run_agent.py` 中，`run_conversation()` 内部，上下文压缩之后但主 `while` 循环之前。每次 `run_conversation()` 调用触发一次（即每用户轮次一次），不是工具循环内每次 API 调用一次。
 
-**Return value:** If the callback returns a dict with a `"context"` key, or a plain non-empty string, the text is appended to the current turn's user message. Return `None` for no injection.
+**返回值：** 如果回调返回带有 `"context"` 键的字典，或纯非空字符串，文本被追加到当前轮次的用户消息。返回 `None` 表示不注入。
 
 ```python
-# Inject context
+# 注入上下文
 return {"context": "Recalled memories:\n- User likes Python\n- Working on hermes-agent"}
 
-# Plain string (equivalent)
+# 纯字符串（等效）
 return "Recalled memories:\n- User likes Python"
 
-# No injection
+# 不注入
 return None
 ```
 
-**Where context is injected:** Always the **user message**, never the system prompt. This preserves the prompt cache — the system prompt stays identical across turns, so cached tokens are reused. The system prompt is Hermes's territory (model guidance, tool enforcement, personality, skills). Plugins contribute context alongside the user's input.
+**上下文注入位置：** 始终是**用户消息**，永远不是系统提示。这保留了提示缓存——系统提示在轮次间保持相同，因此缓存令牌被复用。系统提示是 Hermes 的领域（模型引导、工具执行、人格、技能）。插件在用户输入旁边贡献上下文。
 
-All injected context is **ephemeral** — added at API call time only. The original user message in the conversation history is never mutated, and nothing is persisted to the session database.
+所有注入的上下文是**临时的**——仅在 API 调用时添加。对话历史中的原始用户消息永远不会被修改，也不会持久化到会话数据库。
 
-When **multiple plugins** return context, their outputs are joined with double newlines in plugin discovery order (alphabetical by directory name).
+当**多个插件**返回上下文时，它们的输出在插件发现顺序（按目录名字母顺序）中用双换行符连接。
 
-**Use cases:** Memory recall, RAG context injection, guardrails, per-turn analytics.
+**用例：** 记忆召回、RAG 上下文注入、护栏、每轮分析。
 
-**Example — memory recall:**
+**示例——记忆召回：**
 
 ```python
 import httpx
@@ -429,7 +429,7 @@ def register(ctx):
     ctx.register_hook("pre_llm_call", recall)
 ```
 
-**Example — guardrails:**
+**示例——护栏：**
 
 ```python
 POLICY = "Never execute commands that delete files without explicit user confirmation."
@@ -445,31 +445,31 @@ def register(ctx):
 
 ### `post_llm_call`
 
-Fires **once per turn**, after the tool-calling loop completes and the agent has produced a final response. Only fires on **successful** turns — does not fire if the turn was interrupted.
+**每轮一次**，工具调用循环完成且代理产生最终响应后触发。仅在**成功**轮次触发——如果轮次被中断则不触发。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(session_id: str, user_message: str, assistant_response: str,
                 conversation_history: list, model: str, platform: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | `str` | Unique identifier for the current session |
-| `user_message` | `str` | The user's original message for this turn |
-| `assistant_response` | `str` | The agent's final text response for this turn |
-| `conversation_history` | `list` | Copy of the full message list after the turn completed |
-| `model` | `str` | The model identifier |
-| `platform` | `str` | Where the session is running |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `session_id` | `str` | 当前会话的唯一标识符 |
+| `user_message` | `str` | 用户此轮的原始消息 |
+| `assistant_response` | `str` | 代理此轮的最终文本响应 |
+| `conversation_history` | `list` | 轮次完成后的完整消息列表副本 |
+| `model` | `str` | 模型标识符 |
+| `platform` | `str` | 会话运行位置 |
 
-**Fires:** In `run_agent.py`, inside `run_conversation()`, after the tool loop exits with a final response. Guarded by `if final_response and not interrupted` — so it does **not** fire when the user interrupts mid-turn or the agent hits the iteration limit without producing a response.
+**触发位置：** 在 `run_agent.py` 中，`run_conversation()` 内部，工具循环以最终响应退出后。受 `if final_response and not interrupted` 保护——因此当用户在轮次中中断或代理达到迭代限制而未产生响应时**不**触发。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Syncing conversation data to an external memory system, computing response quality metrics, logging turn summaries, triggering follow-up actions.
+**用例：** 将对话数据同步到外部记忆系统、计算响应质量指标、记录轮次摘要、触发后续操作。
 
-**Example — sync to external memory:**
+**示例——同步到外部记忆：**
 
 ```python
 import httpx
@@ -484,13 +484,13 @@ def sync_memory(session_id, user_message, assistant_response, **kwargs):
             "assistant": assistant_response,
         }, timeout=5)
     except Exception:
-        pass  # best-effort
+        pass  # 尽力而为
 
 def register(ctx):
     ctx.register_hook("post_llm_call", sync_memory)
 ```
 
-**Example — track response lengths:**
+**示例——跟踪响应长度：**
 
 ```python
 import logging
@@ -508,27 +508,27 @@ def register(ctx):
 
 ### `on_session_start`
 
-Fires **once** when a brand-new session is created. Does **not** fire on session continuation (when the user sends a second message in an existing session).
+全新会话创建时触发**一次**。在会话继续时（用户在现有会话中发送第二条消息时）**不**触发。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(session_id: str, model: str, platform: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | `str` | Unique identifier for the new session |
-| `model` | `str` | The model identifier |
-| `platform` | `str` | Where the session is running |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `session_id` | `str` | 新会话的唯一标识符 |
+| `model` | `str` | 模型标识符 |
+| `platform` | `str` | 会话运行位置 |
 
-**Fires:** In `run_agent.py`, inside `run_conversation()`, during the first turn of a new session — specifically after the system prompt is built but before the tool loop starts. The check is `if not conversation_history` (no prior messages = new session).
+**触发位置：** 在 `run_agent.py` 中，`run_conversation()` 内部，新会话的第一轮——具体在系统提示构建后但工具循环开始前。检查是 `if not conversation_history`（无先前消息 = 新会话）。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Initializing session-scoped state, warming caches, registering the session with an external service, logging session starts.
+**用例：** 初始化会话作用域状态、预热缓存、向外部服务注册会话、记录会话开始。
 
-**Example — initialize a session cache:**
+**示例——初始化会话缓存：**
 
 ```python
 _session_caches = {}
@@ -549,32 +549,32 @@ def register(ctx):
 
 ### `on_session_end`
 
-Fires at the **very end** of every `run_conversation()` call, regardless of outcome. Also fires from the CLI's exit handler if the agent was mid-turn when the user quit.
+在每次 `run_conversation()` 调用的**最末尾**触发，无论结果如何。如果代理在用户退出时正在处理中，也会从 CLI 的退出处理器触发。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(session_id: str, completed: bool, interrupted: bool,
                 model: str, platform: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | `str` | Unique identifier for the session |
-| `completed` | `bool` | `True` if the agent produced a final response, `False` otherwise |
-| `interrupted` | `bool` | `True` if the turn was interrupted (user sent new message, `/stop`, or quit) |
-| `model` | `str` | The model identifier |
-| `platform` | `str` | Where the session is running |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `session_id` | `str` | 会话的唯一标识符 |
+| `completed` | `bool` | 如果代理产生了最终响应则为 `True`，否则为 `False` |
+| `interrupted` | `bool` | 如果轮次被中断（用户发送新消息、`/stop` 或退出）则为 `True` |
+| `model` | `str` | 模型标识符 |
+| `platform` | `str` | 会话运行位置 |
 
-**Fires:** In two places:
-1. **`run_agent.py`** — at the end of every `run_conversation()` call, after all cleanup. Always fires, even if the turn errored.
-2. **`cli.py`** — in the CLI's atexit handler, but **only** if the agent was mid-turn (`_agent_running=True`) when the exit occurred. This catches Ctrl+C and `/exit` during processing. In this case, `completed=False` and `interrupted=True`.
+**触发位置：** 两个地方：
+1. **`run_agent.py`** — 每次 `run_conversation()` 调用结束时，所有清理之后。即使轮次出错也始终触发。
+2. **`cli.py`** — CLI 的 atexit 处理器中，但**仅当**代理在退出发生时正在处理中（`_agent_running=True`）。这捕获处理期间的 Ctrl+C 和 `/exit`。在这种情况下，`completed=False` 且 `interrupted=True`。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Flushing buffers, closing connections, persisting session state, logging session duration, cleanup of resources initialized in `on_session_start`.
+**用例：** 刷新缓冲区、关闭连接、持久化会话状态、记录会话持续时间、清理在 `on_session_start` 中初始化的资源。
 
-**Example — flush and cleanup:**
+**示例——刷新和清理：**
 
 ```python
 _session_caches = {}
@@ -582,7 +582,7 @@ _session_caches = {}
 def cleanup_session(session_id, completed, interrupted, **kwargs):
     cache = _session_caches.pop(session_id, None)
     if cache:
-        # Flush accumulated data to disk or external service
+        # 将累积数据刷新到磁盘或外部服务
         status = "completed" if completed else ("interrupted" if interrupted else "failed")
         print(f"Session {session_id} ended: {status}, {cache['tool_calls']} tool calls")
 
@@ -590,7 +590,7 @@ def register(ctx):
     ctx.register_hook("on_session_end", cleanup_session)
 ```
 
-**Example — session duration tracking:**
+**示例——会话持续时间跟踪：**
 
 ```python
 import time, logging
@@ -617,59 +617,59 @@ def register(ctx):
 
 ### `on_session_finalize`
 
-Fires when the CLI or gateway **tears down** an active session — for example, when the user runs `/new`, the gateway GC'd an idle session, or the CLI quit with an active agent. This is the last chance to flush state tied to the outgoing session before its identity is gone.
+当 CLI 或网关**拆卸**活跃会话时触发——例如用户运行 `/new`、网关 GC 了空闲会话、或 CLI 在活跃代理时退出。这是在会话身份消失前刷新与即将离开的会话绑定的状态的最后机会。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(session_id: str | None, platform: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | `str` or `None` | The outgoing session ID. May be `None` if no active session existed. |
-| `platform` | `str` | `"cli"` or the messaging platform name (`"telegram"`, `"discord"`, etc.). |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `session_id` | `str` 或 `None` | 即将离开的会话 ID。如果不存在活跃会话可能为 `None`。 |
+| `platform` | `str` | `"cli"` 或消息平台名称（`"telegram"`、`"discord"` 等）。 |
 
-**Fires:** In `cli.py` (on `/new` / CLI exit) and `gateway/run.py` (when a session is reset or GC'd). Always paired with `on_session_reset` on the gateway side.
+**触发位置：** 在 `cli.py`（`/new` / CLI 退出时）和 `gateway/run.py`（会话重置或 GC 时）。在网关端始终与 `on_session_reset` 配对。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Persist final session metrics before the session ID is discarded, close per-session resources, emit a final telemetry event, drain queued writes.
+**用例：** 在会话 ID 被丢弃前持久化最终会话指标、关闭每会话资源、发出最终遥测事件、排空排队的写入。
 
 ---
 
 ### `on_session_reset`
 
-Fires when the gateway **swaps in a new session key** for an active chat — the user invoked `/new`, `/reset`, `/clear`, or the adapter picked a fresh session after an idle window. This lets plugins react to the fact that conversation state has been wiped without waiting for the next `on_session_start`.
+当网关为活跃聊天**交换新会话键**时触发——用户调用了 `/new`、`/reset`、`/clear`，或适配器在空闲窗口后选择了新会话。这让插件可以对对话状态已被清除这一事实做出反应，而无需等待下一次 `on_session_start`。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(session_id: str, platform: str, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `session_id` | `str` | The new session's ID (already rotated to the fresh value). |
-| `platform` | `str` | The messaging platform name. |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `session_id` | `str` | 新会话的 ID（已轮换到新值）。 |
+| `platform` | `str` | 消息平台名称。 |
 
-**Fires:** In `gateway/run.py`, immediately after the new session key is allocated but before the next inbound message is processed. On the gateway, the order is: `on_session_finalize(old_id)` → swap → `on_session_reset(new_id)` → `on_session_start(new_id)` on the first inbound turn.
+**触发位置：** 在 `gateway/run.py` 中，新会话键分配后但处理下一条入站消息前。在网关端，顺序是：`on_session_finalize(old_id)` → 交换 → `on_session_reset(new_id)` → 第一个入站轮次时 `on_session_start(new_id)`。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Reset per-session caches keyed by `session_id`, emit "session rotated" analytics, prime a fresh state bucket.
+**用例：** 重置按 `session_id` 键控的每会话缓存、发出"会话轮换"分析、准备新的状态桶。
 
 ---
 
-See the **[Build a Plugin guide](/docs/guides/build-a-hermes-plugin)** for the full walkthrough including tool schemas, handlers, and advanced hook patterns.
+参见 **[构建插件指南](/docs/guides/build-a-hermes-plugin)** 获取完整演练，包括工具模式、处理器和高级钩子模式。
 
 ---
 
 ### `subagent_stop`
 
-Fires **once per child agent** after `delegate_task` finishes. Whether you delegated a single task or a batch of three, this hook fires once for each child, serialised on the parent thread.
+每个子代理在 `delegate_task` 完成后触发**一次**。无论你委托了单个任务还是三个一批，此钩子为每个子级触发一次，在父线程上序列化。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(parent_session_id: str, child_role: str | None,
@@ -677,21 +677,21 @@ def my_callback(parent_session_id: str, child_role: str | None,
                 duration_ms: int, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `parent_session_id` | `str` | Session ID of the delegating parent agent |
-| `child_role` | `str \| None` | Orchestrator role tag set on the child (`None` if the feature isn't enabled) |
-| `child_summary` | `str \| None` | The final response the child returned to the parent |
-| `child_status` | `str` | `"completed"`, `"failed"`, `"interrupted"`, or `"error"` |
-| `duration_ms` | `int` | Wall-clock time spent running the child, in milliseconds |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `parent_session_id` | `str` | 委托父代理的会话 ID |
+| `child_role` | `str \| None` | 设置在子级上的编排者角色标签（如果功能未启用则为 `None`） |
+| `child_summary` | `str \| None` | 子级返回给父级的最终响应 |
+| `child_status` | `str` | `"completed"`、`"failed"`、`"interrupted"` 或 `"error"` |
+| `duration_ms` | `int` | 运行子级的挂钟时间，毫秒 |
 
-**Fires:** In `tools/delegate_tool.py`, after `ThreadPoolExecutor.as_completed()` drains all child futures. Firing is marshalled to the parent thread so hook authors don't have to reason about concurrent callback execution.
+**触发位置：** 在 `tools/delegate_tool.py` 中，`ThreadPoolExecutor.as_completed()` 排空所有子级 future 后。触发被调度到父线程，因此钩子作者不必考虑并发回调执行。
 
-**Return value:** Ignored.
+**返回值：** 忽略。
 
-**Use cases:** Logging orchestration activity, accumulating child durations for billing, writing post-delegation audit records.
+**用例：** 记录编排活动、累计子级持续时间用于计费、写入委托后审计记录。
 
-**Example — log orchestrator activity:**
+**示例——记录编排者活动：**
 
 ```python
 import logging
@@ -708,40 +708,40 @@ def register(ctx):
 ```
 
 :::info
-With heavy delegation (e.g. orchestrator roles × 5 leaves × nested depth), `subagent_stop` fires many times per turn. Keep your callback fast; push expensive work to a background queue.
+在重度委托（例如编排者角色 × 5 叶子 × 嵌套深度）下，`subagent_stop` 每轮触发多次。保持你的回调快速；将耗时工作推到后台队列。
 :::
 
 ---
 
 ### `pre_gateway_dispatch`
 
-Fires **once per incoming `MessageEvent`** in the gateway, after the internal-event guard but **before** auth/pairing and agent dispatch. This is the interception point for gateway-level message-flow policies (listen-only windows, human handover, per-chat routing, etc.) that don't fit cleanly into any single platform adapter.
+在网关中每个传入 `MessageEvent` 触发**一次**，在内部事件守卫之后但认证/配对和代理调度**之前**。这是网关级消息流策略（仅监听窗口、人工接管、每聊天路由等）的拦截点，这些策略不适合干净地放入任何单个平台适配器中。
 
-**Callback signature:**
+**回调签名：**
 
 ```python
 def my_callback(event, gateway, session_store, **kwargs):
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `event` | `MessageEvent` | The normalized inbound message (has `.text`, `.source`, `.message_id`, `.internal`, etc.). |
-| `gateway` | `GatewayRunner` | The active gateway runner, so plugins can call `gateway.adapters[platform].send(...)` for side-channel replies (owner notifications, etc.). |
-| `session_store` | `SessionStore` | For silent transcript ingestion via `session_store.append_to_transcript(...)`. |
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `event` | `MessageEvent` | 规范化的入站消息（有 `.text`、`.source`、`.message_id`、`.internal` 等）。 |
+| `gateway` | `GatewayRunner` | 活跃的网关运行器，以便插件可以调用 `gateway.adapters[platform].send(...)` 进行侧信道回复（所有者通知等）。 |
+| `session_store` | `SessionStore` | 通过 `session_store.append_to_transcript(...)` 进行静默转录摄入。 |
 
-**Fires:** In `gateway/run.py`, inside `GatewayRunner._handle_message()`, immediately after `is_internal` is computed. **Internal events skip the hook entirely** (they are system-generated — background-process completions, etc. — and must not be gate-kept by user-facing policy).
+**触发位置：** 在 `gateway/run.py` 中，`GatewayRunner._handle_message()` 内部，`is_internal` 计算后立即触发。**内部事件完全跳过钩子**（它们是系统生成的——后台进程完成等——不应被面向用户的策略门控）。
 
-**Return value:** `None` or a dict. The first recognized action dict wins; remaining plugin results are ignored. Exceptions in plugin callbacks are caught and logged; the gateway always falls through to normal dispatch on error.
+**返回值：** `None` 或字典。第一个被识别的操作字典获胜；其余插件结果被忽略。插件回调中的异常被捕获并记录；网关在错误时始终回退到正常调度。
 
-| Return | Effect |
-|--------|--------|
-| `{"action": "skip", "reason": "..."}` | Drop the message — no agent reply, no pairing flow, no auth. Plugin is assumed to have handled it (e.g. silent-ingested into the transcript). |
-| `{"action": "rewrite", "text": "new text"}` | Replace `event.text`, then continue normal dispatch with the modified event. Useful for collapsing buffered ambient messages into a single prompt. |
-| `{"action": "allow"}` / `None` | Normal dispatch — runs the full auth / pairing / agent-loop chain. |
+| 返回值 | 效果 |
+|--------|------|
+| `{"action": "skip", "reason": "..."}` | 丢弃消息——无代理回复、无配对流程、无认证。假定插件已处理（例如静默摄入转录）。 |
+| `{"action": "rewrite", "text": "new text"}` | 替换 `event.text`，然后用修改后的事件继续正常调度。适用于将缓冲的环境消息折叠为单个提示。 |
+| `{"action": "allow"}` / `None` | 正常调度——运行完整的认证/配对/代理循环链。 |
 
-**Use cases:** Listen-only group chats (only respond when tagged; buffer ambient messages into context); human handover (silent-ingest customer messages while owner handles the chat manually); per-profile rate limiting; policy-driven routing.
+**用例：** 仅监听群聊（仅在被提及时回复；将环境消息缓冲到上下文中）；人工接管（在所有者手动处理聊天时静默摄入客户消息）；每配置文件速率限制；策略驱动的路由。
 
-**Example — drop unauthorized DMs silently without triggering the pairing code:**
+**示例——静默拒绝未授权的 DM 而不触发配对代码：**
 
 ```python
 def deny_unauthorized_dms(event, **kwargs):
@@ -754,7 +754,7 @@ def register(ctx):
     ctx.register_hook("pre_gateway_dispatch", deny_unauthorized_dms)
 ```
 
-**Example — rewrite an ambient-message buffer into a single prompt on mention:**
+**示例——在提及时将环境消息缓冲重写为单个提示：**
 
 ```python
 _buffers = {}
@@ -775,52 +775,52 @@ def register(ctx):
 
 ---
 
-## Shell Hooks
+## Shell 钩子
 
-Declare shell-script hooks in your `cli-config.yaml` and Hermes will run them as subprocesses whenever the corresponding plugin-hook event fires — in both CLI and gateway sessions. No Python plugin authoring required.
+在你的 `cli-config.yaml` 中声明 shell 脚本钩子，Hermes 会在相应的插件钩子事件触发时将它们作为子进程运行——在 CLI 和网关会话中都是如此。无需 Python 插件编写。
 
-Use shell hooks when you want a drop-in, single-file script (Bash, Python, anything with a shebang) to:
+当你想要一个即用的单文件脚本（Bash、Python、任何带 shebang 的）来做以下事情时，使用 shell 钩子：
 
-- **Block a tool call** — reject dangerous `terminal` commands, enforce per-directory policies, require approval for destructive `write_file` / `patch` operations.
-- **Run after a tool call** — auto-format Python or TypeScript files that the agent just wrote, log API calls, trigger a CI workflow.
-- **Inject context into the next LLM turn** — prepend `git status` output, the current weekday, or retrieved documents to the user message (see [`pre_llm_call`](#pre_llm_call)).
-- **Observe lifecycle events** — write a log line when a subagent completes (`subagent_stop`) or a session starts (`on_session_start`).
+- **阻止工具调用** — 拒绝危险的 `terminal` 命令、强制执行每目录策略、要求审批破坏性的 `write_file` / `patch` 操作。
+- **工具调用后运行** — 自动格式化代理刚写的 Python 或 TypeScript 文件、记录 API 调用、触发 CI 工作流。
+- **向下一轮 LLM 注入上下文** — 向用户消息前置 `git status` 输出、当前星期几或检索的文档（参见 [`pre_llm_call`](#pre_llm_call)）。
+- **观察生命周期事件** — 子代理完成时（`subagent_stop`）或会话开始时（`on_session_start`）写入日志行。
 
-Shell hooks are registered by calling `agent.shell_hooks.register_from_config(cfg)` at both CLI startup (`hermes_cli/main.py`) and gateway startup (`gateway/run.py`). They compose naturally with Python plugin hooks — both flow through the same dispatcher.
+Shell 钩子通过在 CLI 启动（`hermes_cli/main.py`）和网关启动（`gateway/run.py`）时调用 `agent.shell_hooks.register_from_config(cfg)` 注册。它们与 Python 插件钩子自然组合——两者都通过同一个调度器流动。
 
-### Comparison at a glance
+### 对比一览
 
-| Dimension | Shell hooks | [Plugin hooks](#plugin-hooks) | [Gateway hooks](#gateway-event-hooks) |
-|-----------|-------------|-------------------------------|---------------------------------------|
-| Declared in | `hooks:` block in `~/.hermes/config.yaml` | `register()` in a `plugin.yaml` plugin | `HOOK.yaml` + `handler.py` directory |
-| Lives under | `~/.hermes/agent-hooks/` (by convention) | `~/.hermes/plugins/<name>/` | `~/.hermes/hooks/<name>/` |
-| Language | Any (Bash, Python, Go binary, …) | Python only | Python only |
-| Runs in | CLI + Gateway | CLI + Gateway | Gateway only |
-| Events | `VALID_HOOKS` (incl. `subagent_stop`) | `VALID_HOOKS` | Gateway lifecycle (`gateway:startup`, `agent:*`, `command:*`) |
-| Can block a tool call | Yes (`pre_tool_call`) | Yes (`pre_tool_call`) | No |
-| Can inject LLM context | Yes (`pre_llm_call`) | Yes (`pre_llm_call`) | No |
-| Consent | First-use prompt per `(event, command)` pair | Implicit (Python plugin trust) | Implicit (dir trust) |
-| Inter-process isolation | Yes (subprocess) | No (in-process) | No (in-process) |
+| 维度 | Shell 钩子 | [插件钩子](#插件钩子) | [网关钩子](#网关事件钩子) |
+|------|-----------|---------------------|------------------------|
+| 声明位置 | `~/.hermes/config.yaml` 中的 `hooks:` 块 | `plugin.yaml` 插件中的 `register()` | `HOOK.yaml` + `handler.py` 目录 |
+| 位于 | `~/.hermes/agent-hooks/`（按约定） | `~/.hermes/plugins/<name>/` | `~/.hermes/hooks/<name>/` |
+| 语言 | 任何（Bash、Python、Go 二进制、...） | 仅 Python | 仅 Python |
+| 运行环境 | CLI + 网关 | CLI + 网关 | 仅网关 |
+| 事件 | `VALID_HOOKS`（包括 `subagent_stop`） | `VALID_HOOKS` | 网关生命周期（`gateway:startup`、`agent:*`、`command:*`） |
+| 可以阻止工具调用 | 是（`pre_tool_call`） | 是（`pre_tool_call`） | 否 |
+| 可以注入 LLM 上下文 | 是（`pre_llm_call`） | 是（`pre_llm_call`） | 否 |
+| 同意 | 每 `(event, command)` 对首次使用提示 | 隐式（Python 插件信任） | 隐式（目录信任） |
+| 进程间隔离 | 是（子进程） | 否（进程内） | 否（进程内） |
 
-### Configuration schema
+### 配置模式
 
 ```yaml
 hooks:
-  <event_name>:                  # Must be in VALID_HOOKS
-    - matcher: "<regex>"         # Optional; used for pre/post_tool_call only
-      command: "<shell command>" # Required; runs via shlex.split, shell=False
-      timeout: <seconds>         # Optional; default 60, capped at 300
+  <event_name>:                  # 必须在 VALID_HOOKS 中
+    - matcher: "<regex>"         # 可选；仅用于 pre/post_tool_call
+      command: "<shell command>" # 必需；通过 shlex.split 运行，shell=False
+      timeout: <seconds>         # 可选；默认 60，上限 300
 
-hooks_auto_accept: false         # See "Consent model" below
+hooks_auto_accept: false         # 见下面的"同意模型"
 ```
 
-Event names must be one of the [plugin hook events](#plugin-hooks); typos produce a "Did you mean X?" warning and are skipped. Unknown keys inside a single entry are ignored; missing `command` is a skip-with-warning. `timeout > 300` is clamped with a warning.
+事件名称必须是[插件钩子事件](#插件钩子)之一；拼写错误会产生"Did you mean X?"警告并被跳过。单个条目内的未知键被忽略；缺少 `command` 是跳过带警告。`timeout > 300` 被限制并显示警告。
 
-### JSON wire protocol
+### JSON 线协议
 
-Each time the event fires, Hermes spawns a subprocess for every matching hook (matcher permitting), pipes a JSON payload to **stdin**, and reads **stdout** back as JSON.
+每次事件触发时，Hermes 为每个匹配的钩子（matcher 允许）生成子进程，通过 **stdin** 管道 JSON 载荷，并从 **stdout** 读回 JSON。
 
-**stdin — payload the script receives:**
+**stdin — 脚本接收的载荷：**
 
 ```json
 {
@@ -833,26 +833,26 @@ Each time the event fires, Hermes spawns a subprocess for every matching hook (m
 }
 ```
 
-`tool_name` and `tool_input` are `null` for non-tool events (`pre_llm_call`, `subagent_stop`, session lifecycle). The `extra` dict carries all event-specific kwargs (`user_message`, `conversation_history`, `child_role`, `duration_ms`, …). Unserialisable values are stringified rather than omitted.
+`tool_name` 和 `tool_input` 对非工具事件（`pre_llm_call`、`subagent_stop`、会话生命周期）为 `null`。`extra` 字典携带所有事件特定的 kwargs（`user_message`、`conversation_history`、`child_role`、`duration_ms`、...）。不可序列化的值被字符串化而非省略。
 
-**stdout — optional response:**
+**stdout — 可选响应：**
 
 ```jsonc
-// Block a pre_tool_call (both shapes accepted; normalised internally):
-{"decision": "block", "reason":  "Forbidden: rm -rf"}   // Claude-Code style
-{"action":   "block", "message": "Forbidden: rm -rf"}   // Hermes-canonical
+// 阻止 pre_tool_call（两种形状都接受；内部规范化）：
+{"decision": "block", "reason":  "Forbidden: rm -rf"}   // Claude-Code 风格
+{"action":   "block", "message": "Forbidden: rm -rf"}   // Hermes 规范
 
-// Inject context for pre_llm_call:
+// 为 pre_llm_call 注入上下文：
 {"context": "Today is Friday, 2026-04-17"}
 
-// Silent no-op — any empty / non-matching output is fine:
+// 静默空操作——任何空/不匹配的输出都可以：
 ```
 
-Malformed JSON, non-zero exit codes, and timeouts log a warning but never abort the agent loop.
+格式错误的 JSON、非零退出码和超时记录警告但永远不会中止代理循环。
 
-### Worked examples
+### 实际示例
 
-#### 1. Auto-format Python files after every write
+#### 1. 每次写入后自动格式化 Python 文件
 
 ```yaml
 # ~/.hermes/config.yaml
@@ -871,9 +871,9 @@ path=$(echo "$payload" | jq -r '.tool_input.path // empty')
 printf '{}\n'
 ```
 
-The agent's in-context view of the file is **not** re-read automatically — the reformat only affects the file on disk. Subsequent `read_file` calls pick up the formatted version.
+代理上下文中文件的视图**不会**自动重新读取——重新格式化仅影响磁盘上的文件。后续 `read_file` 调用获取格式化后的版本。
 
-#### 2. Block destructive `terminal` commands
+#### 2. 阻止破坏性 `terminal` 命令
 
 ```yaml
 hooks:
@@ -895,7 +895,7 @@ else
 fi
 ```
 
-#### 3. Inject `git status` into every turn (Claude-Code `UserPromptSubmit` equivalent)
+#### 3. 每轮注入 `git status`（Claude-Code `UserPromptSubmit` 等效）
 
 ```yaml
 hooks:
@@ -906,7 +906,7 @@ hooks:
 ```bash
 #!/usr/bin/env bash
 # ~/.hermes/agent-hooks/inject-cwd-context.sh
-cat - >/dev/null   # discard stdin payload
+cat - >/dev/null   # 丢弃 stdin 载荷
 if status=$(git status --porcelain 2>/dev/null) && [[ -n "$status" ]]; then
   jq --null-input --arg s "$status" \
      '{context: ("Uncommitted changes in cwd:\n" + $s)}'
@@ -915,9 +915,9 @@ else
 fi
 ```
 
-Claude Code's `UserPromptSubmit` event is intentionally not a separate Hermes event — `pre_llm_call` fires at the same place and already supports context injection. Use it here.
+Claude Code 的 `UserPromptSubmit` 事件有意不是单独的 Hermes 事件——`pre_llm_call` 在同一位置触发且已支持上下文注入。在此使用它。
 
-#### 4. Log every subagent completion
+#### 4. 记录每次子代理完成
 
 ```yaml
 hooks:
@@ -933,38 +933,38 @@ jq -c '{ts: now, parent: .session_id, extra: .extra}' < /dev/stdin >> "$log"
 printf '{}\n'
 ```
 
-### Consent model
+### 同意模型
 
-Each unique `(event, command)` pair prompts the user for approval the first time Hermes sees it, then persists the decision to `~/.hermes/shell-hooks-allowlist.json`. Subsequent runs (CLI or gateway) skip the prompt.
+每个唯一的 `(event, command)` 对在 Hermes 首次看到时提示用户批准，然后将决定持久化到 `~/.hermes/shell-hooks-allowlist.json`。后续运行（CLI 或网关）跳过提示。
 
-Three escape hatches bypass the interactive prompt — any one is sufficient:
+三个逃生舱绕过交互式提示——任何一个都足够：
 
-1. `--accept-hooks` flag on the CLI (e.g. `hermes --accept-hooks chat`)
-2. `HERMES_ACCEPT_HOOKS=1` environment variable
-3. `hooks_auto_accept: true` in `cli-config.yaml`
+1. CLI 上的 `--accept-hooks` 标志（例如 `hermes --accept-hooks chat`）
+2. `HERMES_ACCEPT_HOOKS=1` 环境变量
+3. `cli-config.yaml` 中的 `hooks_auto_accept: true`
 
-Non-TTY runs (gateway, cron, CI) need one of these three — otherwise any newly-added hook silently stays un-registered and logs a warning.
+非 TTY 运行（网关、cron、CI）需要这三个之一——否则任何新添加的钩子静默保持未注册并记录警告。
 
-**Script edits are silently trusted.** The allowlist keys on the exact command string, not the script's hash, so editing the script on disk does not invalidate consent. `hermes hooks doctor` flags mtime drift so you can spot edits and decide whether to re-approve.
+**脚本编辑被静默信任。** 允许列表以完全命令字符串为键，而非脚本的哈希，因此编辑磁盘上的脚本不会使同意失效。`hermes hooks doctor` 标记 mtime 漂移以便你可以发现编辑并决定是否重新批准。
 
-### The `hermes hooks` CLI
+### `hermes hooks` CLI
 
-| Command | What it does |
-|---------|--------------|
-| `hermes hooks list` | Dump configured hooks with matcher, timeout, and consent status |
-| `hermes hooks test <event> [--for-tool X] [--payload-file F]` | Fire every matching hook against a synthetic payload and print the parsed response |
-| `hermes hooks revoke <command>` | Remove every allowlist entry matching `<command>` (takes effect on next restart) |
-| `hermes hooks doctor` | For every configured hook: check exec bit, allowlist status, mtime drift, JSON output validity, and rough execution time |
+| 命令 | 功能 |
+|------|------|
+| `hermes hooks list` | 转储配置的钩子，包括 matcher、超时和同意状态 |
+| `hermes hooks test <event> [--for-tool X] [--payload-file F]` | 对合成载荷触发每个匹配的钩子并打印解析后的响应 |
+| `hermes hooks revoke <command>` | 移除匹配 `<command>` 的每个允许列表条目（下次重启生效） |
+| `hermes hooks doctor` | 对每个配置的钩子：检查执行位、允许列表状态、mtime 漂移、JSON 输出有效性和大致执行时间 |
 
-### Security
+### 安全
 
-Shell hooks run with **your full user credentials** — same trust boundary as a cron entry or a shell alias. Treat the `hooks:` block in `config.yaml` as privileged configuration:
+Shell 钩子以**你的完整用户凭据**运行——与 cron 条目或 shell 别名的信任边界相同。将 `config.yaml` 中的 `hooks:` 块视为特权配置：
 
-- Only reference scripts you wrote or fully reviewed.
-- Keep scripts inside `~/.hermes/agent-hooks/` so the path is easy to audit.
-- Re-run `hermes hooks doctor` after you pull a shared config to spot newly-added hooks before they register.
-- If your config.yaml is version-controlled across a team, review PRs that change the `hooks:` section the same way you'd review CI config.
+- 仅引用你编写或完全审查过的脚本。
+- 将脚本保持在 `~/.hermes/agent-hooks/` 内以便路径易于审计。
+- 拉取共享配置后重新运行 `hermes hooks doctor` 以在注册前发现新添加的钩子。
+- 如果你的 config.yaml 在团队间版本控制，审查更改 `hooks:` 部分的 PR 与审查 CI 配置的方式相同。
 
-### Ordering and precedence
+### 顺序和优先级
 
-Both Python plugin hooks and shell hooks flow through the same `invoke_hook()` dispatcher. Python plugins are registered first (`discover_and_load()`), shell hooks second (`register_from_config()`), so Python `pre_tool_call` block decisions take precedence in tie cases. The first valid block wins — the aggregator returns as soon as any callback produces `{"action": "block", "message": str}` with a non-empty message.
+Python 插件钩子和 shell 钩子都通过同一个 `invoke_hook()` 调度器流动。Python 插件先注册（`discover_and_load()`），shell 钩子后注册（`register_from_config()`），因此 Python `pre_tool_call` 阻止决定在平局情况下优先。第一个有效的阻止获胜——聚合器在任何回调产生 `{"action": "block", "message": str}` 且消息非空时立即返回。
