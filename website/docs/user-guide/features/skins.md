@@ -1,122 +1,122 @@
 ---
 sidebar_position: 10
-title: "Skins & Themes"
-description: "Customize the Hermes CLI with built-in and user-defined skins"
+title: "皮肤与主题"
+description: "使用内置和用户定义的皮肤自定义 Hermes CLI"
 ---
 
-# Skins & Themes
+# 皮肤与主题
 
-Skins control the **visual presentation** of the Hermes CLI: banner colors, spinner faces and verbs, response-box labels, branding text, and the tool activity prefix.
+皮肤控制 Hermes CLI 的**视觉呈现**：横幅颜色、旋转器面和动词、响应框标签、品牌文本和工具活动前缀。
 
-Conversational style and visual style are separate concepts:
+对话风格和视觉风格是分开的概念：
 
-- **Personality** changes the agent's tone and wording.
-- **Skin** changes the CLI's appearance.
+- **个性**改变代理的语气和措辞。
+- **皮肤**改变 CLI 的外观。
 
-## Change skins
+## 切换皮肤
 
 ```bash
-/skin                # show the current skin and list available skins
-/skin ares           # switch to a built-in skin
-/skin mytheme        # switch to a custom skin from ~/.hermes/skins/mytheme.yaml
+/skin                # 显示当前皮肤并列出可用皮肤
+/skin ares           # 切换到内置皮肤
+/skin mytheme        # 切换到 ~/.hermes/skins/mytheme.yaml 中的自定义皮肤
 ```
 
-Or set the default skin in `~/.hermes/config.yaml`:
+或在 `~/.hermes/config.yaml` 中设置默认皮肤：
 
 ```yaml
 display:
   skin: default
 ```
 
-## Built-in skins
+## 内置皮肤
 
-| Skin | Description | Agent branding | Visual character |
-|------|-------------|----------------|------------------|
-| `default` | Classic Hermes — gold and kawaii | `Hermes Agent` | Warm gold borders, cornsilk text, kawaii faces in spinners. The familiar caduceus banner. Clean and inviting. |
-| `ares` | War-god theme — crimson and bronze | `Ares Agent` | Deep crimson borders with bronze accents. Aggressive spinner verbs ("forging", "marching", "tempering steel"). Custom sword-and-shield ASCII art banner. |
-| `mono` | Monochrome — clean grayscale | `Hermes Agent` | All grays — no color. Borders are `#555555`, text is `#c9d1d9`. Ideal for minimal terminal setups or screen recordings. |
-| `slate` | Cool blue — developer-focused | `Hermes Agent` | Royal blue borders (`#4169e1`), soft blue text. Calm and professional. No custom spinner — uses default faces. |
-| `daylight` | Light theme for bright terminals with dark text and cool blue accents | `Hermes Agent` | Designed for white or bright terminals. Dark slate text with blue borders, pale status surfaces, and a light completion menu that stays readable in light terminal profiles. |
-| `warm-lightmode` | Warm brown/gold text for light terminal backgrounds | `Hermes Agent` | Warm parchment tones for light terminals. Dark brown text with saddle-brown accents, cream-colored status surfaces. An earthy alternative to the cooler daylight theme. |
-| `poseidon` | Ocean-god theme — deep blue and seafoam | `Poseidon Agent` | Deep blue to seafoam gradient. Ocean-themed spinners ("charting currents", "sounding the depth"). Trident ASCII art banner. |
-| `sisyphus` | Sisyphean theme — austere grayscale with persistence | `Sisyphus Agent` | Light grays with stark contrast. Boulder-themed spinners ("pushing uphill", "resetting the boulder", "enduring the loop"). Boulder-and-hill ASCII art banner. |
-| `charizard` | Volcanic theme — burnt orange and ember | `Charizard Agent` | Warm burnt orange to ember gradient. Fire-themed spinners ("banking into the draft", "measuring burn"). Dragon-silhouette ASCII art banner. |
+| 皮肤 | 描述 | 代理品牌 | 视觉特征 |
+|------|------|---------|---------|
+| `default` | 经典 Hermes — 金色和可爱风 | `Hermes Agent` | 温暖金色边框，玉米丝文本，旋转器中的可爱表情。熟悉的蛇杖横幅。干净且友好。 |
+| `ares` | 战神主题 — 深红和青铜 | `Ares Agent` | 深红色边框配青铜色点缀。激进的旋转器动词（"锻造"、"行军"、"淬炼钢铁"）。自定义剑与盾 ASCII 艺术横幅。 |
+| `mono` | 单色 — 干净的灰度 | `Hermes Agent` | 全灰色——无彩色。边框为 `#555555`，文本为 `#c9d1d9`。适合极简终端设置或屏幕录制。 |
+| `slate` | 冷蓝 — 开发者导向 | `Hermes Agent` | 宝蓝色边框（`#4169e1`），柔和蓝色文本。沉静专业。无自定义旋转器——使用默认表情。 |
+| `daylight` | 浅色主题，适合亮色终端，深色文本和冷蓝色点缀 | `Hermes Agent` | 为白色或亮色终端设计。深石板色文本配蓝色边框，淡色状态表面，浅色完成菜单在亮色终端配置中保持可读。 |
+| `warm-lightmode` | 温暖棕色/金色文本，适合浅色终端背景 | `Hermes Agent` | 浅色终端的温暖羊皮纸色调。深棕色文本配鞍棕色点缀，奶油色状态表面。比冷色调 daylight 主题更质朴的替代方案。 |
+| `poseidon` | 海神主题 — 深蓝和海泡绿 | `Poseidon Agent` | 深蓝到海泡绿渐变。海洋主题旋转器（"测绘洋流"、"探测深度"）。三叉戟 ASCII 艺术横幅。 |
+| `sisyphus` | 西西弗斯主题 — 朴素灰度带坚持感 | `Sisyphus Agent` | 浅灰色带鲜明对比。巨石主题旋转器（"推石上山"、"重置巨石"、"忍受循环"）。巨石与山坡 ASCII 艺术横幅。 |
+| `charizard` | 火山主题 — 焦橙和余烬 | `Charizard Agent` | 温暖焦橙到余烬渐变。火焰主题旋转器（"借力气流"、"测量燃烧"）。龙影 ASCII 艺术横幅。 |
 
-## Complete list of configurable keys
+## 可配置键完整列表
 
-### Colors (`colors:`)
+### 颜色（`colors:`）
 
-Controls all color values throughout the CLI. Values are hex color strings.
+控制 CLI 中所有颜色值。值为十六进制颜色字符串。
 
-| Key | Description | Default (`default` skin) |
-|-----|-------------|--------------------------|
-| `banner_border` | Panel border around the startup banner | `#CD7F32` (bronze) |
-| `banner_title` | Title text color in the banner | `#FFD700` (gold) |
-| `banner_accent` | Section headers in the banner (Available Tools, etc.) | `#FFBF00` (amber) |
-| `banner_dim` | Muted text in the banner (separators, secondary labels) | `#B8860B` (dark goldenrod) |
-| `banner_text` | Body text in the banner (tool names, skill names) | `#FFF8DC` (cornsilk) |
-| `ui_accent` | General UI accent color (highlights, active elements) | `#FFBF00` |
-| `ui_label` | UI labels and tags | `#4dd0e1` (teal) |
-| `ui_ok` | Success indicators (checkmarks, completion) | `#4caf50` (green) |
-| `ui_error` | Error indicators (failures, blocked) | `#ef5350` (red) |
-| `ui_warn` | Warning indicators (caution, approval prompts) | `#ffa726` (orange) |
-| `prompt` | Interactive prompt text color | `#FFF8DC` |
-| `input_rule` | Horizontal rule above the input area | `#CD7F32` |
-| `response_border` | Border around the agent's response box (ANSI escape) | `#FFD700` |
-| `session_label` | Session label color | `#DAA520` |
-| `session_border` | Session ID dim border color | `#8B8682` |
-| `status_bar_bg` | Background color for the TUI status / usage bar | `#1a1a2e` |
-| `voice_status_bg` | Background color for the voice-mode status badge | `#1a1a2e` |
-| `completion_menu_bg` | Background color for the completion menu list | `#1a1a2e` |
-| `completion_menu_current_bg` | Background color for the active completion row | `#333355` |
-| `completion_menu_meta_bg` | Background color for the completion meta column | `#1a1a2e` |
-| `completion_menu_meta_current_bg` | Background color for the active completion meta column | `#333355` |
+| 键 | 描述 | 默认值（`default` 皮肤） |
+|----|------|------------------------|
+| `banner_border` | 启动横幅周围的面板边框 | `#CD7F32`（青铜） |
+| `banner_title` | 横幅中的标题文本颜色 | `#FFD700`（金色） |
+| `banner_accent` | 横幅中的节标题（可用工具等） | `#FFBF00`（琥珀） |
+| `banner_dim` | 横幅中的弱化文本（分隔符、次要标签） | `#B8860B`（深金菊） |
+| `banner_text` | 横幅中的正文文本（工具名称、技能名称） | `#FFF8DC`（玉米丝） |
+| `ui_accent` | 通用 UI 强调色（高亮、活跃元素） | `#FFBF00` |
+| `ui_label` | UI 标签和标记 | `#4dd0e1`（青色） |
+| `ui_ok` | 成功指示器（复选标记、完成） | `#4caf50`（绿色） |
+| `ui_error` | 错误指示器（失败、阻止） | `#ef5350`（红色） |
+| `ui_warn` | 警告指示器（注意、审批提示） | `#ffa726`（橙色） |
+| `prompt` | 交互提示文本颜色 | `#FFF8DC` |
+| `input_rule` | 输入区域上方的水平线 | `#CD7F32` |
+| `response_border` | 代理响应框周围的边框（ANSI 转义） | `#FFD700` |
+| `session_label` | 会话标签颜色 | `#DAA520` |
+| `session_border` | 会话 ID 弱化边框颜色 | `#8B8682` |
+| `status_bar_bg` | TUI 状态/使用栏的背景色 | `#1a1a2e` |
+| `voice_status_bg` | 语音模式状态徽章的背景色 | `#1a1a2e` |
+| `completion_menu_bg` | 补全菜单列表的背景色 | `#1a1a2e` |
+| `completion_menu_current_bg` | 活跃补全行的背景色 | `#333355` |
+| `completion_menu_meta_bg` | 补全元数据列的背景色 | `#1a1a2e` |
+| `completion_menu_meta_current_bg` | 活跃补全元数据列的背景色 | `#333355` |
 
-### Spinner (`spinner:`)
+### 旋转器（`spinner:`）
 
-Controls the animated spinner shown while waiting for API responses.
+控制等待 API 响应时显示的动画旋转器。
 
-| Key | Type | Description | Example |
-|-----|------|-------------|---------|
-| `waiting_faces` | list of strings | Faces cycled while waiting for API response | `["(⚔)", "(⛨)", "(▲)"]` |
-| `thinking_faces` | list of strings | Faces cycled during model reasoning | `["(⚔)", "(⌁)", "(<>)"]` |
-| `thinking_verbs` | list of strings | Verbs shown in spinner messages | `["forging", "plotting", "hammering plans"]` |
-| `wings` | list of [left, right] pairs | Decorative brackets around the spinner | `[["⟪⚔", "⚔⟫"], ["⟪▲", "▲⟫"]]` |
+| 键 | 类型 | 描述 | 示例 |
+|----|------|------|------|
+| `waiting_faces` | 字符串列表 | 等待 API 响应时循环的表情 | `["(⚔)", "(⛨)", "(▲)"]` |
+| `thinking_faces` | 字符串列表 | 模型推理期间循环的表情 | `["(⚔)", "(⌁)", "(<>)"]` |
+| `thinking_verbs` | 字符串列表 | 旋转器消息中显示的动词 | `["forging", "plotting", "hammering plans"]` |
+| `wings` | [左, 右] 对列表 | 旋转器周围的装饰括号 | `[["⟪⚔", "⚔⟫"], ["⟪▲", "▲⟫"]]` |
 
-When spinner values are empty (like in `default` and `mono`), hardcoded defaults from `display.py` are used.
+当旋转器值为空时（如 `default` 和 `mono`），使用 `display.py` 中的硬编码默认值。
 
-### Branding (`branding:`)
+### 品牌（`branding:`）
 
-Text strings used throughout the CLI interface.
+CLI 界面中使用的文本字符串。
 
-| Key | Description | Default |
-|-----|-------------|---------|
-| `agent_name` | Name shown in banner title and status display | `Hermes Agent` |
-| `welcome` | Welcome message shown at CLI startup | `Welcome to Hermes Agent! Type your message or /help for commands.` |
-| `goodbye` | Message shown on exit | `Goodbye! ⚕` |
-| `response_label` | Label on the response box header | ` ⚕ Hermes ` |
-| `prompt_symbol` | Symbol before the user input prompt | `❯ ` |
-| `help_header` | Header text for the `/help` command output | `(^_^)? Available Commands` |
+| 键 | 描述 | 默认值 |
+|----|------|--------|
+| `agent_name` | 横幅标题和状态显示中显示的名称 | `Hermes Agent` |
+| `welcome` | CLI 启动时显示的欢迎消息 | `Welcome to Hermes Agent! Type your message or /help for commands.` |
+| `goodbye` | 退出时显示的消息 | `Goodbye! ⚕` |
+| `response_label` | 响应框标题上的标签 | ` ⚕ Hermes ` |
+| `prompt_symbol` | 用户输入提示前的符号 | `❯ ` |
+| `help_header` | `/help` 命令输出的标题文本 | `(^_^)? Available Commands` |
 
-### Other top-level keys
+### 其他顶级键
 
-| Key | Type | Description | Default |
-|-----|------|-------------|---------|
-| `tool_prefix` | string | Character prefixed to tool output lines in the CLI | `┊` |
-| `tool_emojis` | dict | Per-tool emoji overrides for spinners and progress (`{tool_name: emoji}`) | `{}` |
-| `banner_logo` | string | Rich-markup ASCII art logo (replaces the default HERMES_AGENT banner) | `""` |
-| `banner_hero` | string | Rich-markup hero art (replaces the default caduceus art) | `""` |
+| 键 | 类型 | 描述 | 默认值 |
+|----|------|------|--------|
+| `tool_prefix` | 字符串 | CLI 中工具输出行前缀的字符 | `┊` |
+| `tool_emojis` | 字典 | 每个工具的旋转器和进度表情覆盖（`{tool_name: emoji}`） | `{}` |
+| `banner_logo` | 字符串 | Rich 标记 ASCII 艺术标志（替换默认 HERMES_AGENT 横幅） | `""` |
+| `banner_hero` | 字符串 | Rich 标题艺术（替换默认蛇杖艺术） | `""` |
 
-## Custom skins
+## 自定义皮肤
 
-Create YAML files under `~/.hermes/skins/`. User skins inherit missing values from the built-in `default` skin, so you only need to specify the keys you want to change.
+在 `~/.hermes/skins/` 下创建 YAML 文件。用户皮肤从内置 `default` 皮肤继承缺失的值，因此你只需指定要更改的键。
 
-### Full custom skin YAML template
+### 完整自定义皮肤 YAML 模板
 
 ```yaml
 # ~/.hermes/skins/mytheme.yaml
-# Complete skin template — all keys shown. Delete any you don't need;
-# missing values automatically inherit from the 'default' skin.
+# 完整皮肤模板——显示所有键。删除不需要的；
+# 缺失值自动从 'default' 皮肤继承。
 
 name: mytheme
 description: My custom theme
@@ -172,22 +172,22 @@ branding:
 
 tool_prefix: "┊"
 
-# Per-tool emoji overrides (optional)
+# 每工具表情覆盖（可选）
 tool_emojis:
   terminal: "⚔"
   web_search: "🔮"
   read_file: "📄"
 
-# Custom ASCII art banners (optional, Rich markup supported)
+# 自定义 ASCII 艺术横幅（可选，支持 Rich 标记）
 # banner_logo: |
 #   [bold #FFD700] MY AGENT [/]
 # banner_hero: |
 #   [#FFD700]  Custom art here  [/]
 ```
 
-### Minimal custom skin example
+### 最小自定义皮肤示例
 
-Since everything inherits from `default`, a minimal skin only needs to change what's different:
+由于一切从 `default` 继承，最小皮肤只需更改不同的部分：
 
 ```yaml
 name: cyberpunk
@@ -210,35 +210,35 @@ branding:
 tool_prefix: "▏"
 ```
 
-## Hermes Mod — Visual Skin Editor
+## Hermes Mod — 可视皮肤编辑器
 
-[Hermes Mod](https://github.com/cocktailpeanut/hermes-mod) is a community-built web UI for creating and managing skins visually. Instead of writing YAML by hand, you get a point-and-click editor with live preview.
+[Hermes Mod](https://github.com/cocktailpeanut/hermes-mod) 是一个社区构建的 Web UI，用于可视化创建和管理皮肤。你无需手动编写 YAML，而是获得一个带实时预览的点击编辑器。
 
-![Hermes Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/hermes-mod/master/nous.png)
+![Hermes Mod 皮肤编辑器](https://raw.githubusercontent.com/cocktailpeanut/hermes-mod/master/nous.png)
 
-**What it does:**
+**功能：**
 
-- Lists all built-in and custom skins
-- Opens any skin into a visual editor with all Hermes skin fields (colors, spinner, branding, tool prefix, tool emojis)
-- Generates `banner_logo` text art from a text prompt
-- Converts uploaded images (PNG, JPG, GIF, WEBP) into `banner_hero` ASCII art with multiple render styles (braille, ASCII ramp, blocks, dots)
-- Saves directly to `~/.hermes/skins/`
-- Activates a skin by updating `~/.hermes/config.yaml`
-- Shows the generated YAML and a live preview
+- 列出所有内置和自定义皮肤
+- 将任何皮肤打开到可视化编辑器中，包含所有 Hermes 皮肤字段（颜色、旋转器、品牌、工具前缀、工具表情）
+- 从文本提示生成 `banner_logo` 文本艺术
+- 将上传的图像（PNG、JPG、GIF、WEBP）转换为 `banner_hero` ASCII 艺术，支持多种渲染风格（盲文、ASCII 渐变、块、点）
+- 直接保存到 `~/.hermes/skins/`
+- 通过更新 `~/.hermes/config.yaml` 激活皮肤
+- 显示生成的 YAML 和实时预览
 
-### Install
+### 安装
 
-**Option 1 — Pinokio (1-click):**
+**选项 1 — Pinokio（一键）：**
 
-Find it on [pinokio.computer](https://pinokio.computer) and install with one click.
+在 [pinokio.computer](https://pinokio.computer) 上找到它并一键安装。
 
-**Option 2 — npx (quickest from terminal):**
+**选项 2 — npx（终端最快方式）：**
 
 ```bash
 npx -y hermes-mod
 ```
 
-**Option 3 — Manual:**
+**选项 3 — 手动：**
 
 ```bash
 git clone https://github.com/cocktailpeanut/hermes-mod.git
@@ -247,23 +247,23 @@ npm install
 npm start
 ```
 
-### Usage
+### 使用
 
-1. Start the app (via Pinokio or terminal).
-2. Open **Skin Studio**.
-3. Choose a built-in or custom skin to edit.
-4. Generate a logo from text and/or upload an image for hero art. Pick a render style and width.
-5. Edit colors, spinner, branding, and other fields.
-6. Click **Save** to write the skin YAML to `~/.hermes/skins/`.
-7. Click **Activate** to set it as the current skin (updates `display.skin` in `config.yaml`).
+1. 启动应用（通过 Pinokio 或终端）。
+2. 打开 **Skin Studio**。
+3. 选择要编辑的内置或自定义皮肤。
+4. 从文本生成标志和/或上传图像用于标题艺术。选择渲染风格和宽度。
+5. 编辑颜色、旋转器、品牌和其他字段。
+6. 点击 **Save** 将皮肤 YAML 写入 `~/.hermes/skins/`。
+7. 点击 **Activate** 将其设置为当前皮肤（更新 `config.yaml` 中的 `display.skin`）。
 
-Hermes Mod respects the `HERMES_HOME` environment variable, so it works with [profiles](/docs/user-guide/profiles) too.
+Hermes Mod 尊重 `HERMES_HOME` 环境变量，因此也适用于[配置文件](/docs/user-guide/profiles)。
 
-## Operational notes
+## 操作说明
 
-- Built-in skins load from `hermes_cli/skin_engine.py`.
-- Unknown skins automatically fall back to `default`.
-- `/skin` updates the active CLI theme immediately for the current session.
-- User skins in `~/.hermes/skins/` take precedence over built-in skins with the same name.
-- Skin changes via `/skin` are session-only. To make a skin your permanent default, set it in `config.yaml`.
-- The `banner_logo` and `banner_hero` fields support Rich console markup (e.g., `[bold #FF0000]text[/]`) for colored ASCII art.
+- 内置皮肤从 `hermes_cli/skin_engine.py` 加载。
+- 未知皮肤自动回退到 `default`。
+- `/skin` 立即更新当前会话的活跃 CLI 主题。
+- `~/.hermes/skins/` 中的用户皮肤优先于同名的内置皮肤。
+- 通过 `/skin` 的皮肤更改仅限当前会话。要使皮肤成为永久默认，请在 `config.yaml` 中设置。
+- `banner_logo` 和 `banner_hero` 字段支持 Rich 控制台标记（例如 `[bold #FF0000]text[/]`）用于彩色 ASCII 艺术。

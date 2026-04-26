@@ -1,347 +1,347 @@
 ---
 sidebar_position: 15
-title: "Web Dashboard"
-description: "Browser-based dashboard for managing configuration, API keys, sessions, logs, analytics, cron jobs, and skills"
+title: "Web 仪表板"
+description: "基于浏览器的仪表板，用于管理配置、API 密钥、会话、日志、分析、定时任务和技能"
 ---
 
-# Web Dashboard
+# Web 仪表板
 
-The web dashboard is a browser-based UI for managing your Hermes Agent installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
+Web 仪表板是基于浏览器的 UI，用于管理你的 Hermes Agent 安装。你无需编辑 YAML 文件或运行 CLI 命令，而是可以从干净的 Web 界面配置设置、管理 API 密钥和监控会话。
 
-## Quick Start
+## 快速开始
 
 ```bash
 hermes dashboard
 ```
 
-This starts a local web server and opens `http://127.0.0.1:9119` in your browser. The dashboard runs entirely on your machine — no data leaves localhost.
+这会启动本地 Web 服务器并在浏览器中打开 `http://127.0.0.1:9119`。仪表板完全在你的机器上运行 —— 没有数据离开 localhost。
 
-### Options
+### 选项
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--port` | `9119` | Port to run the web server on |
-| `--host` | `127.0.0.1` | Bind address |
-| `--no-open` | — | Don't auto-open the browser |
+| 标志 | 默认值 | 描述 |
+|------|--------|------|
+| `--port` | `9119` | 运行 Web 服务器的端口 |
+| `--host` | `127.0.0.1` | 绑定地址 |
+| `--no-open` | — | 不自动打开浏览器 |
 
 ```bash
-# Custom port
+# 自定义端口
 hermes dashboard --port 8080
 
-# Bind to all interfaces (use with caution on shared networks)
+# 绑定到所有接口（在共享网络上谨慎使用）
 hermes dashboard --host 0.0.0.0
 
-# Start without opening browser
+# 启动但不打开浏览器
 hermes dashboard --no-open
 ```
 
-## Prerequisites
+## 前提条件
 
-The default `hermes-agent` install does not ship the HTTP stack or PTY helper — those are optional extras. The **web dashboard** needs FastAPI and Uvicorn (`web` extra). The **Chat** tab also needs `ptyprocess` to spawn the embedded TUI behind a pseudo-terminal (`pty` extra on POSIX). Install both with:
+默认 `hermes-agent` 安装不附带 HTTP 栈或 PTY 辅助程序 —— 这些是可选的额外组件。**Web 仪表板**需要 FastAPI 和 Uvicorn（`web` 扩展）。**Chat** 标签还需要 `ptyprocess` 在伪终端后生成嵌入式 TUI（POSIX 上的 `pty` 扩展）。使用以下命令安装两者：
 
 ```bash
 pip install 'hermes-agent[web,pty]'
 ```
 
-The `web` extra pulls in FastAPI/Uvicorn; `pty` pulls in `ptyprocess` (POSIX) or `pywinpty` (native Windows — note that the embedded TUI itself still requires WSL). `pip install hermes-agent[all]` includes both extras and is the easiest path if you also want messaging/voice/etc.
+`web` 扩展拉取 FastAPI/Uvicorn；`pty` 拉取 `ptyprocess`（POSIX）或 `pywinpty`（原生 Windows —— 注意嵌入式 TUI 本身仍需要 WSL）。`pip install hermes-agent[all]` 包含两个扩展，如果你还想要消息/语音等功能，这是最简单的路径。
 
-When you run `hermes dashboard` without the dependencies, it will tell you what to install. If the frontend hasn't been built yet and `npm` is available, it builds automatically on first launch.
+当你在没有依赖的情况下运行 `hermes dashboard` 时，它会告诉你需要安装什么。如果前端尚未构建且 `npm` 可用，首次启动时会自动构建。
 
-## Pages
+## 页面
 
-### Status
+### 状态
 
-The landing page shows a live overview of your installation:
+着陆页显示你安装的实时概览：
 
-- **Agent version** and release date
-- **Gateway status** — running/stopped, PID, connected platforms and their state
-- **Active sessions** — count of sessions active in the last 5 minutes
-- **Recent sessions** — list of the 20 most recent sessions with model, message count, token usage, and a preview of the conversation
+- **代理版本**和发布日期
+- **网关状态** —— 运行中/已停止、PID、已连接平台及其状态
+- **活跃会话** —— 过去 5 分钟内活跃的会话数
+- **最近会话** —— 20 个最近会话的列表，包含模型、消息数、令牌使用和对话预览
 
-The status page auto-refreshes every 5 seconds.
+状态页每 5 秒自动刷新。
 
-### Chat
+### 聊天
 
-The **Chat** tab embeds the full Hermes TUI (the same interface you get from `hermes --tui`) directly in the browser. Everything you can do in the terminal TUI — slash commands, model picker, tool-call cards, markdown streaming, clarify/sudo/approval prompts, skin theming — works identically here, because the dashboard is running the real TUI binary and rendering its ANSI output through [xterm.js](https://xtermjs.org/) with its WebGL renderer for pixel-perfect cell layout.
+**Chat** 标签将完整的 Hermes TUI（与 `hermes --tui` 相同的界面）直接嵌入浏览器中。你在终端 TUI 中能做的一切 —— 斜杠命令、模型选择器、工具调用卡片、markdown 流式传输、clarify/sudo/approval 提示、皮肤主题 —— 在这里完全相同地工作，因为仪表板运行的是真实的 TUI 二进制文件，并通过 [xterm.js](https://xtermjs.org/) 及其 WebGL 渲染器渲染其 ANSI 输出以实现像素完美的单元格布局。
 
-**How it works:**
+**工作原理：**
 
-- `/api/pty` opens a WebSocket authenticated with the dashboard's session token
-- The server spawns `hermes --tui` behind a POSIX pseudo-terminal
-- Keystrokes travel to the PTY; ANSI output streams back to the browser
-- xterm.js's WebGL renderer paints each cell to an integer-pixel grid; mouse tracking (SGR 1006), wide characters (Unicode 11), and box-drawing glyphs all render natively
-- Resizing the browser window resizes the TUI via the `@xterm/addon-fit` addon
+- `/api/pty` 打开一个用仪表板会话令牌认证的 WebSocket
+- 服务器在 POSIX 伪终端后生成 `hermes --tui`
+- 按键传输到 PTY；ANSI 输出流回浏览器
+- xterm.js 的 WebGL 渲染器将每个单元格绘制到整数像素网格上；鼠标跟踪（SGR 1006）、宽字符（Unicode 11）和制表符字形都原生渲染
+- 调整浏览器窗口大小会通过 `@xterm/addon-fit` 插件调整 TUI 大小
 
-**Resume an existing session:** from the **Sessions** tab, click the play icon (▶) next to any session. That jumps to `/chat?resume=<id>` and launches the TUI with `--resume`, loading the full history.
+**恢复现有会话：** 从 **Sessions** 标签，点击任何会话旁的播放图标（▶）。这会跳转到 `/chat?resume=<id>` 并使用 `--resume` 启动 TUI，加载完整历史。
 
-**Prerequisites:**
+**前提条件：**
 
-- Node.js (same requirement as `hermes --tui`; the TUI bundle is built on first launch)
-- `ptyprocess` — installed by the `pty` extra (`pip install 'hermes-agent[web,pty]'`, or `[all]` covers both)
-- POSIX kernel (Linux, macOS, or WSL). Native Windows Python is not supported — use WSL.
+- Node.js（与 `hermes --tui` 相同的要求；TUI 包在首次启动时构建）
+- `ptyprocess` —— 由 `pty` 扩展安装（`pip install 'hermes-agent[web,pty]'`，或 `[all]` 包含两者）
+- POSIX 内核（Linux、macOS 或 WSL）。不支持原生 Windows Python —— 使用 WSL。
 
-Close the browser tab and the PTY is reaped cleanly on the server. Re-opening spawns a fresh session.
+关闭浏览器标签后，服务器上的 PTY 会干净地回收。重新打开会生成新的会话。
 
-### Config
+### 配置
 
-A form-based editor for `config.yaml`. All 150+ configuration fields are auto-discovered from `DEFAULT_CONFIG` and organized into tabbed categories:
+`config.yaml` 的基于表单的编辑器。所有 150+ 个配置字段从 `DEFAULT_CONFIG` 自动发现并组织到分类标签中：
 
-- **model** — default model, provider, base URL, reasoning settings
-- **terminal** — backend (local/docker/ssh/modal), timeout, shell preferences
-- **display** — skin, tool progress, resume display, spinner settings
-- **agent** — max iterations, gateway timeout, service tier
-- **delegation** — subagent limits, reasoning effort
-- **memory** — provider selection, context injection settings
-- **approvals** — dangerous command approval mode (ask/yolo/deny)
-- And more — every section of config.yaml has corresponding form fields
+- **model** —— 默认模型、提供商、基础 URL、推理设置
+- **terminal** —— 后端（local/docker/ssh/modal）、超时、shell 偏好
+- **display** —— 皮肤、工具进度、恢复显示、旋转器设置
+- **agent** —— 最大迭代、网关超时、服务层
+- **delegation** —— 子代理限制、推理努力
+- **memory** —— 提供商选择、上下文注入设置
+- **approvals** —— 危险命令审批模式（ask/yolo/deny）
+- 以及更多 —— config.yaml 的每个部分都有对应的表单字段
 
-Fields with known valid values (terminal backend, skin, approval mode, etc.) render as dropdowns. Booleans render as toggles. Everything else is a text input.
+具有已知有效值的字段（终端后端、皮肤、审批模式等）渲染为下拉菜单。布尔值渲染为开关。其他一切都是文本输入。
 
-**Actions:**
+**操作：**
 
-- **Save** — writes changes to `config.yaml` immediately
-- **Reset to defaults** — reverts all fields to their default values (doesn't save until you click Save)
-- **Export** — downloads the current config as JSON
-- **Import** — uploads a JSON config file to replace the current values
+- **保存** —— 立即将更改写入 `config.yaml`
+- **重置为默认值** —— 将所有字段恢复为默认值（在你点击保存之前不保存）
+- **导出** —— 将当前配置下载为 JSON
+- **导入** —— 上传 JSON 配置文件以替换当前值
 
 :::tip
-Config changes take effect on the next agent session or gateway restart. The web dashboard edits the same `config.yaml` file that `hermes config set` and the gateway read from.
+配置更改在下一个代理会话或网关重启时生效。Web 仪表板编辑的是与 `hermes config set` 和网关读取的相同的 `config.yaml` 文件。
 :::
 
-### API Keys
+### API 密钥
 
-Manage the `.env` file where API keys and credentials are stored. Keys are grouped by category:
+管理存储 API 密钥和凭据的 `.env` 文件。密钥按类别分组：
 
-- **LLM Providers** — OpenRouter, Anthropic, OpenAI, DeepSeek, etc.
-- **Tool API Keys** — Browserbase, Firecrawl, Tavily, ElevenLabs, etc.
-- **Messaging Platforms** — Telegram, Discord, Slack bot tokens, etc.
-- **Agent Settings** — non-secret env vars like `API_SERVER_ENABLED`
+- **LLM 提供商** —— OpenRouter、Anthropic、OpenAI、DeepSeek 等
+- **工具 API 密钥** —— Browserbase、Firecrawl、Tavily、ElevenLabs 等
+- **消息平台** —— Telegram、Discord、Slack 机器人令牌等
+- **代理设置** —— 非机密环境变量如 `API_SERVER_ENABLED`
 
-Each key shows:
-- Whether it's currently set (with a redacted preview of the value)
-- A description of what it's for
-- A link to the provider's signup/key page
-- An input field to set or update the value
-- A delete button to remove it
+每个密钥显示：
+- 是否当前已设置（带值的编辑预览）
+- 用途描述
+- 提供商注册/密钥页面链接
+- 设置或更新值的输入字段
+- 删除按钮
 
-Advanced/rarely-used keys are hidden by default behind a toggle.
+高级/不常用的密钥默认隐藏在开关后面。
 
-### Sessions
+### 会话
 
-Browse and inspect all agent sessions. Each row shows the session title, source platform icon (CLI, Telegram, Discord, Slack, cron), model name, message count, tool call count, and how long ago it was active. Live sessions are marked with a pulsing badge.
+浏览和检查所有代理会话。每行显示会话标题、来源平台图标（CLI、Telegram、Discord、Slack、cron）、模型名称、消息数、工具调用数以及多久前活跃。实时会话用脉冲徽章标记。
 
-- **Search** — full-text search across all message content using FTS5. Results show highlighted snippets and auto-scroll to the first matching message when expanded.
-- **Expand** — click a session to load its full message history. Messages are color-coded by role (user, assistant, system, tool) and rendered as Markdown with syntax highlighting.
-- **Tool calls** — assistant messages with tool calls show collapsible blocks with the function name and JSON arguments.
-- **Delete** — remove a session and its message history with the trash icon.
+- **搜索** —— 使用 FTS5 跨所有消息内容进行全文搜索。结果显示高亮片段，展开时自动滚动到第一条匹配消息。
+- **展开** —— 点击会话加载其完整消息历史。消息按角色（用户、助手、系统、工具）颜色编码并渲染为带语法高亮的 Markdown。
+- **工具调用** —— 带工具调用的助手消息显示可折叠的函数名称和 JSON 参数块。
+- **删除** —— 使用垃圾桶图标删除会话及其消息历史。
 
-### Logs
+### 日志
 
-View agent, gateway, and error log files with filtering and live tailing.
+查看代理、网关和错误日志文件，支持过滤和实时跟踪。
 
-- **File** — switch between `agent`, `errors`, and `gateway` log files
-- **Level** — filter by log level: ALL, DEBUG, INFO, WARNING, or ERROR
-- **Component** — filter by source component: all, gateway, agent, tools, cli, or cron
-- **Lines** — choose how many lines to display (50, 100, 200, or 500)
-- **Auto-refresh** — toggle live tailing that polls for new log lines every 5 seconds
-- **Color-coded** — log lines are colored by severity (red for errors, yellow for warnings, dim for debug)
+- **文件** —— 在 `agent`、`errors` 和 `gateway` 日志文件间切换
+- **级别** —— 按日志级别过滤：ALL、DEBUG、INFO、WARNING 或 ERROR
+- **组件** —— 按来源组件过滤：all、gateway、agent、tools、cli 或 cron
+- **行数** —— 选择显示多少行（50、100、200 或 500）
+- **自动刷新** —— 切换实时跟踪，每 5 秒轮询新日志行
+- **颜色编码** —— 日志行按严重性着色（错误为红色，警告为黄色，调试为灰色）
 
-### Analytics
+### 分析
 
-Usage and cost analytics computed from session history. Select a time period (7, 30, or 90 days) to see:
+从会话历史计算的使用和成本分析。选择时间段（7、30 或 90 天）查看：
 
-- **Summary cards** — total tokens (input/output), cache hit percentage, total estimated or actual cost, and total session count with daily average
-- **Daily token chart** — stacked bar chart showing input and output token usage per day, with hover tooltips showing breakdowns and cost
-- **Daily breakdown table** — date, session count, input tokens, output tokens, cache hit rate, and cost for each day
-- **Per-model breakdown** — table showing each model used, its session count, token usage, and estimated cost
+- **摘要卡片** —— 总令牌数（输入/输出）、缓存命中百分比、总估算或实际成本以及总会话数和日平均
+- **每日令牌图表** —— 堆叠条形图显示每天的输入和输出令牌使用，悬停工具提示显示细分和成本
+- **每日细分表** —— 日期、会话数、输入令牌、输出令牌、缓存命中率和每天的成本
+- **每模型细分** —— 显示每个使用的模型、其会话数、令牌使用和估算成本的表
 
-### Cron
+### 定时任务
 
-Create and manage scheduled cron jobs that run agent prompts on a recurring schedule.
+创建和管理按重复计划运行代理提示的定时任务。
 
-- **Create** — fill in a name (optional), prompt, cron expression (e.g. `0 9 * * *`), and delivery target (local, Telegram, Discord, Slack, or email)
-- **Job list** — each job shows its name, prompt preview, schedule expression, state badge (enabled/paused/error), delivery target, last run time, and next run time
-- **Pause / Resume** — toggle a job between active and paused states
-- **Trigger now** — immediately execute a job outside its normal schedule
-- **Delete** — permanently remove a cron job
+- **创建** —— 填写名称（可选）、提示、cron 表达式（例如 `0 9 * * *`）和投递目标（本地、Telegram、Discord、Slack 或 email）
+- **任务列表** —— 每个任务显示其名称、提示预览、计划表达式、状态徽章（enabled/paused/error）、投递目标、上次运行时间和下次运行时间
+- **暂停/恢复** —— 在活跃和暂停状态间切换任务
+- **立即触发** —— 在正常计划外立即执行任务
+- **删除** —— 永久删除定时任务
 
-### Skills
+### 技能
 
-Browse, search, and toggle skills and toolsets. Skills are loaded from `~/.hermes/skills/` and grouped by category.
+浏览、搜索和切换技能及工具集。技能从 `~/.hermes/skills/` 加载并按类别分组。
 
-- **Search** — filter skills and toolsets by name, description, or category
-- **Category filter** — click category pills to narrow the list (e.g. MLOps, MCP, Red Teaming, AI)
-- **Toggle** — enable or disable individual skills with a switch. Changes take effect on the next session.
-- **Toolsets** — a separate section shows built-in toolsets (file operations, web browsing, etc.) with their active/inactive status, setup requirements, and list of included tools
+- **搜索** —— 按名称、描述或类别过滤技能和工具集
+- **类别过滤** —— 点击类别药丸缩小列表（例如 MLOps、MCP、Red Teaming、AI）
+- **切换** —— 使用开关启用或禁用单个技能。更改在下一个会话时生效。
+- **工具集** —— 单独的部分显示内置工具集（文件操作、Web 浏览等）及其活跃/非活跃状态、设置要求和包含的工具列表
 
-:::warning Security
-The web dashboard reads and writes your `.env` file, which contains API keys and secrets. It binds to `127.0.0.1` by default — only accessible from your local machine. If you bind to `0.0.0.0`, anyone on your network can view and modify your credentials. The dashboard has no authentication of its own.
+:::warning 安全
+Web 仪表板读写你的 `.env` 文件，其中包含 API 密钥和机密。它默认绑定到 `127.0.0.1` —— 仅可从你的本地机器访问。如果你绑定到 `0.0.0.0`，网络上的任何人都可以查看和修改你的凭据。仪表板本身没有认证。
 :::
 
-## `/reload` Slash Command
+## `/reload` 斜杠命令
 
-The dashboard PR also adds a `/reload` slash command to the interactive CLI. After changing API keys via the web dashboard (or by editing `.env` directly), use `/reload` in an active CLI session to pick up the changes without restarting:
+仪表板 PR 还向交互式 CLI 添加了 `/reload` 斜杠命令。通过 Web 仪表板（或直接编辑 `.env`）更改 API 密钥后，在活跃的 CLI 会话中使用 `/reload` 无需重启即可获取更改：
 
 ```
 You → /reload
   Reloaded .env (3 var(s) updated)
 ```
 
-This re-reads `~/.hermes/.env` into the running process's environment. Useful when you've added a new provider key via the dashboard and want to use it immediately.
+这会将 `~/.hermes/.env` 重新读入运行进程的环境。当你通过仪表板添加了新的提供商密钥并想立即使用时很有用。
 
 ## REST API
 
-The web dashboard exposes a REST API that the frontend consumes. You can also call these endpoints directly for automation:
+Web 仪表板暴露前端消费的 REST API。你也可以直接调用这些端点进行自动化：
 
 ### GET /api/status
 
-Returns agent version, gateway status, platform states, and active session count.
+返回代理版本、网关状态、平台状态和活跃会话数。
 
 ### GET /api/sessions
 
-Returns the 20 most recent sessions with metadata (model, token counts, timestamps, preview).
+返回 20 个最近会话及其元数据（模型、令牌数、时间戳、预览）。
 
 ### GET /api/config
 
-Returns the current `config.yaml` contents as JSON.
+返回当前 `config.yaml` 内容的 JSON 格式。
 
 ### GET /api/config/defaults
 
-Returns the default configuration values.
+返回默认配置值。
 
 ### GET /api/config/schema
 
-Returns a schema describing every config field — type, description, category, and select options where applicable. The frontend uses this to render the correct input widget for each field.
+返回描述每个配置字段的 schema —— 类型、描述、类别和适用时的选择选项。前端使用此为每个字段渲染正确的输入控件。
 
 ### PUT /api/config
 
-Saves a new configuration. Body: `{"config": {...}}`.
+保存新配置。Body：`{"config": {...}}`。
 
 ### GET /api/env
 
-Returns all known environment variables with their set/unset status, redacted values, descriptions, and categories.
+返回所有已知环境变量及其设置/未设置状态、编辑后的值、描述和类别。
 
 ### PUT /api/env
 
-Sets an environment variable. Body: `{"key": "VAR_NAME", "value": "secret"}`.
+设置环境变量。Body：`{"key": "VAR_NAME", "value": "secret"}`。
 
 ### DELETE /api/env
 
-Removes an environment variable. Body: `{"key": "VAR_NAME"}`.
+删除环境变量。Body：`{"key": "VAR_NAME"}`。
 
 ### GET /api/sessions/\{session_id\}
 
-Returns metadata for a single session.
+返回单个会话的元数据。
 
 ### GET /api/sessions/\{session_id\}/messages
 
-Returns the full message history for a session, including tool calls and timestamps.
+返回会话的完整消息历史，包括工具调用和时间戳。
 
 ### GET /api/sessions/search
 
-Full-text search across message content. Query parameter: `q`. Returns matching session IDs with highlighted snippets.
+跨消息内容的全文搜索。查询参数：`q`。返回匹配的会话 ID 和高亮片段。
 
 ### DELETE /api/sessions/\{session_id\}
 
-Deletes a session and its message history.
+删除会话及其消息历史。
 
 ### GET /api/logs
 
-Returns log lines. Query parameters: `file` (agent/errors/gateway), `lines` (count), `level`, `component`.
+返回日志行。查询参数：`file`（agent/errors/gateway）、`lines`（行数）、`level`、`component`。
 
 ### GET /api/analytics/usage
 
-Returns token usage, cost, and session analytics. Query parameter: `days` (default 30). Response includes daily breakdowns and per-model aggregates.
+返回令牌使用、成本和会话分析。查询参数：`days`（默认 30）。响应包括每日细分和每模型汇总。
 
 ### GET /api/cron/jobs
 
-Returns all configured cron jobs with their state, schedule, and run history.
+返回所有配置的定时任务及其状态、计划和运行历史。
 
 ### POST /api/cron/jobs
 
-Creates a new cron job. Body: `{"prompt": "...", "schedule": "0 9 * * *", "name": "...", "deliver": "local"}`.
+创建新的定时任务。Body：`{"prompt": "...", "schedule": "0 9 * * *", "name": "...", "deliver": "local"}`。
 
 ### POST /api/cron/jobs/\{job_id\}/pause
 
-Pauses a cron job.
+暂停定时任务。
 
 ### POST /api/cron/jobs/\{job_id\}/resume
 
-Resumes a paused cron job.
+恢复已暂停的定时任务。
 
 ### POST /api/cron/jobs/\{job_id\}/trigger
 
-Immediately triggers a cron job outside its schedule.
+在计划外立即触发定时任务。
 
 ### DELETE /api/cron/jobs/\{job_id\}
 
-Deletes a cron job.
+删除定时任务。
 
 ### GET /api/skills
 
-Returns all skills with their name, description, category, and enabled status.
+返回所有技能及其名称、描述、类别和启用状态。
 
 ### PUT /api/skills/toggle
 
-Enables or disables a skill. Body: `{"name": "skill-name", "enabled": true}`.
+启用或禁用技能。Body：`{"name": "skill-name", "enabled": true}`。
 
 ### GET /api/tools/toolsets
 
-Returns all toolsets with their label, description, tools list, and active/configured status.
+返回所有工具集及其标签、描述、工具列表和活跃/已配置状态。
 
 ## CORS
 
-The web server restricts CORS to localhost origins only:
+Web 服务器将 CORS 限制为仅 localhost 来源：
 
-- `http://localhost:9119` / `http://127.0.0.1:9119` (production)
+- `http://localhost:9119` / `http://127.0.0.1:9119`（生产）
 - `http://localhost:3000` / `http://127.0.0.1:3000`
-- `http://localhost:5173` / `http://127.0.0.1:5173` (Vite dev server)
+- `http://localhost:5173` / `http://127.0.0.1:5173`（Vite 开发服务器）
 
-If you run the server on a custom port, that origin is added automatically.
+如果你在自定义端口上运行服务器，该来源会自动添加。
 
-## Development
+## 开发
 
-If you're contributing to the web dashboard frontend:
+如果你在为 Web 仪表板前端贡献代码：
 
 ```bash
-# Terminal 1: start the backend API
+# 终端 1：启动后端 API
 hermes dashboard --no-open
 
-# Terminal 2: start the Vite dev server with HMR
+# 终端 2：启动带 HMR 的 Vite 开发服务器
 cd web/
 npm install
 npm run dev
 ```
 
-The Vite dev server at `http://localhost:5173` proxies `/api` requests to the FastAPI backend at `http://127.0.0.1:9119`.
+Vite 开发服务器在 `http://localhost:5173` 将 `/api` 请求代理到 FastAPI 后端 `http://127.0.0.1:9119`。
 
-The frontend is built with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui-style components. Production builds output to `hermes_cli/web_dist/` which the FastAPI server serves as a static SPA.
+前端使用 React 19、TypeScript、Tailwind CSS v4 和 shadcn/ui 风格组件构建。生产构建输出到 `hermes_cli/web_dist/`，FastAPI 服务器将其作为静态 SPA 提供。
 
-## Automatic Build on Update
+## 更新时自动构建
 
-When you run `hermes update`, the web frontend is automatically rebuilt if `npm` is available. This keeps the dashboard in sync with code updates. If `npm` isn't installed, the update skips the frontend build and `hermes dashboard` will build it on first launch.
+运行 `hermes update` 时，如果 `npm` 可用，Web 前端会自动重建。这使仪表板与代码更新保持同步。如果未安装 `npm`，更新会跳过前端构建，`hermes dashboard` 将在首次启动时构建。
 
-## Themes & plugins
+## 主题和插件
 
-The dashboard ships with six built-in themes and can be extended with user-defined themes, plugin tabs, and backend API routes — all drop-in, no repo clone needed.
+仪表板附带六个内置主题，并可通过用户定义的主题、插件标签页和后端 API 路由扩展 —— 全部即插即用，无需克隆仓库。
 
-**Switch themes live** from the header bar — click the palette icon next to the language switcher. Selection persists to `config.yaml` under `dashboard.theme` and is restored on page load.
+**从标题栏实时切换主题** —— 点击语言切换器旁的调色板图标。选择持久化到 `config.yaml` 的 `dashboard.theme` 下，并在页面加载时恢复。
 
-Built-in themes:
+内置主题：
 
-| Theme | Character |
-|-------|-----------|
-| **Hermes Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
-| **Midnight** (`midnight`) | Deep blue-violet, Inter + JetBrains Mono |
-| **Ember** (`ember`) | Warm crimson + bronze, Spectral serif + IBM Plex Mono |
-| **Mono** (`mono`) | Grayscale, IBM Plex, compact |
-| **Cyberpunk** (`cyberpunk`) | Neon green on black, Share Tech Mono |
-| **Rosé** (`rose`) | Pink + ivory, Fraunces serif, spacious |
+| 主题 | 特征 |
+|------|------|
+| **Hermes Teal**（`default`） | 深青 + 奶油色，系统字体，舒适间距 |
+| **Midnight**（`midnight`） | 深蓝紫，Inter + JetBrains Mono |
+| **Ember**（`ember`） | 温暖深红 + 青铜，Spectral 衬线 + IBM Plex Mono |
+| **Mono**（`mono`） | 灰度，IBM Plex，紧凑 |
+| **Cyberpunk**（`cyberpunk`） | 黑底霓虹绿，Share Tech Mono |
+| **Rosé**（`rose`） | 粉色 + 象牙白，Fraunces 衬线，宽敞 |
 
-To build your own theme, add a plugin tab, inject into shell slots, or expose plugin-specific REST endpoints, see **[Extending the Dashboard](./extending-the-dashboard)** — the complete guide covers:
+要构建自己的主题、添加插件标签页、注入 shell 槽位或暴露插件特定 REST 端点，参见**[扩展仪表板](./extending-the-dashboard)** —— 完整指南涵盖：
 
-- Theme YAML schema — palette, typography, layout, assets, componentStyles, colorOverrides, customCSS
-- Layout variants — `standard`, `cockpit`, `tiled`
-- Plugin manifest, SDK, shell slots, page-scoped slots (inject widgets into built-in pages without overriding them), backend FastAPI routes
-- A full combined theme-plus-plugin walkthrough (Strike Freedom cockpit demo)
-- Discovery, reload, and troubleshooting
+- 主题 YAML schema —— 调色板、排版、布局、资源、componentStyles、colorOverrides、customCSS
+- 布局变体 —— `standard`、`cockpit`、`tiled`
+- 插件清单、SDK、shell 槽位、页面作用域槽位（无需覆盖即可向内置页面注入控件）、后端 FastAPI 路由
+- 完整的主题加插件组合演练（Strike Freedom 驾驶舱演示）
+- 发现、重载和故障排除

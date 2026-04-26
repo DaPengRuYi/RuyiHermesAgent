@@ -1,49 +1,49 @@
 ---
 sidebar_position: 2
-title: "Skills System"
-description: "On-demand knowledge documents — progressive disclosure, agent-managed skills, and the Skills Hub"
+title: "技能系统"
+description: "按需知识文档——渐进式披露、代理管理的技能和技能中心"
 ---
 
-# Skills System
+# 技能系统
 
-Skills are on-demand knowledge documents the agent can load when needed. They follow a **progressive disclosure** pattern to minimize token usage and are compatible with the [agentskills.io](https://agentskills.io/specification) open standard.
+技能是代理可以在需要时加载的按需知识文档。它们遵循**渐进式披露**模式以最小化令牌使用，并与 [agentskills.io](https://agentskills.io/specification) 开放标准兼容。
 
-All skills live in **`~/.hermes/skills/`** — the primary directory and source of truth. On fresh install, bundled skills are copied from the repo. Hub-installed and agent-created skills also go here. The agent can modify or delete any skill.
+所有技能位于 **`~/.hermes/skills/`** —— 主要目录和真实来源。全新安装时，捆绑技能从仓库复制。中心安装和代理创建的技能也放在这里。代理可以修改或删除任何技能。
 
-You can also point Hermes at **external skill directories** — additional folders scanned alongside the local one. See [External Skill Directories](#external-skill-directories) below.
+你也可以让 Hermes 指向**外部技能目录** —— 与本地目录一起扫描的额外文件夹。参见下方[外部技能目录](#外部技能目录)。
 
-See also:
+另见：
 
-- [Bundled Skills Catalog](/docs/reference/skills-catalog)
-- [Official Optional Skills Catalog](/docs/reference/optional-skills-catalog)
+- [捆绑技能目录](/docs/reference/skills-catalog)
+- [官方可选技能目录](/docs/reference/optional-skills-catalog)
 
-## Using Skills
+## 使用技能
 
-Every installed skill is automatically available as a slash command:
+每个已安装的技能自动作为斜杠命令可用：
 
 ```bash
-# In the CLI or any messaging platform:
+# 在 CLI 或任何消息平台中：
 /gif-search funny cats
 /axolotl help me fine-tune Llama 3 on my dataset
 /github-pr-workflow create a PR for the auth refactor
 /plan design a rollout for migrating our auth provider
 
-# Just the skill name loads it and lets the agent ask what you need:
+# 仅技能名称会加载它并让代理询问你需要什么：
 /excalidraw
 ```
 
-The bundled `plan` skill is a good example. Running `/plan [request]` loads the skill's instructions, telling Hermes to inspect context if needed, write a markdown implementation plan instead of executing the task, and save the result under `.hermes/plans/` relative to the active workspace/backend working directory.
+捆绑的 `plan` 技能是一个好例子。运行 `/plan [request]` 加载技能指令，告诉 Hermes 在需要时检查上下文，编写 markdown 实现计划而非执行任务，并将结果保存在活跃工作区/后端工作目录下的 `.hermes/plans/` 中。
 
-You can also interact with skills through natural conversation:
+你也可以通过自然对话与技能交互：
 
 ```bash
 hermes chat --toolsets skills -q "What skills do you have?"
 hermes chat --toolsets skills -q "Show me the axolotl skill"
 ```
 
-## Progressive Disclosure
+## 渐进式披露
 
-Skills use a token-efficient loading pattern:
+技能使用令牌高效的加载模式：
 
 ```
 Level 0: skills_list()           → [{name, description, category}, ...]   (~3k tokens)
@@ -51,9 +51,9 @@ Level 1: skill_view(name)        → Full content + metadata       (varies)
 Level 2: skill_view(name, path)  → Specific reference file       (varies)
 ```
 
-The agent only loads the full skill content when it actually needs it.
+代理仅在实际需要时才加载完整技能内容。
 
-## SKILL.md Format
+## SKILL.md 格式
 
 ```markdown
 ---
@@ -90,50 +90,50 @@ Trigger conditions for this skill.
 How to confirm it worked.
 ```
 
-### Platform-Specific Skills
+### 平台特定技能
 
-Skills can restrict themselves to specific operating systems using the `platforms` field:
+技能可以使用 `platforms` 字段限制到特定操作系统：
 
-| Value | Matches |
-|-------|---------|
+| 值 | 匹配 |
+|----|------|
 | `macos` | macOS (Darwin) |
 | `linux` | Linux |
 | `windows` | Windows |
 
 ```yaml
-platforms: [macos]            # macOS only (e.g., iMessage, Apple Reminders, FindMy)
-platforms: [macos, linux]     # macOS and Linux
+platforms: [macos]            # 仅 macOS（例如 iMessage、Apple Reminders、FindMy）
+platforms: [macos, linux]     # macOS 和 Linux
 ```
 
-When set, the skill is automatically hidden from the system prompt, `skills_list()`, and slash commands on incompatible platforms. If omitted, the skill loads on all platforms.
+设置后，技能在不兼容平台上自动从系统提示、`skills_list()` 和斜杠命令中隐藏。如果省略，技能在所有平台上加载。
 
-### Conditional Activation (Fallback Skills)
+### 条件激活（回退技能）
 
-Skills can automatically show or hide themselves based on which tools are available in the current session. This is most useful for **fallback skills** — free or local alternatives that should only appear when a premium tool is unavailable.
+技能可以根据当前会话中可用的工具自动显示或隐藏自己。这对**回退技能**最有用 —— 仅在高级工具不可用时才应出现的免费或本地替代方案。
 
 ```yaml
 metadata:
   hermes:
-    fallback_for_toolsets: [web]      # Show ONLY when these toolsets are unavailable
-    requires_toolsets: [terminal]     # Show ONLY when these toolsets are available
-    fallback_for_tools: [web_search]  # Show ONLY when these specific tools are unavailable
-    requires_tools: [terminal]        # Show ONLY when these specific tools are available
+    fallback_for_toolsets: [web]      # 仅当这些工具集不可用时显示
+    requires_toolsets: [terminal]     # 仅当这些工具集可用时显示
+    fallback_for_tools: [web_search]  # 仅当这些特定工具不可用时显示
+    requires_tools: [terminal]        # 仅当这些特定工具可用时显示
 ```
 
-| Field | Behavior |
-|-------|----------|
-| `fallback_for_toolsets` | Skill is **hidden** when the listed toolsets are available. Shown when they're missing. |
-| `fallback_for_tools` | Same, but checks individual tools instead of toolsets. |
-| `requires_toolsets` | Skill is **hidden** when the listed toolsets are unavailable. Shown when they're present. |
-| `requires_tools` | Same, but checks individual tools. |
+| 字段 | 行为 |
+|------|------|
+| `fallback_for_toolsets` | 当列出的工具集可用时技能**隐藏**。当它们缺失时显示。 |
+| `fallback_for_tools` | 相同，但检查单个工具而非工具集。 |
+| `requires_toolsets` | 当列出的工具集不可用时技能**隐藏**。当它们存在时显示。 |
+| `requires_tools` | 相同，但检查单个工具。 |
 
-**Example:** The built-in `duckduckgo-search` skill uses `fallback_for_toolsets: [web]`. When you have `FIRECRAWL_API_KEY` set, the web toolset is available and the agent uses `web_search` — the DuckDuckGo skill stays hidden. If the API key is missing, the web toolset is unavailable and the DuckDuckGo skill automatically appears as a fallback.
+**示例：** 内置的 `duckduckgo-search` 技能使用 `fallback_for_toolsets: [web]`。当你设置了 `FIRECRAWL_API_KEY` 时，web 工具集可用，代理使用 `web_search` —— DuckDuckGo 技能保持隐藏。如果 API 密钥缺失，web 工具集不可用，DuckDuckGo 技能自动作为回退出现。
 
-Skills without any conditional fields behave exactly as before — they're always shown.
+没有任何条件字段的技能行为与以前完全相同 —— 始终显示。
 
-## Secure Setup on Load
+## 加载时的安全设置
 
-Skills can declare required environment variables without disappearing from discovery:
+技能可以声明所需的环境变量而不会从发现中消失：
 
 ```yaml
 required_environment_variables:
@@ -143,13 +143,13 @@ required_environment_variables:
     required_for: full functionality
 ```
 
-When a missing value is encountered, Hermes asks for it securely only when the skill is actually loaded in the local CLI. You can skip setup and keep using the skill. Messaging surfaces never ask for secrets in chat — they tell you to use `hermes setup` or `~/.hermes/.env` locally instead.
+当遇到缺失值时，Hermes 仅在技能实际加载到本地 CLI 时才安全地询问。你可以跳过设置并继续使用技能。消息界面永远不会在聊天中询问密钥 —— 它们会告诉你改用本地的 `hermes setup` 或 `~/.hermes/.env`。
 
-Once set, declared env vars are **automatically passed through** to `execute_code` and `terminal` sandboxes — the skill's scripts can use `$TENOR_API_KEY` directly. For non-skill env vars, use the `terminal.env_passthrough` config option. See [Environment Variable Passthrough](/docs/user-guide/security#environment-variable-passthrough) for details.
+设置后，声明的环境变量**自动传递**到 `execute_code` 和 `terminal` 沙箱 —— 技能的脚本可以直接使用 `$TENOR_API_KEY`。对于非技能环境变量，使用 `terminal.env_passthrough` 配置选项。参见[环境变量传递](/docs/user-guide/security#environment-variable-passthrough)了解详情。
 
-### Skill Config Settings
+### 技能配置设置
 
-Skills can also declare non-secret config settings (paths, preferences) stored in `config.yaml`:
+技能也可以声明存储在 `config.yaml` 中的非机密配置设置（路径、偏好）：
 
 ```yaml
 metadata:
@@ -161,39 +161,39 @@ metadata:
         prompt: Plugin data directory path
 ```
 
-Settings are stored under `skills.config` in your config.yaml. `hermes config migrate` prompts for unconfigured settings, and `hermes config show` displays them. When a skill loads, its resolved config values are injected into the context so the agent knows the configured values automatically.
+设置存储在 config.yaml 的 `skills.config` 下。`hermes config migrate` 提示未配置的设置，`hermes config show` 显示它们。当技能加载时，其解析的配置值注入上下文，以便代理自动知道配置的值。
 
-See [Skill Settings](/docs/user-guide/configuration#skill-settings) and [Creating Skills — Config Settings](/docs/developer-guide/creating-skills#config-settings-configyaml) for details.
+参见[技能设置](/docs/user-guide/configuration#skill-settings)和[创建技能 — 配置设置](/docs/developer-guide/creating-skills#config-settings-configyaml)了解详情。
 
-## Skill Directory Structure
+## 技能目录结构
 
 ```text
-~/.hermes/skills/                  # Single source of truth
-├── mlops/                         # Category directory
+~/.hermes/skills/                  # 唯一真实来源
+├── mlops/                         # 类别目录
 │   ├── axolotl/
-│   │   ├── SKILL.md               # Main instructions (required)
-│   │   ├── references/            # Additional docs
-│   │   ├── templates/             # Output formats
-│   │   ├── scripts/               # Helper scripts callable from the skill
-│   │   └── assets/                # Supplementary files
+│   │   ├── SKILL.md               # 主要指令（必需）
+│   │   ├── references/            # 附加文档
+│   │   ├── templates/             # 输出格式
+│   │   ├── scripts/               # 可从技能调用的辅助脚本
+│   │   └── assets/                # 补充文件
 │   └── vllm/
 │       └── SKILL.md
 ├── devops/
-│   └── deploy-k8s/                # Agent-created skill
+│   └── deploy-k8s/                # 代理创建的技能
 │       ├── SKILL.md
 │       └── references/
-├── .hub/                          # Skills Hub state
+├── .hub/                          # 技能中心状态
 │   ├── lock.json
 │   ├── quarantine/
 │   └── audit.log
-└── .bundled_manifest              # Tracks seeded bundled skills
+└── .bundled_manifest              # 跟踪已播种的捆绑技能
 ```
 
-## External Skill Directories
+## 外部技能目录
 
-If you maintain skills outside of Hermes — for example, a shared `~/.agents/skills/` directory used by multiple AI tools — you can tell Hermes to scan those directories too.
+如果你在 Hermes 之外维护技能 —— 例如，多个 AI 工具共享的 `~/.agents/skills/` 目录 —— 你可以告诉 Hermes 也扫描这些目录。
 
-Add `external_dirs` under the `skills` section in `~/.hermes/config.yaml`:
+在 `~/.hermes/config.yaml` 的 `skills` 部分下添加 `external_dirs`：
 
 ```yaml
 skills:
@@ -203,123 +203,123 @@ skills:
     - ${SKILLS_REPO}/skills
 ```
 
-Paths support `~` expansion and `${VAR}` environment variable substitution.
+路径支持 `~` 展开和 `${VAR}` 环境变量替换。
 
-### How it works
+### 工作原理
 
-- **Read-only**: External dirs are only scanned for skill discovery. When the agent creates or edits a skill, it always writes to `~/.hermes/skills/`.
-- **Local precedence**: If the same skill name exists in both the local dir and an external dir, the local version wins.
-- **Full integration**: External skills appear in the system prompt index, `skills_list`, `skill_view`, and as `/skill-name` slash commands — no different from local skills.
-- **Non-existent paths are silently skipped**: If a configured directory doesn't exist, Hermes ignores it without errors. Useful for optional shared directories that may not be present on every machine.
+- **只读**：外部目录仅扫描用于技能发现。当代理创建或编辑技能时，它始终写入 `~/.hermes/skills/`。
+- **本地优先**：如果同一技能名称同时存在于本地目录和外部目录中，本地版本获胜。
+- **完全集成**：外部技能出现在系统提示索引、`skills_list`、`skill_view` 和 `/skill-name` 斜杠命令中 —— 与本地技能无异。
+- **不存在的路径被静默跳过**：如果配置的目录不存在，Hermes 会忽略它而不报错。适用于可能不存在于每台机器上的可选共享目录。
 
-### Example
+### 示例
 
 ```text
-~/.hermes/skills/               # Local (primary, read-write)
+~/.hermes/skills/               # 本地（主要，读写）
 ├── devops/deploy-k8s/
 │   └── SKILL.md
 └── mlops/axolotl/
     └── SKILL.md
 
-~/.agents/skills/               # External (read-only, shared)
+~/.agents/skills/               # 外部（只读，共享）
 ├── my-custom-workflow/
 │   └── SKILL.md
 └── team-conventions/
     └── SKILL.md
 ```
 
-All four skills appear in your skill index. If you create a new skill called `my-custom-workflow` locally, it shadows the external version.
+所有四个技能都出现在你的技能索引中。如果你在本地创建一个名为 `my-custom-workflow` 的新技能，它会遮蔽外部版本。
 
-## Agent-Managed Skills (skill_manage tool)
+## 代理管理的技能（skill_manage 工具）
 
-The agent can create, update, and delete its own skills via the `skill_manage` tool. This is the agent's **procedural memory** — when it figures out a non-trivial workflow, it saves the approach as a skill for future reuse.
+代理可以通过 `skill_manage` 工具创建、更新和删除自己的技能。这是代理的**程序性记忆** —— 当它弄清楚一个不平凡的工作流时，它会将方法保存为技能以供将来重用。
 
-### When the Agent Creates Skills
+### 代理何时创建技能
 
-- After completing a complex task (5+ tool calls) successfully
-- When it hit errors or dead ends and found the working path
-- When the user corrected its approach
-- When it discovered a non-trivial workflow
+- 成功完成复杂任务（5+ 次工具调用）后
+- 当它遇到错误或死胡同并找到可行路径时
+- 当用户纠正了它的方法时
+- 当它发现了不平凡的工作流时
 
-### Actions
+### 操作
 
-| Action | Use for | Key params |
-|--------|---------|------------|
-| `create` | New skill from scratch | `name`, `content` (full SKILL.md), optional `category` |
-| `patch` | Targeted fixes (preferred) | `name`, `old_string`, `new_string` |
-| `edit` | Major structural rewrites | `name`, `content` (full SKILL.md replacement) |
-| `delete` | Remove a skill entirely | `name` |
-| `write_file` | Add/update supporting files | `name`, `file_path`, `file_content` |
-| `remove_file` | Remove a supporting file | `name`, `file_path` |
+| 操作 | 用途 | 关键参数 |
+|------|------|---------|
+| `create` | 从头创建新技能 | `name`、`content`（完整 SKILL.md），可选 `category` |
+| `patch` | 定向修复（首选） | `name`、`old_string`、`new_string` |
+| `edit` | 重大结构性重写 | `name`、`content`（完整 SKILL.md 替换） |
+| `delete` | 完全删除技能 | `name` |
+| `write_file` | 添加/更新支持文件 | `name`、`file_path`、`file_content` |
+| `remove_file` | 删除支持文件 | `name`、`file_path` |
 
 :::tip
-The `patch` action is preferred for updates — it's more token-efficient than `edit` because only the changed text appears in the tool call.
+`patch` 操作是更新的首选 —— 它比 `edit` 更节省令牌，因为只有更改的文本出现在工具调用中。
 :::
 
-## Skills Hub
+## 技能中心
 
-Browse, search, install, and manage skills from online registries, `skills.sh`, direct well-known skill endpoints, and official optional skills.
+浏览、搜索、安装和管理来自在线注册表、`skills.sh`、直接知名技能端点和官方可选技能的技能。
 
-### Common commands
+### 常用命令
 
 ```bash
-hermes skills browse                              # Browse all hub skills (official first)
-hermes skills browse --source official            # Browse only official optional skills
-hermes skills search kubernetes                   # Search all sources
-hermes skills search react --source skills-sh     # Search the skills.sh directory
+hermes skills browse                              # 浏览所有中心技能（官方优先）
+hermes skills browse --source official            # 仅浏览官方可选技能
+hermes skills search kubernetes                   # 搜索所有来源
+hermes skills search react --source skills-sh     # 搜索 skills.sh 目录
 hermes skills search https://mintlify.com/docs --source well-known
-hermes skills inspect openai/skills/k8s           # Preview before installing
-hermes skills install openai/skills/k8s           # Install with security scan
+hermes skills inspect openai/skills/k8s           # 安装前预览
+hermes skills install openai/skills/k8s           # 带安全扫描安装
 hermes skills install official/security/1password
 hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
 hermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
-hermes skills list --source hub                   # List hub-installed skills
-hermes skills check                               # Check installed hub skills for upstream updates
-hermes skills update                              # Reinstall hub skills with upstream changes when needed
-hermes skills audit                               # Re-scan all hub skills for security
-hermes skills uninstall k8s                       # Remove a hub skill
-hermes skills reset google-workspace              # Un-stick a bundled skill from "user-modified" (see below)
-hermes skills reset google-workspace --restore    # Also restore the bundled version, deleting your local edits
+hermes skills list --source hub                   # 列出中心安装的技能
+hermes skills check                               # 检查已安装的中心技能是否有上游更新
+hermes skills update                              # 需要时重新安装有上游变更的中心技能
+hermes skills audit                               # 重新扫描所有中心技能的安全性
+hermes skills uninstall k8s                       # 删除中心技能
+hermes skills reset google-workspace              # 取消捆绑技能的"用户修改"状态（见下文）
+hermes skills reset google-workspace --restore    # 同时恢复捆绑版本，删除你的本地编辑
 hermes skills publish skills/my-skill --to github --repo owner/repo
-hermes skills snapshot export setup.json          # Export skill config
-hermes skills tap add myorg/skills-repo           # Add a custom GitHub source
+hermes skills snapshot export setup.json          # 导出技能配置
+hermes skills tap add myorg/skills-repo           # 添加自定义 GitHub 来源
 ```
 
-### Supported hub sources
+### 支持的中心来源
 
-| Source | Example | Notes |
-|--------|---------|-------|
-| `official` | `official/security/1password` | Optional skills shipped with Hermes. |
-| `skills-sh` | `skills-sh/vercel-labs/agent-skills/vercel-react-best-practices` | Searchable via `hermes skills search <query> --source skills-sh`. Hermes resolves alias-style skills when the skills.sh slug differs from the repo folder. |
-| `well-known` | `well-known:https://mintlify.com/docs/.well-known/skills/mintlify` | Skills served directly from `/.well-known/skills/index.json` on a website. Search using the site or docs URL. |
-| `github` | `openai/skills/k8s` | Direct GitHub repo/path installs and custom taps. |
-| `clawhub`, `lobehub`, `claude-marketplace` | Source-specific identifiers | Community or marketplace integrations. |
+| 来源 | 示例 | 说明 |
+|------|------|------|
+| `official` | `official/security/1password` | 随 Hermes 附带的可选技能。 |
+| `skills-sh` | `skills-sh/vercel-labs/agent-skills/vercel-react-best-practices` | 可通过 `hermes skills search <query> --source skills-sh` 搜索。当 skills.sh slug 与仓库文件夹不同时，Hermes 解析别名式技能。 |
+| `well-known` | `well-known:https://mintlify.com/docs/.well-known/skills/mintlify` | 直接从网站 `/.well-known/skills/index.json` 提供的技能。使用站点或文档 URL 搜索。 |
+| `github` | `openai/skills/k8s` | 直接 GitHub 仓库/路径安装和自定义 tap。 |
+| `clawhub`、`lobehub`、`claude-marketplace` | 来源特定标识符 | 社区或市场集成。 |
 
-### Integrated hubs and registries
+### 集成的中心和注册表
 
-Hermes currently integrates with these skills ecosystems and discovery sources:
+Hermes 目前与以下技能生态系统和发现来源集成：
 
-#### 1. Official optional skills (`official`)
+#### 1. 官方可选技能（`official`）
 
-These are maintained in the Hermes repository itself and install with builtin trust.
+这些在 Hermes 仓库本身中维护，以内置信任安装。
 
-- Catalog: [Official Optional Skills Catalog](../../reference/optional-skills-catalog)
-- Source in repo: `optional-skills/`
-- Example:
+- 目录：[官方可选技能目录](../../reference/optional-skills-catalog)
+- 仓库中的来源：`optional-skills/`
+- 示例：
 
 ```bash
 hermes skills browse --source official
 hermes skills install official/security/1password
 ```
 
-#### 2. skills.sh (`skills-sh`)
+#### 2. skills.sh（`skills-sh`）
 
-This is Vercel's public skills directory. Hermes can search it directly, inspect skill detail pages, resolve alias-style slugs, and install from the underlying source repo.
+这是 Vercel 的公共技能目录。Hermes 可以直接搜索它，检查技能详情页面，解析别名式 slug，并从底层源仓库安装。
 
-- Directory: [skills.sh](https://skills.sh/)
-- CLI/tooling repo: [vercel-labs/skills](https://github.com/vercel-labs/skills)
-- Official Vercel skills repo: [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)
-- Example:
+- 目录：[skills.sh](https://skills.sh/)
+- CLI/工具仓库：[vercel-labs/skills](https://github.com/vercel-labs/skills)
+- 官方 Vercel 技能仓库：[vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)
+- 示例：
 
 ```bash
 hermes skills search react --source skills-sh
@@ -327,13 +327,13 @@ hermes skills inspect skills-sh/vercel-labs/json-render/json-render-react
 hermes skills install skills-sh/vercel-labs/json-render/json-render-react --force
 ```
 
-#### 3. Well-known skill endpoints (`well-known`)
+#### 3. 知名技能端点（`well-known`）
 
-This is URL-based discovery from sites that publish `/.well-known/skills/index.json`. It is not a single centralized hub — it is a web discovery convention.
+这是基于 URL 的发现，来自发布 `/.well-known/skills/index.json` 的站点。它不是单一的集中中心 —— 而是一种网络发现约定。
 
-- Example live endpoint: [Mintlify docs skills index](https://mintlify.com/docs/.well-known/skills/index.json)
-- Reference server implementation: [vercel-labs/skills-handler](https://github.com/vercel-labs/skills-handler)
-- Example:
+- 示例实时端点：[Mintlify 文档技能索引](https://mintlify.com/docs/.well-known/skills/index.json)
+- 参考服务器实现：[vercel-labs/skills-handler](https://github.com/vercel-labs/skills-handler)
+- 示例：
 
 ```bash
 hermes skills search https://mintlify.com/docs --source well-known
@@ -341,137 +341,137 @@ hermes skills inspect well-known:https://mintlify.com/docs/.well-known/skills/mi
 hermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify
 ```
 
-#### 4. Direct GitHub skills (`github`)
+#### 4. 直接 GitHub 技能（`github`）
 
-Hermes can install directly from GitHub repositories and GitHub-based taps. This is useful when you already know the repo/path or want to add your own custom source repo.
+Hermes 可以直接从 GitHub 仓库和基于 GitHub 的 tap 安装。当你已经知道仓库/路径或想添加自己的自定义源仓库时很有用。
 
-Default taps (browsable without any setup):
+默认 tap（无需任何设置即可浏览）：
 - [openai/skills](https://github.com/openai/skills)
 - [anthropics/skills](https://github.com/anthropics/skills)
 - [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)
 - [garrytan/gstack](https://github.com/garrytan/gstack)
 
-- Example:
+- 示例：
 
 ```bash
 hermes skills install openai/skills/k8s
 hermes skills tap add myorg/skills-repo
 ```
 
-#### 5. ClawHub (`clawhub`)
+#### 5. ClawHub（`clawhub`）
 
-A third-party skills marketplace integrated as a community source.
+作为社区来源集成的第三方技能市场。
 
-- Site: [clawhub.ai](https://clawhub.ai/)
-- Hermes source id: `clawhub`
+- 站点：[clawhub.ai](https://clawhub.ai/)
+- Hermes 来源 ID：`clawhub`
 
-#### 6. Claude marketplace-style repos (`claude-marketplace`)
+#### 6. Claude 市场式仓库（`claude-marketplace`）
 
-Hermes supports marketplace repos that publish Claude-compatible plugin/marketplace manifests.
+Hermes 支持发布 Claude 兼容插件/市场清单的市场仓库。
 
-Known integrated sources include:
+已知集成来源包括：
 - [anthropics/skills](https://github.com/anthropics/skills)
 - [aiskillstore/marketplace](https://github.com/aiskillstore/marketplace)
 
-Hermes source id: `claude-marketplace`
+Hermes 来源 ID：`claude-marketplace`
 
-#### 7. LobeHub (`lobehub`)
+#### 7. LobeHub（`lobehub`）
 
-Hermes can search and convert agent entries from LobeHub's public catalog into installable Hermes skills.
+Hermes 可以搜索并将 LobeHub 公共目录中的代理条目转换为可安装的 Hermes 技能。
 
-- Site: [LobeHub](https://lobehub.com/)
-- Public agents index: [chat-agents.lobehub.com](https://chat-agents.lobehub.com/)
-- Backing repo: [lobehub/lobe-chat-agents](https://github.com/lobehub/lobe-chat-agents)
-- Hermes source id: `lobehub`
+- 站点：[LobeHub](https://lobehub.com/)
+- 公共代理索引：[chat-agents.lobehub.com](https://chat-agents.lobehub.com/)
+- 后端仓库：[lobehub/lobe-chat-agents](https://github.com/lobehub/lobe-chat-agents)
+- Hermes 来源 ID：`lobehub`
 
-### Security scanning and `--force`
+### 安全扫描和 `--force`
 
-All hub-installed skills go through a **security scanner** that checks for data exfiltration, prompt injection, destructive commands, supply-chain signals, and other threats.
+所有中心安装的技能都经过**安全扫描器**，检查数据外泄、提示注入、破坏性命令、供应链信号和其他威胁。
 
-`hermes skills inspect ...` now also surfaces upstream metadata when available:
-- repo URL
-- skills.sh detail page URL
-- install command
-- weekly installs
-- upstream security audit statuses
-- well-known index/endpoint URLs
+`hermes skills inspect ...` 现在也会在可用时显示上游元数据：
+- 仓库 URL
+- skills.sh 详情页面 URL
+- 安装命令
+- 每周安装量
+- 上游安全审计状态
+- 知名索引/端点 URL
 
-Use `--force` when you have reviewed a third-party skill and want to override a non-dangerous policy block:
+当你审查了第三方技能并想覆盖非危险策略阻止时使用 `--force`：
 
 ```bash
 hermes skills install skills-sh/anthropics/skills/pdf --force
 ```
 
-Important behavior:
-- `--force` can override policy blocks for caution/warn-style findings.
-- `--force` does **not** override a `dangerous` scan verdict.
-- Official optional skills (`official/...`) are treated as builtin trust and do not show the third-party warning panel.
+重要行为：
+- `--force` 可以覆盖警告/注意式发现的策略阻止。
+- `--force` **不能**覆盖 `dangerous` 扫描判定。
+- 官方可选技能（`official/...`）被视为内置信任，不显示第三方警告面板。
 
-### Trust levels
+### 信任级别
 
-| Level | Source | Policy |
-|-------|--------|--------|
-| `builtin` | Ships with Hermes | Always trusted |
-| `official` | `optional-skills/` in the repo | Builtin trust, no third-party warning |
-| `trusted` | Trusted registries/repos such as `openai/skills`, `anthropics/skills` | More permissive policy than community sources |
-| `community` | Everything else (`skills.sh`, well-known endpoints, custom GitHub repos, most marketplaces) | Non-dangerous findings can be overridden with `--force`; `dangerous` verdicts stay blocked |
+| 级别 | 来源 | 策略 |
+|------|------|------|
+| `builtin` | 随 Hermes 附带 | 始终信任 |
+| `official` | 仓库中的 `optional-skills/` | 内置信任，无第三方警告 |
+| `trusted` | 可信注册表/仓库如 `openai/skills`、`anthropics/skills` | 比社区来源更宽松的策略 |
+| `community` | 其他一切（`skills.sh`、知名端点、自定义 GitHub 仓库、大多数市场） | 非危险发现可通过 `--force` 覆盖；`dangerous` 判定保持阻止 |
 
-### Update lifecycle
+### 更新生命周期
 
-The hub now tracks enough provenance to re-check upstream copies of installed skills:
+中心现在跟踪足够的来源信息以重新检查已安装技能的上游副本：
 
 ```bash
-hermes skills check          # Report which installed hub skills changed upstream
-hermes skills update         # Reinstall only the skills with updates available
-hermes skills update react   # Update one specific installed hub skill
+hermes skills check          # 报告哪些已安装的中心技能上游有变更
+hermes skills update         # 仅重新安装有更新的技能
+hermes skills update react   # 更新一个特定的已安装中心技能
 ```
 
-This uses the stored source identifier plus the current upstream bundle content hash to detect drift.
+这使用存储的来源标识符加上当前上游包内容哈希来检测漂移。
 
-:::tip GitHub rate limits
-Skills hub operations use the GitHub API, which has a rate limit of 60 requests/hour for unauthenticated users. If you see rate-limit errors during install or search, set `GITHUB_TOKEN` in your `.env` file to increase the limit to 5,000 requests/hour. The error message includes an actionable hint when this happens.
+:::tip GitHub 速率限制
+技能中心操作使用 GitHub API，未认证用户的速率限制为每小时 60 次请求。如果你在安装或搜索期间看到速率限制错误，在 `.env` 文件中设置 `GITHUB_TOKEN` 将限制提高到每小时 5,000 次请求。发生此情况时错误消息包含可操作的提示。
 :::
 
-## Bundled skill updates (`hermes skills reset`)
+## 捆绑技能更新（`hermes skills reset`）
 
-Hermes ships with a set of bundled skills in `skills/` inside the repo. On install and on every `hermes update`, a sync pass copies those into `~/.hermes/skills/` and records a manifest at `~/.hermes/skills/.bundled_manifest` mapping each skill name to the content hash at the time it was synced (the **origin hash**).
+Hermes 附带仓库内 `skills/` 中的一组捆绑技能。在安装时和每次 `hermes update` 时，同步过程将它们复制到 `~/.hermes/skills/` 并在 `~/.hermes/skills/.bundled_manifest` 记录清单，将每个技能名称映射到同步时的内容哈希（**原始哈希**）。
 
-On each sync, Hermes recomputes the hash of your local copy and compares it to the origin hash:
+每次同步时，Hermes 重新计算本地副本的哈希并将其与原始哈希比较：
 
-- **Unchanged** → safe to pull upstream changes, copy the new bundled version in, record the new origin hash.
-- **Changed** → treated as **user-modified** and skipped forever, so your edits never get stomped.
+- **未更改** → 安全拉取上游更改，复制新的捆绑版本，记录新的原始哈希。
+- **已更改** → 视为**用户修改**并永久跳过，因此你的编辑永远不会被覆盖。
 
-The protection is good, but it has one sharp edge. If you edit a bundled skill and then later want to abandon your changes and go back to the bundled version by just copy-pasting from `~/.hermes/hermes-agent/skills/`, the manifest still holds the *old* origin hash from whenever the last successful sync ran. Your fresh copy-paste contents (current bundled hash) won't match that stale origin hash, so sync keeps flagging it as user-modified.
+保护很好，但有一个尖锐的边缘。如果你编辑了捆绑技能，后来想放弃更改并通过从 `~/.hermes/hermes-agent/skills/` 复制粘贴回到捆绑版本，清单仍持有上次成功同步运行时的*旧*原始哈希。你新复制粘贴的内容（当前捆绑哈希）不会匹配那个过时的原始哈希，因此同步继续将其标记为用户修改。
 
-`hermes skills reset` is the escape hatch:
+`hermes skills reset` 是逃生出口：
 
 ```bash
-# Safe: clears the manifest entry for this skill. Your current copy is preserved,
-# but the next sync re-baselines against it so future updates work normally.
+# 安全：清除此技能的清单条目。你当前的副本被保留，
+# 但下次同步以它为基准，因此未来的更新正常工作。
 hermes skills reset google-workspace
 
-# Full restore: also deletes your local copy and re-copies the current bundled
-# version. Use this when you want the pristine upstream skill back.
+# 完全恢复：同时删除你的本地副本并重新复制当前捆绑
+# 版本。当你想要原始上游技能时使用此选项。
 hermes skills reset google-workspace --restore
 
-# Non-interactive (e.g. in scripts or TUI mode) — skip the --restore confirmation.
+# 非交互式（例如在脚本或 TUI 模式中）——跳过 --restore 确认。
 hermes skills reset google-workspace --restore --yes
 ```
 
-The same command works in chat as a slash command:
+同一命令也可在聊天中作为斜杠命令使用：
 
 ```text
 /skills reset google-workspace
 /skills reset google-workspace --restore
 ```
 
-:::note Profiles
-Each profile has its own `.bundled_manifest` under its own `HERMES_HOME`, so `hermes -p coder skills reset <name>` only affects that profile.
+:::note 配置文件
+每个配置文件在自己的 `HERMES_HOME` 下有自己的 `.bundled_manifest`，因此 `hermes -p coder skills reset <name>` 仅影响该配置文件。
 :::
 
-### Slash commands (inside chat)
+### 斜杠命令（聊天内）
 
-All the same commands work with `/skills`:
+所有相同命令都可以用 `/skills`：
 
 ```text
 /skills browse
@@ -485,4 +485,4 @@ All the same commands work with `/skills`:
 /skills list
 ```
 
-Official optional skills still use identifiers like `official/security/1password` and `official/migration/openclaw-migration`.
+官方可选技能仍使用 `official/security/1password` 和 `official/migration/openclaw-migration` 等标识符。

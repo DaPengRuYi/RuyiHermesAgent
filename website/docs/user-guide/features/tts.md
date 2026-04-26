@@ -1,103 +1,99 @@
 ---
 sidebar_position: 9
-title: "Voice & TTS"
-description: "Text-to-speech and voice message transcription across all platforms"
+title: "语音与 TTS"
+description: "跨所有平台的文本转语音和语音消息转录"
 ---
 
-# Voice & TTS
+# 语音与 TTS
 
-Hermes Agent supports both text-to-speech output and voice message transcription across all messaging platforms.
+Hermes Agent 支持跨所有消息平台的文本转语音输出和语音消息转录。
 
-:::tip Nous Subscribers
-If you have a paid [Nous Portal](https://portal.nousresearch.com) subscription, OpenAI TTS is available through the **[Tool Gateway](tool-gateway.md)** without a separate OpenAI API key. Run `hermes model` or `hermes tools` to enable it.
-:::
+## 文本转语音
 
-## Text-to-Speech
+使用九个提供商将文本转换为语音：
 
-Convert text to speech with nine providers:
+| 提供商 | 质量 | 成本 | API 密钥 |
+|--------|------|------|---------|
+| **Edge TTS**（默认） | 良好 | 免费 | 无需 |
+| **ElevenLabs** | 优秀 | 付费 | `ELEVENLABS_API_KEY` |
+| **OpenAI TTS** | 良好 | 付费 | `VOICE_TOOLS_OPENAI_KEY` |
+| **MiniMax TTS** | 优秀 | 付费 | `MINIMAX_API_KEY` |
+| **Mistral (Voxtral TTS)** | 优秀 | 付费 | `MISTRAL_API_KEY` |
+| **Google Gemini TTS** | 优秀 | 免费层 | `GEMINI_API_KEY` |
+| **xAI TTS** | 优秀 | 付费 | `XAI_API_KEY` |
+| **NeuTTS** | 良好 | 免费（本地） | 无需 |
+| **KittenTTS** | 良好 | 免费（本地） | 无需 |
 
-| Provider | Quality | Cost | API Key |
-|----------|---------|------|---------|
-| **Edge TTS** (default) | Good | Free | None needed |
-| **ElevenLabs** | Excellent | Paid | `ELEVENLABS_API_KEY` |
-| **OpenAI TTS** | Good | Paid | `VOICE_TOOLS_OPENAI_KEY` |
-| **MiniMax TTS** | Excellent | Paid | `MINIMAX_API_KEY` |
-| **Mistral (Voxtral TTS)** | Excellent | Paid | `MISTRAL_API_KEY` |
-| **Google Gemini TTS** | Excellent | Free tier | `GEMINI_API_KEY` |
-| **xAI TTS** | Excellent | Paid | `XAI_API_KEY` |
-| **NeuTTS** | Good | Free (local) | None needed |
-| **KittenTTS** | Good | Free (local) | None needed |
+### 平台投递
 
-### Platform Delivery
+| 平台 | 投递方式 | 格式 |
+|------|---------|------|
+| Telegram | 语音气泡（内联播放） | Opus `.ogg` |
+| Discord | 语音气泡（Opus/OGG），回退到文件附件 | Opus/MP3 |
+| WhatsApp | 音频文件附件 | MP3 |
+| CLI | 保存到 `~/.hermes/audio_cache/` | MP3 |
 
-| Platform | Delivery | Format |
-|----------|----------|--------|
-| Telegram | Voice bubble (plays inline) | Opus `.ogg` |
-| Discord | Voice bubble (Opus/OGG), falls back to file attachment | Opus/MP3 |
-| WhatsApp | Audio file attachment | MP3 |
-| CLI | Saved to `~/.hermes/audio_cache/` | MP3 |
-
-### Configuration
+### 配置
 
 ```yaml
-# In ~/.hermes/config.yaml
+# 在 ~/.hermes/config.yaml 中
 tts:
   provider: "edge"              # "edge" | "elevenlabs" | "openai" | "minimax" | "mistral" | "gemini" | "xai" | "neutts" | "kittentts"
-  speed: 1.0                    # Global speed multiplier (provider-specific settings override this)
+  speed: 1.0                    # 全局速度倍增器（提供商特定设置覆盖此值）
   edge:
-    voice: "en-US-AriaNeural"   # 322 voices, 74 languages
-    speed: 1.0                  # Converted to rate percentage (+/-%)
+    voice: "en-US-AriaNeural"   # 322 种声音，74 种语言
+    speed: 1.0                  # 转换为速率百分比（+/-%）
   elevenlabs:
     voice_id: "pNInz6obpgDQGcFmaJgB"  # Adam
     model_id: "eleven_multilingual_v2"
   openai:
     model: "gpt-4o-mini-tts"
     voice: "alloy"              # alloy, echo, fable, onyx, nova, shimmer
-    base_url: "https://api.openai.com/v1"  # Override for OpenAI-compatible TTS endpoints
+    base_url: "https://api.openai.com/v1"  # 覆盖 OpenAI 兼容 TTS 端点
     speed: 1.0                  # 0.25 - 4.0
   minimax:
-    model: "speech-2.8-hd"     # speech-2.8-hd (default), speech-2.8-turbo
-    voice_id: "English_Graceful_Lady"  # See https://platform.minimax.io/faq/system-voice-id
+    model: "speech-2.8-hd"     # speech-2.8-hd（默认），speech-2.8-turbo
+    voice_id: "English_Graceful_Lady"  # 参见 https://platform.minimax.io/faq/system-voice-id
     speed: 1                    # 0.5 - 2.0
     vol: 1                      # 0 - 10
     pitch: 0                    # -12 - 12
   mistral:
     model: "voxtral-mini-tts-2603"
-    voice_id: "c69964a6-ab8b-4f8a-9465-ec0925096ec8"  # Paul - Neutral (default)
+    voice_id: "c69964a6-ab8b-4f8a-9465-ec0925096ec8"  # Paul - Neutral（默认）
   gemini:
-    model: "gemini-2.5-flash-preview-tts"  # or gemini-2.5-pro-preview-tts
-    voice: "Kore"               # 30 prebuilt voices: Zephyr, Puck, Kore, Enceladus, Gacrux, etc.
+    model: "gemini-2.5-flash-preview-tts"  # 或 gemini-2.5-pro-preview-tts
+    voice: "Kore"               # 30 种预设声音：Zephyr, Puck, Kore, Enceladus, Gacrux 等
   xai:
-    voice_id: "eve"             # xAI TTS voice (see https://docs.x.ai/docs/api-reference#tts)
-    language: "en"              # ISO 639-1 code
-    sample_rate: 24000          # 22050 / 24000 (default) / 44100 / 48000
-    bit_rate: 128000            # MP3 bitrate; only applies when codec=mp3
-    # base_url: "https://api.x.ai/v1"   # Override via XAI_BASE_URL env var
+    voice_id: "eve"             # xAI TTS 声音（参见 https://docs.x.ai/docs/api-reference#tts）
+    language: "en"              # ISO 639-1 代码
+    sample_rate: 24000          # 22050 / 24000（默认）/ 44100 / 48000
+    bit_rate: 128000            # MP3 比特率；仅在 codec=mp3 时适用
+    # base_url: "https://api.x.ai/v1"   # 通过 XAI_BASE_URL 环境变量覆盖
   neutts:
     ref_audio: ''
     ref_text: ''
     model: neuphonic/neutts-air-q4-gguf
     device: cpu
   kittentts:
-    model: KittenML/kitten-tts-nano-0.8-int8   # 25MB int8; also: kitten-tts-micro-0.8 (41MB), kitten-tts-mini-0.8 (80MB)
+    model: KittenML/kitten-tts-nano-0.8-int8   # 25MB int8；另有：kitten-tts-micro-0.8 (41MB), kitten-tts-mini-0.8 (80MB)
     voice: Jasper                               # Jasper, Bella, Luna, Bruno, Rosie, Hugo, Kiki, Leo
     speed: 1.0                                  # 0.5 - 2.0
-    clean_text: true                            # Expand numbers, currencies, units
+    clean_text: true                            # 展开数字、货币、单位
 ```
 
-**Speed control**: The global `tts.speed` value applies to all providers by default. Each provider can override it with its own `speed` setting (e.g., `tts.openai.speed: 1.5`). Provider-specific speed takes precedence over the global value. Default is `1.0` (normal speed).
+**速度控制**：全局 `tts.speed` 值默认适用于所有提供商。每个提供商可以用自己的 `speed` 设置覆盖它（例如 `tts.openai.speed: 1.5`）。提供商特定速度优先于全局值。默认为 `1.0`（正常速度）。
 
-### Telegram Voice Bubbles & ffmpeg
+### Telegram 语音气泡和 ffmpeg
 
-Telegram voice bubbles require Opus/OGG audio format:
+Telegram 语音气泡需要 Opus/OGG 音频格式：
 
-- **OpenAI, ElevenLabs, and Mistral** produce Opus natively — no extra setup
-- **Edge TTS** (default) outputs MP3 and needs **ffmpeg** to convert:
-- **MiniMax TTS** outputs MP3 and needs **ffmpeg** to convert for Telegram voice bubbles
-- **Google Gemini TTS** outputs raw PCM and uses **ffmpeg** to encode Opus directly for Telegram voice bubbles
-- **xAI TTS** outputs MP3 and needs **ffmpeg** to convert for Telegram voice bubbles
-- **NeuTTS** outputs WAV and also needs **ffmpeg** to convert for Telegram voice bubbles
-- **KittenTTS** outputs WAV and also needs **ffmpeg** to convert for Telegram voice bubbles
+- **OpenAI、ElevenLabs 和 Mistral** 原生产生 Opus —— 无需额外设置
+- **Edge TTS**（默认）输出 MP3 并需要 **ffmpeg** 转换
+- **MiniMax TTS** 输出 MP3 并需要 **ffmpeg** 转换以用于 Telegram 语音气泡
+- **Google Gemini TTS** 输出原始 PCM 并使用 **ffmpeg** 直接编码 Opus 以用于 Telegram 语音气泡
+- **xAI TTS** 输出 MP3 并需要 **ffmpeg** 转换以用于 Telegram 语音气泡
+- **NeuTTS** 输出 WAV 也需要 **ffmpeg** 转换以用于 Telegram 语音气泡
+- **KittenTTS** 输出 WAV 也需要 **ffmpeg** 转换以用于 Telegram 语音气泡
 
 ```bash
 # Ubuntu/Debian
@@ -110,30 +106,30 @@ brew install ffmpeg
 sudo dnf install ffmpeg
 ```
 
-Without ffmpeg, Edge TTS, MiniMax TTS, NeuTTS, and KittenTTS audio are sent as regular audio files (playable, but shown as a rectangular player instead of a voice bubble).
+没有 ffmpeg 时，Edge TTS、MiniMax TTS、NeuTTS 和 KittenTTS 音频作为常规音频文件发送（可播放，但显示为矩形播放器而非语音气泡）。
 
 :::tip
-If you want voice bubbles without installing ffmpeg, switch to the OpenAI, ElevenLabs, or Mistral provider.
+如果你想要语音气泡但不想安装 ffmpeg，请切换到 OpenAI、ElevenLabs 或 Mistral 提供商。
 :::
 
-## Voice Message Transcription (STT)
+## 语音消息转录（STT）
 
-Voice messages sent on Telegram, Discord, WhatsApp, Slack, or Signal are automatically transcribed and injected as text into the conversation. The agent sees the transcript as normal text.
+在 Telegram、Discord、WhatsApp、Slack 或 Signal 上发送的语音消息会自动转录并作为文本注入对话中。代理将转录视为普通文本。
 
-| Provider | Quality | Cost | API Key |
-|----------|---------|------|---------| 
-| **Local Whisper** (default) | Good | Free | None needed |
-| **Groq Whisper API** | Good–Best | Free tier | `GROQ_API_KEY` |
-| **OpenAI Whisper API** | Good–Best | Paid | `VOICE_TOOLS_OPENAI_KEY` or `OPENAI_API_KEY` |
+| 提供商 | 质量 | 成本 | API 密钥 |
+|--------|------|------|---------|
+| **本地 Whisper**（默认） | 良好 | 免费 | 无需 |
+| **Groq Whisper API** | 良好–最佳 | 免费层 | `GROQ_API_KEY` |
+| **OpenAI Whisper API** | 良好–最佳 | 付费 | `VOICE_TOOLS_OPENAI_KEY` 或 `OPENAI_API_KEY` |
 
-:::info Zero Config
-Local transcription works out of the box when `faster-whisper` is installed. If that's unavailable, Hermes can also use a local `whisper` CLI from common install locations (like `/opt/homebrew/bin`) or a custom command via `HERMES_LOCAL_STT_COMMAND`.
+:::info 零配置
+当 `faster-whisper` 已安装时，本地转录开箱即用。如果不可用，Hermes 也可以使用常见安装位置（如 `/opt/homebrew/bin`）中的本地 `whisper` CLI 或通过 `HERMES_LOCAL_STT_COMMAND` 使用自定义命令。
 :::
 
-### Configuration
+### 配置
 
 ```yaml
-# In ~/.hermes/config.yaml
+# 在 ~/.hermes/config.yaml 中
 stt:
   provider: "local"           # "local" | "groq" | "openai" | "mistral"
   local:
@@ -144,31 +140,31 @@ stt:
     model: "voxtral-mini-latest"  # voxtral-mini-latest, voxtral-mini-2602
 ```
 
-### Provider Details
+### 提供商详情
 
-**Local (faster-whisper)** — Runs Whisper locally via [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Uses CPU by default, GPU if available. Model sizes:
+**本地 (faster-whisper)** — 通过 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 在本地运行 Whisper。默认使用 CPU，如果可用则使用 GPU。模型大小：
 
-| Model | Size | Speed | Quality |
-|-------|------|-------|---------|
-| `tiny` | ~75 MB | Fastest | Basic |
-| `base` | ~150 MB | Fast | Good (default) |
-| `small` | ~500 MB | Medium | Better |
-| `medium` | ~1.5 GB | Slower | Great |
-| `large-v3` | ~3 GB | Slowest | Best |
+| 模型 | 大小 | 速度 | 质量 |
+|------|------|------|------|
+| `tiny` | ~75 MB | 最快 | 基础 |
+| `base` | ~150 MB | 快速 | 良好（默认） |
+| `small` | ~500 MB | 中等 | 更好 |
+| `medium` | ~1.5 GB | 较慢 | 很好 |
+| `large-v3` | ~3 GB | 最慢 | 最佳 |
 
-**Groq API** — Requires `GROQ_API_KEY`. Good cloud fallback when you want a free hosted STT option.
+**Groq API** — 需要 `GROQ_API_KEY`。当你想要免费的托管 STT 选项时，是很好的云回退。
 
-**OpenAI API** — Accepts `VOICE_TOOLS_OPENAI_KEY` first and falls back to `OPENAI_API_KEY`. Supports `whisper-1`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe`.
+**OpenAI API** — 首先接受 `VOICE_TOOLS_OPENAI_KEY`，回退到 `OPENAI_API_KEY`。支持 `whisper-1`、`gpt-4o-mini-transcribe` 和 `gpt-4o-transcribe`。
 
-**Mistral API (Voxtral Transcribe)** — Requires `MISTRAL_API_KEY`. Uses Mistral's [Voxtral Transcribe](https://docs.mistral.ai/capabilities/audio/speech_to_text/) models. Supports 13 languages, speaker diarization, and word-level timestamps. Install with `pip install hermes-agent[mistral]`.
+**Mistral API (Voxtral Transcribe)** — 需要 `MISTRAL_API_KEY`。使用 Mistral 的 [Voxtral Transcribe](https://docs.mistral.ai/capabilities/audio/speech_to_text/) 模型。支持 13 种语言、说话人分离和词级时间戳。使用 `pip install hermes-agent[mistral]` 安装。
 
-**Custom local CLI fallback** — Set `HERMES_LOCAL_STT_COMMAND` if you want Hermes to call a local transcription command directly. The command template supports `{input_path}`, `{output_dir}`, `{language}`, and `{model}` placeholders.
+**自定义本地 CLI 回退** — 如果你想让 Hermes 直接调用本地转录命令，设置 `HERMES_LOCAL_STT_COMMAND`。命令模板支持 `{input_path}`、`{output_dir}`、`language` 和 `{model}` 占位符。
 
-### Fallback Behavior
+### 回退行为
 
-If your configured provider isn't available, Hermes automatically falls back:
-- **Local faster-whisper unavailable** → Tries a local `whisper` CLI or `HERMES_LOCAL_STT_COMMAND` before cloud providers
-- **Groq key not set** → Falls back to local transcription, then OpenAI
-- **OpenAI key not set** → Falls back to local transcription, then Groq
-- **Mistral key/SDK not set** → Skipped in auto-detect; falls through to next available provider
-- **Nothing available** → Voice messages pass through with an accurate note to the user
+如果你配置的提供商不可用，Hermes 自动回退：
+- **本地 faster-whisper 不可用** → 在云提供商之前尝试本地 `whisper` CLI 或 `HERMES_LOCAL_STT_COMMAND`
+- **Groq 密钥未设置** → 回退到本地转录，然后 OpenAI
+- **OpenAI 密钥未设置** → 回退到本地转录，然后 Groq
+- **Mistral 密钥/SDK 未设置** → 在自动检测中跳过；流向下一个可用提供商
+- **什么都不可用** → 语音消息传递时附带准确的说明
