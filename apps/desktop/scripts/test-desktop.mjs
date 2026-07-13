@@ -410,6 +410,7 @@ function help() {
   npm run test:desktop:nsis      # (win32 only) build NSIS installer
   npm run test:desktop:all       # build installer, validate app payload, print paths
   npm run test:desktop:bundle    # validate existing app + installer without rebuilding or launching
+  npm run test:desktop:app-bundle # validate only the existing packaged app without requiring an installer
 
 Fast rerun (skip rebuild if the packaged app already exists):
   HERMES_DESKTOP_SKIP_BUILD=1 npm run test:desktop:fresh
@@ -450,6 +451,8 @@ if (MODE === 'existing') {
   if (PLATFORM === 'win32' && !resolveNsisPath()) {
     die(`Missing NSIS installer for ${PRODUCT.productName} ${PACKAGE_JSON.version}`)
   }
+  printArtifacts(validateBundle())
+} else if (MODE === 'app-bundle') {
   printArtifacts(validateBundle())
 } else {
   help()

@@ -63,5 +63,7 @@ test('root package metadata and student command target the Ruyi fork', () => {
   assert.match(rootPackage.scripts['desktop:package:win'], /test:desktop:bundle/)
   assert.match(rootPackage.scripts['desktop:package:win'], /test:desktop:install:win/)
   assert.match(rootPackage.scripts['desktop:package:portable:win'], /dist:win:portable/)
+  assert.match(rootPackage.scripts['desktop:package:portable:win'], /test:desktop:app-bundle/)
+  assert.doesNotMatch(rootPackage.scripts['desktop:package:portable:win'], /test:desktop:bundle(?:\s|$)/)
   assert.match(rootPackage.scripts['desktop:package:portable:win'], /test:desktop:portable:win/)
 })

@@ -35,6 +35,7 @@
     "test:desktop": "node scripts/test-desktop.mjs",
     "test:desktop:all": "node scripts/test-desktop.mjs all",
     "test:desktop:bundle": "node scripts/test-desktop.mjs bundle",
+    "test:desktop:app-bundle": "node scripts/test-desktop.mjs app-bundle",
     "test:desktop:install:win": "node scripts/test-windows-installer.mjs",
     "test:desktop:portable:win": "node scripts/test-windows-portable.mjs",
     "test:desktop:dmg": "node scripts/test-desktop.mjs dmg",
