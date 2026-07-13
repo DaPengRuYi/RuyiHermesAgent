@@ -97,6 +97,29 @@ function assertProbe(probe, launcherDir) {
   if (probe.registerDeepLinkProtocol !== false) throw new Error('portable build would register hermes://')
 }
 
+function validatePortableMetadata(metadata, packageJson = desktopPackage) {
+  const companyName =
+    typeof packageJson.author === 'string' ? packageJson.author : packageJson.author?.name
+  const expected = {
+    ProductName: packageJson.productName,
+    FileDescription: packageJson.description,
+    CompanyName: companyName
+  }
+
+  for (const [key, value] of Object.entries(expected)) {
+    if (metadata?.[key] !== value) {
+      throw new Error(`portable executable ${key} mismatch: expected ${value}, got ${metadata?.[key] ?? '<empty>'}`)
+    }
+  }
+  for (const key of ['FileVersion', 'ProductVersion']) {
+    if (!String(metadata?.[key] || '').startsWith(packageJson.version)) {
+      throw new Error(
+        `portable executable ${key} must start with ${packageJson.version}, got ${metadata?.[key] ?? '<empty>'}`
+      )
+    }
+  }
+}
+
 function main() {
   if (process.platform !== 'win32') throw new Error('Windows portable smoke test requires Windows')
 
@@ -116,8 +139,9 @@ function main() {
     throw new Error(`portable application has the wrong PE architecture for ${process.arch}`)
   }
 
+  validateInstalledMetadata(fileMetadata(unpacked.binary))
   const metadata = fileMetadata(artifact)
-  validateInstalledMetadata(metadata)
+  validatePortableMetadata(metadata)
   if (metadata.SignatureStatus !== 'Valid') {
     if (process.env.HERMES_REQUIRE_SIGNED_BUILD === '1')
       throw new Error(`portable Authenticode status is ${metadata.SignatureStatus}, expected Valid`)
@@ -158,7 +182,7 @@ function main() {
   }
 }
 
-export { assertProbe, portableArtifactName }
+export { assertProbe, portableArtifactName, validatePortableMetadata }
 
 if (isMain(import.meta.url)) {
   try {
