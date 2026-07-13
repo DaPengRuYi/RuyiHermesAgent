@@ -18,6 +18,15 @@ const DEFAULT_PORT_ANNOUNCE_TIMEOUT_MS = 90_000
 // (the historical default) so a malformed override can't reintroduce the loop.
 const MIN_PORT_ANNOUNCE_TIMEOUT_MS = 45_000
 
+function backendReadinessUrl(baseUrl: string) {
+  // `/api/status` imports gateway configuration and other management state.
+  // During a cold source-checkout boot that can contend with the background
+  // `hermes_cli.gateway` warmup and deadlock Python's module locks.  Ready is
+  // an authenticated, side-effect-free HTTP liveness probe available on the
+  // headless `hermes serve` surface.
+  return `${baseUrl.replace(/\/$/, '')}/api/ready`
+}
+
 /**
  * Resolve the port-announcement deadline. Honors the
  * HERMES_DESKTOP_PORT_ANNOUNCE_TIMEOUT_MS env override (for users on slow
@@ -192,6 +201,7 @@ function waitForDashboardPortAnnouncement(
 }
 
 export {
+  backendReadinessUrl,
   DEFAULT_PORT_ANNOUNCE_TIMEOUT_MS,
   MIN_PORT_ANNOUNCE_TIMEOUT_MS,
   readDashboardReadyFile,

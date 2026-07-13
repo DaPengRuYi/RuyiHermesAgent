@@ -19,6 +19,7 @@ import path from 'node:path'
 import test from 'node:test'
 
 import {
+  backendReadinessUrl,
   DEFAULT_PORT_ANNOUNCE_TIMEOUT_MS,
   MIN_PORT_ANNOUNCE_TIMEOUT_MS,
   readDashboardReadyFile,
@@ -27,6 +28,11 @@ import {
   waitForDashboardPortAnnouncement,
   waitForDashboardReadyFile
 } from './backend-ready'
+
+test('backend readiness uses the lightweight headless-ready endpoint', () => {
+  assert.equal(backendReadinessUrl('http://127.0.0.1:4321'), 'http://127.0.0.1:4321/api/ready')
+  assert.equal(backendReadinessUrl('http://127.0.0.1:4321/'), 'http://127.0.0.1:4321/api/ready')
+})
 
 type FakeChildProcess = EventEmitter & {
   stdout: EventEmitter
