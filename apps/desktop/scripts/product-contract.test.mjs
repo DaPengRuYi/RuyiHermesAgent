@@ -53,7 +53,7 @@ test('packaged app layout and artifact names derive from package.json', () => {
       arch: 'x64',
       ext: 'exe'
     }),
-    'RuyiHermesAgent-0.17.0-win-x64.exe'
+    'RuyiHermesAgent-0.1.1-win-x64.exe'
   )
 })
 

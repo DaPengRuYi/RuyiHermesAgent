@@ -10,8 +10,8 @@ import { assertSafeInstallTarget, readPeMachine, validateInstalledMetadata } fro
 test('Windows executable identity uses the desktop package version', () => {
   const options = exeIdentityOptions()
 
-  assert.equal(options['file-version'], '0.17.0')
-  assert.equal(options['product-version'], '0.17.0')
+  assert.equal(options['file-version'], '0.1.1')
+  assert.equal(options['product-version'], '0.1.1')
   assert.equal(options['version-string'].ProductName, 'RuyiHermesAgent')
   assert.equal(options['version-string'].InternalName, 'RuyiHermesAgent.exe')
 })
@@ -33,13 +33,13 @@ test('installed executable metadata enforces product and application versions', 
     CompanyName: 'Nous Research',
     InternalName: 'RuyiHermesAgent.exe',
     OriginalFilename: 'RuyiHermesAgent.exe',
-    FileVersion: '0.17.0',
-    ProductVersion: '0.17.0'
+    FileVersion: '0.1.1',
+    ProductVersion: '0.1.1'
   }
 
   assert.doesNotThrow(() => validateInstalledMetadata(metadata))
   assert.throws(() => validateInstalledMetadata({ ...metadata, ProductName: 'Electron' }), /ProductName mismatch/)
-  assert.throws(() => validateInstalledMetadata({ ...metadata, FileVersion: '40.10.2' }), /must start with 0\.17\.0/)
+  assert.throws(() => validateInstalledMetadata({ ...metadata, FileVersion: '40.10.2' }), /must start with 0\.1\.1/)
 })
 
 test('PE machine reader verifies the packaged executable architecture field', () => {

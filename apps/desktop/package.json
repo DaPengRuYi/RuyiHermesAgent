@@ -2,7 +2,7 @@
   "name": "hermes",
   "productName": "RuyiHermesAgent",
   "private": true,
-  "version": "0.17.0",
+  "version": "0.1.1",
   "description": "Native desktop application for RuyiHermesAgent, powered by the Hermes agent runtime.",
   "author": "Nous Research",
   "type": "module",
