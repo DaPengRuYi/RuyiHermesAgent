@@ -4,6 +4,18 @@ Instructions for AI coding assistants and developers working on the hermes-agent
 
 **Never give up on the right solution.**
 
+## Afra Release Freeze
+
+- The canonical integration and push branch for this RuyiHermesAgent line is
+  `dev`.
+- The `dev` HEAD established by the 2026-07-13 RuyiHermesAgent portable-release
+  commit is the fixed release baseline.
+- After that baseline is pushed, do not add, modify, delete, refactor, or
+  regenerate source code, tests, build scripts, package configuration, or
+  release assets without Afra's explicit permission in the current task.
+- Read-only inspection and reporting are allowed, but they do not imply
+  permission to change code.
+
 ## What Hermes Is
 
 Hermes is a personal AI agent that runs the same agent core across a CLI, a

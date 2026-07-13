@@ -176,7 +176,7 @@ export function AboutSettings() {
           title={a.automaticUpdates}
         />
 
-        <UninstallSection />
+        {!version?.portable && <UninstallSection />}
       </div>
     </SettingsContent>
   )

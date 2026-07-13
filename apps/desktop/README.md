@@ -1,13 +1,13 @@
-# Hermes Desktop ☤
+# RuyiHermesAgent Desktop
 
 <p align="center">
-  <a href="https://github.com/NousResearch/hermes-agent/releases"><img src="https://img.shields.io/badge/Download-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-FFD700?style=for-the-badge" alt="Download"></a>
+  <a href="https://github.com/DaPengRuYi/RuyiHermesAgent/releases"><img src="https://img.shields.io/badge/Download-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-FFD700?style=for-the-badge" alt="Download"></a>
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
-**The native desktop app for [Hermes Agent](../../README.md) — the self-improving AI agent from [Nous Research](https://nousresearch.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
+**RuyiHermesAgent（如意智能体）is the branded native desktop app powered by the Hermes agent runtime from [Nous Research](https://nousresearch.com).** It uses the same `hermes` CLI, skills, memory, config, and gateway, in a polished native window. Available for **macOS, Windows, and Linux**.
 
 <table>
 <tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Hermes surface.</td></tr>
@@ -22,15 +22,15 @@
 
 ## Install
 
-### Install with Hermes (recommended)
+### Install with the `hermes` CLI
 
-Already have the Hermes CLI? Just run:
+Already have the `hermes` CLI? Just run:
 
 ```bash
 hermes desktop
 ```
 
-It builds and launches the GUI against your existing install — same config, keys, sessions, and skills. On first launch Hermes walks you through picking a provider and model; nothing else to configure.
+It builds and launches RuyiHermesAgent against your existing install — same config, keys, sessions, and skills.
 
 ### Prebuilt installers
 
@@ -72,7 +72,35 @@ HERMES_HOME=/tmp/throwaway npm run dev
 npm run dev:fake-boot   # exercise the startup overlay with deterministic delays
 ```
 
-### Building installers
+### Windows: verified student packaging path
+
+Run these two commands from the repository root:
+
+```powershell
+npm ci
+npm run desktop:package:win
+```
+
+The second command runs desktop type checks, platform and UI tests, packaging-contract tests, verifies that the pinned `install.ps1` and `install.sh` are reachable from the fork, requires a clean tracked worktree, builds the NSIS installer, validates the packaged app payload, and performs an isolated silent install/uninstall smoke test without launching the app. The smoke test refuses to run when it detects an existing compatible installation, process, shortcut, default install directory, or non-empty updater cache, so it cannot overwrite a developer's real install. The installer is written to:
+
+```text
+apps\desktop\release\RuyiHermesAgent-<version>-win-<arch>.exe
+```
+
+Double-click that file to install the desktop product. The product is named **RuyiHermesAgent** (中文：**如意智能体**); its command-line tool intentionally remains `hermes`.
+
+To build the Windows green portable edition instead, run:
+
+```powershell
+npm ci
+npm run desktop:package:portable:win
+```
+
+The single-file executable is written to `apps\desktop\release\RuyiHermesAgent-Portable-<version>-<arch>.exe`. Put it in its own writable folder before launching. It stores desktop settings and the managed `hermes` runtime in an adjacent `data` folder, does not create an uninstall entry or shortcuts, and does not claim the `hermes://` protocol. To remove it, exit the app and delete the executable plus `data` folder.
+
+Release packaging fails when the current commit has not been pushed to the configured GitHub `origin`. This is intentional: a locally successful installer whose pinned bootstrap scripts return 404 is not safe to hand to students.
+
+### Other build targets
 
 ```bash
 npm run dist:mac     # DMG + zip

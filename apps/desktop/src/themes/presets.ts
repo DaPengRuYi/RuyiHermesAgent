@@ -20,80 +20,72 @@ const SYSTEM_MONO =
 
 export const DEFAULT_TYPOGRAPHY: DesktopThemeTypography = { fontSans: SYSTEM_SANS, fontMono: SYSTEM_MONO }
 
-const NOUS_BLUE = '#0053FD'
-const PSYCHE_BLUE = '#1540B1'
-const PSYCHE_WARM = '#FFE6CB'
-
-const nousTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFFFFF)`
-const nousTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
-
 /**
- * Nous — canonical Hermes desktop identity. The palette keeps the current
- * glass geometry neutral, then lets the old bb/gui blue and psyche cream
- * return as accent seeds.
+ * Ruyi — the canonical "国风科技蓝" identity. Both variants stay dark so the
+ * product always reads as deep-sea technology blue; the light/dark toggle
+ * shifts depth while jade cyan marks interactive and intelligent surfaces.
  */
-export const nousTheme: DesktopTheme = {
-  name: 'nous',
-  label: 'Nous',
-  description: 'Glass neutrals with Nous blue accents',
+export const ruyiTheme: DesktopTheme = {
+  name: 'ruyi',
+  label: 'Ruyi 国风科技蓝',
+  description: 'Deep-sea blue, jade cyan, and restrained luminous details',
   colors: {
-    background: '#F8FAFF',
-    foreground: '#17171A',
-    card: '#FFFFFF',
-    cardForeground: '#17171A',
-    muted: nousTint(5),
-    mutedForeground: '#666678',
-    popover: '#FFFFFF',
-    popoverForeground: '#17171A',
-    primary: NOUS_BLUE,
-    primaryForeground: '#FCFCFC',
-    secondary: nousTint(7),
-    secondaryForeground: '#242432',
-    accent: nousTint(10),
-    accentForeground: '#202030',
-    border: nousTintTransparent(22),
-    input: nousTintTransparent(30),
-    ring: NOUS_BLUE,
-    midground: NOUS_BLUE,
-    composerRing: NOUS_BLUE,
-    destructive: '#C72E4D',
+    background: '#0B2E59',
+    foreground: '#ECFAFF',
+    card: '#103A69',
+    cardForeground: '#ECFAFF',
+    muted: '#164775',
+    mutedForeground: '#A8CBE0',
+    popover: '#103A69',
+    popoverForeground: '#ECFAFF',
+    primary: '#63E6D6',
+    primaryForeground: '#061A2E',
+    secondary: '#123F70',
+    secondaryForeground: '#D7F6F2',
+    accent: '#164F82',
+    accentForeground: '#F1FFFF',
+    border: '#286597',
+    input: '#092743',
+    ring: '#63E6D6',
+    midground: '#2F8CFF',
+    composerRing: '#63E6D6',
+    destructive: '#D55868',
     destructiveForeground: '#FFFFFF',
-    sidebarBackground: '#F3F7FF',
-    sidebarBorder: nousTintTransparent(18),
-    userBubble: nousTint(6),
-    userBubbleBorder: nousTintTransparent(24)
+    sidebarBackground: '#071F3C',
+    sidebarBorder: '#235681',
+    userBubble: '#123F70',
+    userBubbleBorder: '#2F719E'
   },
   darkColors: {
-    background: '#0D2F86',
-    foreground: PSYCHE_WARM,
-    card: '#12378F',
-    cardForeground: PSYCHE_WARM,
-    muted: '#183F9A',
-    mutedForeground: '#B5C7F3',
-    popover: '#123A96',
-    popoverForeground: PSYCHE_WARM,
-    primary: PSYCHE_WARM,
-    primaryForeground: '#0D2F86',
-    secondary: '#1B45A4',
-    secondaryForeground: '#E0E8FF',
-    accent: PSYCHE_BLUE,
-    accentForeground: '#F0F4FF',
-    border: '#3158AD',
-    input: '#0B2566',
-    ring: PSYCHE_WARM,
-    midground: NOUS_BLUE,
-    composerRing: PSYCHE_WARM,
-    destructive: '#C0473A',
-    destructiveForeground: '#FEF2F2',
-    sidebarBackground: '#09286F',
-    sidebarBorder: '#234A9C',
-    userBubble: '#143B91',
-    userBubbleBorder: '#3A63BD'
+    background: '#061426',
+    foreground: '#E7F9FF',
+    card: '#0A213B',
+    cardForeground: '#E7F9FF',
+    muted: '#0D2C4A',
+    mutedForeground: '#8CB3C9',
+    popover: '#0B2745',
+    popoverForeground: '#E7F9FF',
+    primary: '#63E6D6',
+    primaryForeground: '#04121F',
+    secondary: '#0D3154',
+    secondaryForeground: '#CDEEEA',
+    accent: '#103B62',
+    accentForeground: '#ECFFFF',
+    border: '#1A4A70',
+    input: '#071B2E',
+    ring: '#63E6D6',
+    midground: '#2F8CFF',
+    composerRing: '#63E6D6',
+    destructive: '#D65365',
+    destructiveForeground: '#FFFFFF',
+    sidebarBackground: '#04101F',
+    sidebarBorder: '#153B5B',
+    userBubble: '#0D2C4A',
+    userBubbleBorder: '#235C82'
   },
   typography: {
     fontSans: SYSTEM_SANS,
-    fontMono: `"Courier Prime", ${SYSTEM_MONO}`,
-    fontUrl: 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap'
+    fontMono: SYSTEM_MONO
   }
 }
 
@@ -278,7 +270,7 @@ export const slateTheme: DesktopTheme = {
 }
 
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
-  nous: nousTheme,
+  ruyi: ruyiTheme,
   midnight: midnightTheme,
   ember: emberTheme,
   mono: monoTheme,
@@ -289,4 +281,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'nous'
+export const DEFAULT_SKIN_NAME = 'ruyi'

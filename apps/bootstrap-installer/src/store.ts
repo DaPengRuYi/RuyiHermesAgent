@@ -68,7 +68,7 @@ export type Route = 'welcome' | 'progress' | 'success' | 'failure'
 
 /// How the installer was launched, mirrored from src-tauri AppMode.
 /// 'install' = first-run onboarding (bare launch). 'update' = driven by the
-/// desktop app handing off via `Hermes-Setup.exe --update`.
+/// desktop app handing off via `RuyiHermesAgent-Setup.exe --update`.
 export type AppMode = 'install' | 'update'
 
 export const $route = atom<Route>('welcome')
@@ -160,6 +160,15 @@ type BootstrapEvent =
   | BootstrapCompleteEvent
   | BootstrapFailedEvent
 
+/** Rebrand human-facing installer output without altering technical identifiers
+ * such as `hermes`, `HERMES_HOME`, `.hermes`, or legacy executable paths. */
+function brandUserFacingText(value: string): string {
+  return value
+    .replaceAll('Hermes Agent', 'RuyiHermesAgent')
+    .replaceAll('Hermes repository', 'RuyiHermesAgent repository')
+    .replaceAll('Hermes desktop', 'RuyiHermesAgent desktop')
+}
+
 let unlisten: UnlistenFn | null = null
 
 export async function initialize(): Promise<void> {
@@ -200,7 +209,10 @@ export async function initialize(): Promise<void> {
         const stages: Record<string, StageRecord> = {}
         const order: string[] = []
         for (const s of payload.stages) {
-          stages[s.name] = { info: s, state: null }
+          stages[s.name] = {
+            info: { ...s, title: brandUserFacingText(s.title) },
+            state: null
+          }
           order.push(s.name)
         }
         $bootstrap.set({
@@ -223,12 +235,25 @@ export async function initialize(): Promise<void> {
           break
         }
         $bootstrap.set(
-          withStageState(cur, payload.name, payload.state, payload.durationMs, payload.error)
+          withStageState(
+            cur,
+            payload.name,
+            payload.state,
+            payload.durationMs,
+            payload.error ? brandUserFacingText(payload.error) : undefined
+          )
         )
         break
       }
       case 'log': {
-        const logs = [...cur.logs, { stage: payload.stage, line: payload.line, stream: payload.stream }]
+        const logs = [
+          ...cur.logs,
+          {
+            stage: payload.stage,
+            line: brandUserFacingText(payload.line),
+            stream: payload.stream
+          }
+        ]
         // Keep the rolling buffer bounded so the UI doesn't get OOM'd
         // during a long install (playwright chromium download is ~10k lines).
         const trimmed = logs.length > 2000 ? logs.slice(-2000) : logs
@@ -242,7 +267,7 @@ export async function initialize(): Promise<void> {
           installRoot: payload.installRoot,
           currentStage: null
         })
-        // Install: show the "launch Hermes" success screen. Update: this is a
+        // Install: show the "launch RuyiHermesAgent" success screen. Update: this is a
         // hand-off — the installer relaunches the desktop and exits within a
         // few hundred ms, so routing to success just flashes that screen
         // before the window closes. Stay on progress until we exit.
@@ -254,7 +279,7 @@ export async function initialize(): Promise<void> {
         $bootstrap.set({
           ...cur,
           status: 'failed',
-          error: payload.error,
+          error: brandUserFacingText(payload.error),
           currentStage: null
         })
         $route.set('failure')
@@ -299,7 +324,7 @@ export async function startUpdate(): Promise<void> {
     void runFakeBoot('update')
     return
   }
-  // Update is driven by the desktop handing off (Hermes-Setup.exe --update);
+  // Update is driven by the desktop handing off (RuyiHermesAgent-Setup.exe --update);
   // there's no welcome click. Reset + jump straight to progress, then let the
   // Rust side stream the synthetic update manifest.
   $bootstrap.set(INITIAL)
@@ -355,7 +380,7 @@ const FAKE_INSTALL_STAGES: FakeStage[] = [
   { name: 'system-packages', title: 'System packages' },
   { name: 'uv', title: 'uv' },
   { name: 'python', title: 'Python environment' },
-  { name: 'repo', title: 'Hermes repository' },
+  { name: 'repo', title: 'RuyiHermesAgent repository' },
   { name: 'dependencies', title: 'Python dependencies' },
   { name: 'node', title: 'Node runtime' },
   { name: 'desktop', title: 'Desktop app' }
