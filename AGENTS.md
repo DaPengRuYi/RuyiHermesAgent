@@ -4,17 +4,19 @@ Instructions for AI coding assistants and developers working on the hermes-agent
 
 **Never give up on the right solution.**
 
-## Afra Release Freeze
+## Afra Branch Policy
 
 - The canonical integration and push branch for this RuyiHermesAgent line is
   `dev`.
 - The `dev` HEAD established by the 2026-07-13 RuyiHermesAgent portable-release
-  commit is the fixed release baseline.
-- After that baseline is pushed, do not add, modify, delete, refactor, or
-  regenerate source code, tests, build scripts, package configuration, or
-  release assets without Afra's explicit permission in the current task.
-- Read-only inspection and reporting are allowed, but they do not imply
-  permission to change code.
+  commit is the reference point for the fixed release baseline.
+- Branches under `version/*` are fixed release snapshots. Do not proactively
+  add, modify, delete, refactor, or regenerate source code, tests, build
+  scripts, package configuration, or release assets on those branches without
+  Afra's explicit permission in the current task.
+- `dev` remains the active integration and development branch. Normal scoped
+  changes are allowed on `dev`; the `version/*` freeze must not be applied to
+  `dev`.
 
 ## What Hermes Is
 

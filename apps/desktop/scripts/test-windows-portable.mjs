@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { renderArtifactName } from './desktop-product.mjs'
+import { packagedAppLayout, renderArtifactName } from './desktop-product.mjs'
 import { readPeMachine, validateInstalledMetadata } from './test-windows-installer.mjs'
 import { isMain } from './utils.mjs'
 
@@ -102,10 +102,19 @@ function main() {
 
   const artifactName = portableArtifactName()
   const artifact = path.join(DESKTOP_ROOT, 'release', artifactName)
+  const unpacked = packagedAppLayout({
+    desktopRoot: DESKTOP_ROOT,
+    packageJson: desktopPackage,
+    platform: 'win32',
+    arch: process.arch
+  })
   if (!fs.existsSync(artifact)) throw new Error(`missing portable artifact: ${artifact}`)
+  if (!fs.existsSync(unpacked.binary)) throw new Error(`missing unpacked executable: ${unpacked.binary}`)
 
   const expectedMachine = process.arch === 'arm64' ? 0xaa64 : 0x8664
-  if (readPeMachine(artifact) !== expectedMachine) throw new Error(`portable artifact has the wrong PE architecture`)
+  if (readPeMachine(unpacked.binary) !== expectedMachine) {
+    throw new Error(`portable application has the wrong PE architecture for ${process.arch}`)
+  }
 
   const metadata = fileMetadata(artifact)
   validateInstalledMetadata(metadata)
