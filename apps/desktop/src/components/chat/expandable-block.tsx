@@ -31,19 +31,22 @@ export function ExpandableBlock({ children, className }: ExpandableBlockProps) {
   }, [])
 
   return (
-    <div className="relative">
-      <div className={cn('overflow-y-auto', expanded ? 'max-h-[40dvh]' : 'max-h-[7.5rem]', className)} ref={innerRef}>
+    <div className="relative min-h-48 w-full min-w-0">
+      <div
+        className={cn('overflow-y-auto', expanded ? 'max-h-[60dvh]' : 'h-48 max-h-48', className)}
+        ref={innerRef}
+      >
         {children}
       </div>
       {overflowing && (
         <button
           aria-expanded={expanded}
           aria-label={expanded ? 'Collapse' : 'Expand'}
-          className="absolute inset-x-0 bottom-0 flex h-7 cursor-pointer items-end justify-center bg-linear-to-t from-(--ui-chat-surface-background) to-transparent pb-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+          className="absolute bottom-2 left-1/2 grid size-10 -translate-x-1/2 cursor-pointer place-items-center rounded-full border border-border/55 bg-(--ui-chat-surface-background)/90 text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:bg-accent hover:text-foreground"
           onClick={() => setExpanded(v => !v)}
           type="button"
         >
-          <ChevronDown className={cn('size-3.5 transition-transform', expanded && 'rotate-180')} />
+          <ChevronDown className={cn('size-6 transition-transform', expanded && 'rotate-180')} />
         </button>
       )}
     </div>
