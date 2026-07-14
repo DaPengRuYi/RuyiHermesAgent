@@ -338,10 +338,10 @@
     --composer-shell-pad-block-end: 0.625rem;
     --message-text-indent: 0.75rem;
     --conversation-text-font-size: 1.75rem;
-    --conversation-tool-font-size: 1.125rem;
-    --conversation-caption-font-size: 1.125rem;
-    --conversation-line-height: 1.75rem;
-    --conversation-caption-line-height: 1.5rem;
+    --conversation-tool-font-size: 1.75rem;
+    --conversation-caption-font-size: 1.75rem;
+    --conversation-line-height: 2.625rem;
+    --conversation-caption-line-height: 2.625rem;
     --conversation-turn-gap: 0.375rem;
     /* Gap between top-level turn blocks (prose ↔ tools ↔ thinking) — enough air
        that scaffolding reads as separate from the reply, not crammed into it. */
@@ -1032,6 +1032,31 @@ code {
 [data-slot='aui_thread-content'] {
   max-width: var(--composer-width);
   padding-inline: 1.5rem;
+}
+
+/* The transcript is one reading surface: prose, headings, fenced code, tool
+   output, and their labels all use the same 28px default. Several renderers
+   carry legacy compact Tailwind sizes, so the boundary override keeps future
+   message parts consistent without scaling the sidebar or titlebar chrome. */
+[data-slot='aui_thread-content'] :where(.aui-md, .aui-md *, [data-slot='tool-block'], [data-slot='tool-block'] *) {
+  font-size: var(--conversation-text-font-size) !important;
+  line-height: var(--dt-line-height) !important;
+}
+
+[data-slot='aui_thread-content'] button:has(svg) {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+}
+
+[data-slot='aui_thread-content'] button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* App chrome remains a separate 18px surface. */
+[data-slot='sidebar'] :where(button, a, span, p, label, input),
+header :where(button, a, span, p, h1, h2, label, input) {
+  font-size: 1.125rem;
 }
 
 [data-slot='aui_intro'] {
