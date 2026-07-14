@@ -108,13 +108,15 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
       .getConfig()
       .then(config => {
         if (!cancelled) {
-          setLocaleState(normalizeLocale(getConfigDisplayLanguage(config)))
+          const configuredLocale = getConfigDisplayLanguage(config)
+          if (configuredLocale != null) {
+            setLocaleState(normalizeLocale(configuredLocale))
+          }
         }
       })
       .catch(error => {
         if (!cancelled) {
           setConfigLoadError(toError(error))
-          setLocaleState(DEFAULT_LOCALE)
         }
       })
       .finally(() => {

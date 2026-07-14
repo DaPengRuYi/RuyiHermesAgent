@@ -1,9 +1,9 @@
 import type { Locale, Translations } from './types'
 
 export const PRODUCT_NAME = 'RuyiHermesAgent'
-export const PRODUCT_NAME_ZH = '如意智能体'
+export const PRODUCT_NAME_ZH = '如意助手'
 export const PRODUCT_DESKTOP_NAME = 'RuyiHermesAgent Desktop'
-export const PRODUCT_DESKTOP_NAME_ZH = '如意智能体桌面端'
+export const PRODUCT_DESKTOP_NAME_ZH = '如意助手桌面端'
 
 function productName(locale: Locale): string {
   return locale === 'zh' || locale === 'zh-hant' ? PRODUCT_NAME_ZH : PRODUCT_NAME
@@ -19,6 +19,8 @@ function desktopName(locale: Locale): string {
  */
 export function brandText(locale: Locale, value: string): string {
   return value
+    .replaceAll('Hermes 桌面版', desktopName(locale))
+    .replaceAll('Hermes 桌面端', desktopName(locale))
     .replaceAll('Hermes Desktop', desktopName(locale))
     .replaceAll('Hermes Agent', productName(locale))
     .replace(/\bHermes\b/g, productName(locale))

@@ -8,7 +8,8 @@ describe('RuyiHermesAgent product branding', () => {
     expect(brandText('en', 'Hermes Desktop uses Hermes Agent via `hermes` and HERMES_HOME.')).toBe(
       'RuyiHermesAgent Desktop uses RuyiHermesAgent via `hermes` and HERMES_HOME.'
     )
-    expect(brandText('zh', 'Hermes Desktop 正在启动 Hermes Agent。')).toBe('如意智能体桌面端 正在启动 如意智能体。')
+    expect(brandText('zh', 'Hermes Desktop 正在启动 Hermes Agent。')).toBe('如意助手桌面端 正在启动 如意助手。')
+    expect(brandText('zh', 'Hermes 桌面版已就绪')).toBe('如意助手桌面端已就绪')
   })
 
   it('brands strings returned by parameterized translations', () => {

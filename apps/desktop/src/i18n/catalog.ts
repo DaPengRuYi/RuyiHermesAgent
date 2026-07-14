@@ -1,5 +1,5 @@
-import { en } from './en'
 import { brandTranslations } from './brand'
+import { en } from './en'
 import { ja } from './ja'
 import type { Locale, Translations } from './types'
 import { zh } from './zh'
