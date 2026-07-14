@@ -96,7 +96,15 @@ npm ci
 npm run desktop:package:portable:win
 ```
 
-The single-file executable is written to `apps\desktop\release\RuyiHermesAgent-Portable-<version>-<arch>.exe`. Put it in its own writable folder before launching. It stores desktop settings and the managed `hermes` runtime in an adjacent `data` folder, does not create an uninstall entry or shortcuts, and does not claim the `hermes://` protocol. To remove it, exit the app and delete the executable plus `data` folder.
+The portable command starts with a fast host-environment preflight, verifies the remote install source before local quality gates, then runs each build/smoke phase exactly once with an isolated launch environment. Before building, it stages the exact previous portable artifact outside `release`; a failed build restores it, while a successful build must create and immediately validate a fresh artifact before any smoke test can run. It records phase classifications and timings, the artifact SHA-256, and a JSON summary under `tmp\desktop-portable-package\<run-id>`. Run only the preflight with:
+
+```powershell
+npm run desktop:preflight:portable:win
+```
+
+The default command still requires a clean tracked worktree. For local validation of uncommitted packaging changes, the explicit development-only form is `npm run desktop:package:portable:win -- --allow-dirty`; its summary is marked `local-dirty-validation` and must not be treated as a release build.
+
+The single-file executable is written to `apps\desktop\release\RuyiHermesAgent-Portable-<version>-<arch>.exe`. Put it in its own writable folder before launching. It stores desktop settings and the managed `hermes` runtime in an adjacent `data` folder, does not create an uninstall entry or shortcuts, and does not claim the `hermes://` protocol. To remove it, exit the app and delete the executable plus `data` folder. The canonical smoke test removes host-only `HERMES_HOME` and `ELECTRON_RUN_AS_NODE` values from its child environment; it never changes the user's environment or the product's explicit `HERMES_HOME` override behavior. Failed smoke runs retain redacted diagnostics under `tmp\desktop-portable-smoke` and print the exact path. Completed non-timeout failures are capped at the newest five directories; timeout evidence is not auto-pruned because a child process may still hold the copied executable.
 
 Release packaging fails when the current commit has not been pushed to the configured GitHub `origin`. This is intentional: a locally successful installer whose pinned bootstrap scripts return 404 is not safe to hand to students.
 

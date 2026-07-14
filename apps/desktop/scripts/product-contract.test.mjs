@@ -62,8 +62,14 @@ test('root package metadata and student command target the Ruyi fork', () => {
   assert.match(rootPackage.scripts['desktop:package:win'], /HERMES_REQUIRE_CLEAN_BUILD=1/)
   assert.match(rootPackage.scripts['desktop:package:win'], /test:desktop:bundle/)
   assert.match(rootPackage.scripts['desktop:package:win'], /test:desktop:install:win/)
-  assert.match(rootPackage.scripts['desktop:package:portable:win'], /dist:win:portable/)
-  assert.match(rootPackage.scripts['desktop:package:portable:win'], /test:desktop:app-bundle/)
-  assert.doesNotMatch(rootPackage.scripts['desktop:package:portable:win'], /test:desktop:bundle(?:\s|$)/)
-  assert.match(rootPackage.scripts['desktop:package:portable:win'], /test:desktop:portable:win/)
+  assert.equal(
+    rootPackage.scripts['desktop:package:portable:win'],
+    'node apps/desktop/scripts/package-windows-portable.mjs'
+  )
+  assert.equal(
+    rootPackage.scripts['desktop:preflight:portable:win'],
+    'node apps/desktop/scripts/package-windows-portable.mjs --preflight-only'
+  )
+  assert.match(desktopPackage.scripts['dist:win:portable:prechecked'], /build:artifacts/)
+  assert.match(desktopPackage.scripts['dist:win:portable:prechecked'], /builder -- --win portable/)
 })
