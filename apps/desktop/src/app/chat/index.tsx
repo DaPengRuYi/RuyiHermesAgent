@@ -362,7 +362,7 @@ export function ChatView({
       }
 
       if (!gateway) {
-        throw new Error('RuyiHermesAgent gateway unavailable')
+        throw new Error('如意助手网关不可用')
       }
 
       return gateway.request<ModelOptionsResponse>('model.options', {

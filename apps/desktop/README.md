@@ -1,4 +1,4 @@
-# RuyiHermesAgent Desktop
+# 如意助手桌面端
 
 <p align="center">
   <a href="https://github.com/DaPengRuYi/RuyiHermesAgent/releases"><img src="https://img.shields.io/badge/Download-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-FFD700?style=for-the-badge" alt="Download"></a>
@@ -7,7 +7,7 @@
   <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
-**RuyiHermesAgent（如意智能体）is the branded native desktop app powered by the Hermes agent runtime from [Nous Research](https://nousresearch.com).** It uses the same `hermes` CLI, skills, memory, config, and gateway, in a polished native window. Available for **macOS, Windows, and Linux**.
+**如意助手基于 [Nous Research](https://nousresearch.com) 开源项目 Hermes Agent 进行二次开发。** The desktop app keeps the same `hermes` CLI, skills, memory, config, and gateway compatibility contracts while presenting the 如意助手 brand in the native UI. Available for **macOS, Windows, and Linux**.
 
 <table>
 <tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Hermes surface.</td></tr>
@@ -30,7 +30,7 @@ Already have the `hermes` CLI? Just run:
 hermes desktop
 ```
 
-It builds and launches RuyiHermesAgent against your existing install — same config, keys, sessions, and skills.
+It builds and launches 如意助手 against your existing install — same config, keys, sessions, and skills.
 
 ### Prebuilt installers
 
@@ -72,6 +72,29 @@ HERMES_HOME=/tmp/throwaway npm run dev
 npm run dev:fake-boot   # exercise the startup overlay with deterministic delays
 ```
 
+### Windows: choose the lightest workflow that proves the change
+
+Use the development server for high-frequency theme, background, and copy work:
+
+```powershell
+npm run dev
+```
+
+When you need the real packaged Electron layout without waiting for a compressed installer, build the unpacked preview:
+
+```powershell
+npm run preview:win
+apps\desktop\release\win-unpacked\RuyiHermesAgent.exe
+```
+
+For an internal single-file build, use the low-compression fast portable command. It is faster to produce but larger, so it is not a release artifact:
+
+```powershell
+npm run dist:win:portable:fast
+```
+
+Use `npm run dist:win:portable` plus `npm run test:desktop:portable:win` for final delivery. The formal command keeps the standard compression, complete build, packaging hooks, and launch smoke test. In short: `dev` for daily work, `preview:win` for packaged-layout verification, `dist:win:portable:fast` for internal review, and the standard portable flow for release.
+
 ### Windows: verified student packaging path
 
 Run these two commands from the repository root:
@@ -87,7 +110,7 @@ The second command runs desktop type checks, platform and UI tests, packaging-co
 apps\desktop\release\RuyiHermesAgent-<version>-win-<arch>.exe
 ```
 
-Double-click that file to install the desktop product. The product is named **RuyiHermesAgent** (中文：**如意智能体**); its command-line tool intentionally remains `hermes`.
+Double-click that file to install **如意助手**. The executable and installer artifact filenames intentionally remain `RuyiHermesAgent` for compatibility, and the command-line tool remains `hermes`.
 
 To build the Windows green portable edition instead, run:
 

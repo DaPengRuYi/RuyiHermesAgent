@@ -1,12 +1,14 @@
-# RuyiHermesAgent desktop brand
+# 如意助手桌面品牌
 
 ## Product names
 
-- Chinese display name: `如意 Agent`
-- International display name: `RuyiHermesAgent`
-- Desktop product name: `RuyiHermesAgent`
+- User-facing display name: `如意助手`
+- Technical repository/product identifier: `RuyiHermesAgent`
+- Desktop window, shortcut, and uninstall display name: `如意助手`
 - Desktop executable: `RuyiHermesAgent` (`RuyiHermesAgent.exe` on Windows)
-- Installer: `RuyiHermesAgent Setup`
+- Installer artifact filename: `RuyiHermesAgent Setup`
+
+如意助手基于 Nous Research 开源项目 Hermes Agent 进行二次开发。
 
 The underlying `hermes` CLI, `HERMES_*` environment variables, `.hermes`
 storage, IPC channel names, deep-link scheme, and application id stay intact.

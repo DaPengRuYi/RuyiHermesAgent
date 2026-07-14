@@ -98,7 +98,7 @@ export function useGatewayRequest() {
       const gateway = gatewayRef.current
 
       if (!gateway) {
-        throw new Error('RuyiHermesAgent gateway unavailable')
+        throw new Error('如意助手网关不可用')
       }
 
       try {

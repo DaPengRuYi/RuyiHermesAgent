@@ -559,6 +559,7 @@ export const zhHant = defineLocale({
       heading: 'Hermes Desktop',
       version: value => `版本 ${value}`,
       versionUnavailable: '版本不可用',
+      upstreamAttribution: '如意助手基於 Nous Research 開源專案 Hermes Agent 進行二次開發。',
       updates: '更新',
       checkNow: '立即檢查',
       checking: '檢查中…',

@@ -549,11 +549,11 @@ const PLATFORM_INTRO: Record<string, string> = {
     'On your Mattermost server, create a bot account or personal access token, then paste the server URL and token here.',
   matrix: 'Sign in to your homeserver with the bot account, then copy the access token, user ID, and homeserver URL.',
   signal:
-    'Run a signal-cli REST bridge somewhere reachable, then point RuyiHermesAgent at the URL and the registered phone number.',
+    '在可访问的位置运行 signal-cli REST 桥接，然后在如意助手中填写 URL 和已注册的手机号。',
   whatsapp:
-    'Start the WhatsApp bridge that ships with RuyiHermesAgent, scan the QR code on first run, then enable the platform.',
+    '启动如意助手自带的 WhatsApp 桥接，首次运行时扫描二维码，然后启用该平台。',
   bluebubbles:
-    'Run BlueBubbles Server on a Mac with iMessage, expose its API, then point RuyiHermesAgent at the URL with the server password.',
+    '在启用 iMessage 的 Mac 上运行 BlueBubbles Server 并公开其 API，然后在如意助手中填写 URL 和服务器密码。',
   homeassistant:
     'In Home Assistant, open your profile and create a long-lived access token. Paste it here along with your HA URL.',
   email:
@@ -567,10 +567,10 @@ const PLATFORM_INTRO: Record<string, string> = {
   wecom_callback:
     'Set up a WeCom self-built app, expose its callback URL, and provide the corp ID, secret, agent ID, and AES key.',
   weixin:
-    "Run `hermes gateway setup`, select Weixin, then scan and confirm the QR code with a personal WeChat account. RuyiHermesAgent connects through Tencent's iLink Bot API and saves the credentials.",
+    '运行 `hermes gateway setup` 并选择微信，然后使用个人微信账号扫码确认。如意助手会通过腾讯 iLink Bot API 连接并保存凭据。',
   qqbot: 'Register an app on the QQ Open Platform (q.qq.com) and copy the App ID and Client Secret.',
   api_server:
-    'Expose RuyiHermesAgent as an OpenAI-compatible API. Set an auth key, then point Open WebUI / LobeChat / etc. at the host:port.',
+    '将如意助手公开为 OpenAI 兼容 API。设置认证密钥后，将 Open WebUI、LobeChat 等客户端指向对应的主机和端口。',
   webhook:
     'Run an HTTP server that other tools (GitHub, GitLab, custom apps) can POST to. Use the secret to verify signatures.'
 }

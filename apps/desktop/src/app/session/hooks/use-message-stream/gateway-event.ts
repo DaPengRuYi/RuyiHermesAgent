@@ -589,7 +589,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           }))
         }
       } else if (event.type === 'error') {
-        const errorMessage = payload?.message || 'RuyiHermesAgent reported an error'
+        const errorMessage = payload?.message || '如意助手报告了一个错误'
         const looksLikeProviderSetup = isProviderSetupErrorMessage(errorMessage)
 
         // A turn that errors out has also ended — drop any open blocking prompt
@@ -625,7 +625,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           notify({
             id: `gateway-error:${errorMessage}`,
             kind: 'error',
-            title: 'RuyiHermesAgent error',
+            title: '如意助手错误',
             message: errorMessage
           })
         }

@@ -22,6 +22,10 @@ test('desktop product branding stays separate from the hermes CLI contract', () 
   assert.equal(desktopPackage.build.portable.artifactName, 'RuyiHermesAgent-Portable-${version}-${arch}.${ext}')
   assert.equal(desktopPackage.build.appId, 'com.nousresearch.hermes', 'upgrade identity remains compatible')
   assert.deepEqual(desktopPackage.build.protocols[0].schemes, ['hermes'], 'deep-link compatibility is preserved')
+  assert.equal(desktopPackage.build.protocols[0].name, '如意助手协议')
+  assert.equal(desktopPackage.build.mac.extendInfo.CFBundleDisplayName, '如意助手')
+  assert.equal(desktopPackage.build.nsis.shortcutName, '如意助手')
+  assert.equal(desktopPackage.build.nsis.uninstallDisplayName, '如意助手')
 
   const pyproject = fs.readFileSync(path.join(REPO_ROOT, 'pyproject.toml'), 'utf8')
   assert.match(pyproject, /^hermes\s*=\s*["']hermes_cli\.main:main["']/m, 'CLI command must remain hermes')
@@ -53,7 +57,7 @@ test('packaged app layout and artifact names derive from package.json', () => {
       arch: 'x64',
       ext: 'exe'
     }),
-    'RuyiHermesAgent-0.1.1-win-x64.exe'
+    `RuyiHermesAgent-${desktopPackage.version}-win-x64.exe`
   )
 })
 
@@ -72,4 +76,11 @@ test('root package metadata and student command target the Ruyi fork', () => {
   )
   assert.match(desktopPackage.scripts['dist:win:portable:prechecked'], /build:artifacts/)
   assert.match(desktopPackage.scripts['dist:win:portable:prechecked'], /builder -- --win portable/)
+  assert.match(desktopPackage.scripts['preview:win'], /build:artifacts/)
+  assert.match(desktopPackage.scripts['preview:win'], /builder -- --win --dir/)
+  assert.match(desktopPackage.scripts['dist:win:portable:fast'], /build:artifacts/)
+  assert.match(desktopPackage.scripts['dist:win:portable:fast'], /compression=store/)
+  assert.doesNotMatch(desktopPackage.scripts['dist:win:portable'], /compression=store/)
+  assert.doesNotMatch(desktopPackage.scripts['preview:win'], /preview:win/)
+  assert.doesNotMatch(desktopPackage.scripts['dist:win:portable:fast'], /dist:win:portable:fast/)
 })

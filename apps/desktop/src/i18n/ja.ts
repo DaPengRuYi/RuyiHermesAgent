@@ -571,6 +571,8 @@ export const ja = defineLocale({
       heading: 'Hermes Desktop',
       version: value => `バージョン ${value}`,
       versionUnavailable: 'バージョンを取得できません',
+      upstreamAttribution:
+        '如意助手は Nous Research のオープンソースプロジェクト Hermes Agent を基に開発されています。',
       updates: '更新',
       checkNow: '今すぐ確認',
       checking: '確認中…',

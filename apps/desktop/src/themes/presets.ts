@@ -27,8 +27,8 @@ export const DEFAULT_TYPOGRAPHY: DesktopThemeTypography = { fontSans: SYSTEM_SAN
  */
 export const ruyiTheme: DesktopTheme = {
   name: 'ruyi',
-  label: 'Ruyi 国风科技蓝',
-  description: 'Deep-sea blue, jade cyan, and restrained luminous details',
+  label: '如意国风科技蓝',
+  description: '深海蓝、如意玉青与克制暖金构成的东方 AI 工具主题',
   colors: {
     background: '#0B2E59',
     foreground: '#ECFAFF',
@@ -48,6 +48,7 @@ export const ruyiTheme: DesktopTheme = {
     input: '#092743',
     ring: '#63E6D6',
     midground: '#2F8CFF',
+    warm: '#D9B76E',
     composerRing: '#63E6D6',
     destructive: '#D55868',
     destructiveForeground: '#FFFFFF',
@@ -75,6 +76,7 @@ export const ruyiTheme: DesktopTheme = {
     input: '#071B2E',
     ring: '#63E6D6',
     midground: '#2F8CFF',
+    warm: '#D9B76E',
     composerRing: '#63E6D6',
     destructive: '#D65365',
     destructiveForeground: '#FFFFFF',
@@ -86,6 +88,48 @@ export const ruyiTheme: DesktopTheme = {
   typography: {
     fontSans: SYSTEM_SANS,
     fontMono: SYSTEM_MONO
+  },
+  terminal: {
+    foreground: '#E7F9FF',
+    cursor: '#63E6D6',
+    selectionBackground: '#2F8CFF55',
+    black: '#061426',
+    red: '#D55868',
+    green: '#63E6A8',
+    yellow: '#D9B76E',
+    blue: '#2F8CFF',
+    magenta: '#A98BFA',
+    cyan: '#63E6D6',
+    white: '#D8EDF5',
+    brightBlack: '#52778D',
+    brightRed: '#F07886',
+    brightGreen: '#8AF0C2',
+    brightYellow: '#E8CA87',
+    brightBlue: '#69AAFF',
+    brightMagenta: '#C0A7FF',
+    brightCyan: '#8CF2E5',
+    brightWhite: '#F4FCFF'
+  },
+  darkTerminal: {
+    foreground: '#E7F9FF',
+    cursor: '#63E6D6',
+    selectionBackground: '#2F8CFF55',
+    black: '#04101F',
+    red: '#D65365',
+    green: '#63E6A8',
+    yellow: '#D9B76E',
+    blue: '#2F8CFF',
+    magenta: '#A98BFA',
+    cyan: '#63E6D6',
+    white: '#D8EDF5',
+    brightBlack: '#52778D',
+    brightRed: '#F07886',
+    brightGreen: '#8AF0C2',
+    brightYellow: '#E8CA87',
+    brightBlue: '#69AAFF',
+    brightMagenta: '#C0A7FF',
+    brightCyan: '#8CF2E5',
+    brightWhite: '#F4FCFF'
   }
 }
 

@@ -457,6 +457,8 @@ export const en: Translations = {
       heading: 'Hermes Desktop',
       version: value => `Version ${value}`,
       versionUnavailable: 'Version unavailable',
+      upstreamAttribution:
+        '如意助手 is developed from the open-source Hermes Agent project by Nous Research.',
       updates: 'Updates',
       checkNow: 'Check now',
       checking: 'Checking…',

@@ -170,10 +170,10 @@ export type {
 export class HermesGateway extends JsonRpcGatewayClient {
   constructor() {
     super({
-      closedErrorMessage: 'RuyiHermesAgent gateway connection closed',
-      connectErrorMessage: 'Could not connect to RuyiHermesAgent gateway',
+      closedErrorMessage: '如意助手网关连接已关闭',
+      connectErrorMessage: '无法连接如意助手网关',
       createRequestId: nextId => nextId,
-      notConnectedErrorMessage: 'RuyiHermesAgent gateway is not connected',
+      notConnectedErrorMessage: '如意助手网关未连接',
       requestTimeoutMs: DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS
     })
   }

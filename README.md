@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
+  <img src="assets/banner.png" alt="如意助手" width="100%">
 </p>
 
-# Hermes Agent ☤
+# 如意助手 ☤
+
+> **Brand and upstream attribution:** 如意助手 is the Chinese user-facing brand of this fork. It is developed from the open-source [Hermes Agent](https://github.com/NousResearch/hermes-agent) project by [Nous Research](https://nousresearch.com). Compatibility identifiers remain unchanged: the CLI is `hermes`, the Python package is `hermes-agent`, and existing `.hermes`, `HERMES_*`, and `hermes://` contracts continue to work.
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/">Hermes Agent</a> | <a href="https://hermes-agent.nousresearch.com/">Hermes Desktop</a>
 </p>

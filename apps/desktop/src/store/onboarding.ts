@@ -191,7 +191,7 @@ function shouldPreserveConfiguredOnFallback(runtime: RuntimeReadinessResult, sta
 }
 
 function notifyReady(provider: string) {
-  notify({ kind: 'success', title: 'RuyiHermesAgent is ready', message: `${provider} connected.` })
+  notify({ kind: 'success', title: '如意助手已就绪', message: `${provider} 已连接。` })
 }
 
 // Human-friendly labels for tools auto-routed through the Nous Tool Gateway,
@@ -360,8 +360,8 @@ function providerResolutionFailure(reason: null | string) {
   const detail = reason?.trim()
 
   return detail
-    ? `Connected, but RuyiHermesAgent still cannot resolve a usable provider. ${detail}`
-    : 'Connected, but RuyiHermesAgent still cannot resolve a usable provider.'
+    ? `已连接，但如意助手仍无法解析可用的模型提供商。${detail}`
+    : '已连接，但如意助手仍无法解析可用的模型提供商。'
 }
 
 async function refreshProviders() {
@@ -526,7 +526,7 @@ export async function refreshOnboarding(ctx: OnboardingContext) {
       kind: 'error',
       title: 'Runtime not ready',
       message:
-        'RuyiHermesAgent Desktop could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.'
+        '如意助手启动时无法验证正在运行的后端。在网关可连接前，部分功能可能不可用。'
     })
 
     return false
@@ -728,7 +728,7 @@ export async function recheckExternalSignin(ctx: OnboardingContext) {
       provider,
       message:
         reason?.trim() ||
-        `RuyiHermesAgent still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
+        `如意助手仍无法连接 ${provider.name}。请先在终端运行 \`${provider.cli_command}\`。`
     })
   )
 }
@@ -843,7 +843,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
     if (!runtime.ready) {
       const detail = (runtime.reason ?? '').trim()
 
-      return { ok: false, message: detail || `Saved, but RuyiHermesAgent still cannot reach ${url}.` }
+      return { ok: false, message: detail || `已保存，但如意助手仍无法连接 ${url}。` }
     }
 
     notifyReady('Local / custom endpoint')

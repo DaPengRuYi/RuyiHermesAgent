@@ -46,7 +46,7 @@ function bridge() {
   const desktop = window.hermesDesktop
 
   if (!desktop) {
-    throw new Error('RuyiHermesAgent Desktop bridge is unavailable')
+    throw new Error('如意助手桌面桥接不可用')
   }
 
   return desktop

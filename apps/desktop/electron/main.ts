@@ -455,7 +455,10 @@ const BOOT_FAKE_STEP_MS = (() => {
   return Math.max(120, raw)
 })()
 
-const APP_NAME = 'RuyiHermesAgent'
+// User-visible application name. Packaged executable, bundle, protocol and
+// data-directory identifiers intentionally remain RuyiHermesAgent/hermes for
+// upgrade compatibility.
+const APP_NAME = '如意助手'
 const TITLEBAR_HEIGHT = 34
 const MACOS_TRAFFIC_LIGHTS_HEIGHT = 14
 
@@ -883,7 +886,7 @@ let nativeThemeListenerInstalled = false
 let bootProgressState = {
   error: null,
   fakeMode: BOOT_FAKE_MODE,
-  message: 'Waiting to start RuyiHermesAgent backend',
+  message: '正在等待启动如意助手后端',
   phase: 'idle',
   progress: 0,
   running: false,
@@ -1401,7 +1404,7 @@ async function waitForUpdateToFinish() {
   while (marker && Date.now() < deadline) {
     await advanceBootProgress(
       'backend.update-wait',
-      'An update is finishing — RuyiHermesAgent will start automatically when it completes…',
+      '更新即将完成——完成后如意助手会自动启动…',
       12
     )
     await new Promise(r => setTimeout(r, UPDATE_WAIT_POLL_MS))
@@ -2574,7 +2577,7 @@ async function applyUpdates(opts = {}) {
     emitUpdateProgress({
       stage: 'restart',
       message:
-        'Updating RuyiHermesAgent — this window will close and the updater will open. Don’t reopen RuyiHermesAgent yourself; it restarts automatically when the update finishes.',
+        '正在更新如意助手——此窗口将关闭并打开更新程序。请勿手动重新打开；更新完成后会自动重启。',
       percent: 100
     })
     repairMacUpdaterHelper(updater)
@@ -2604,8 +2607,8 @@ async function applyUpdates(opts = {}) {
       // user close the holder and retry. Restart our own backend so the app
       // keeps working after the failed attempt.
       const message =
-        'Update aborted: another process is holding the RuyiHermesAgent runtime open ' +
-        '(a second RuyiHermesAgent window or a terminal running hermes?). Close it and retry.'
+        '更新已中止：另一个进程正在占用如意助手运行时' +
+        '（可能是另一个如意助手窗口，或正在运行 hermes 的终端）。请关闭后重试。'
 
       emitUpdateProgress({ stage: 'error', message, percent: null })
       startHermes().catch(() => {})
@@ -2861,7 +2864,7 @@ async function applyUpdatesPosixInApp(opts: any) {
     // best effort
   }
 
-  emitUpdateProgress({ stage: 'update', message: 'Updating RuyiHermesAgent (runtime + dependencies)…', percent: 10 })
+  emitUpdateProgress({ stage: 'update', message: '正在更新如意助手（运行时与依赖项）…', percent: 10 })
 
   const updated = (await runStreamedUpdate(hermes, ['update', '--yes', ...branchArgs], {
     cwd: updateRoot,
@@ -2891,7 +2894,7 @@ async function applyUpdatesPosixInApp(opts: any) {
   if (rebuilt.code !== 0) {
     emitUpdateProgress({
       stage: 'error',
-      message: 'Backend updated, but the desktop rebuild failed. Restart RuyiHermesAgent to retry.',
+      message: '后端已更新，但桌面端重新构建失败。请重启如意助手后重试。',
       error: rebuilt.error || 'rebuild-failed'
     })
 
@@ -2976,7 +2979,7 @@ async function applyUpdatesPosixInApp(opts: any) {
           backendUpdated: true,
           guiUpdated: false,
           manualRestart: true,
-          message: 'Backend updated. Quit and reopen RuyiHermesAgent to load the new version.'
+          message: '后端已更新。请退出并重新打开如意助手以加载新版本。'
         }
       }
     }
@@ -2986,7 +2989,7 @@ async function applyUpdatesPosixInApp(opts: any) {
         stage: 'guiSkew',
         message:
           'Backend updated, but the desktop app package was not changed. ' +
-          'Update or reinstall the RuyiHermesAgent desktop app to match.',
+          '请更新或重新安装如意助手桌面应用以保持版本匹配。',
         percent: 100
       })
       rememberLog(
@@ -3012,7 +3015,7 @@ async function applyUpdatesPosixInApp(opts: any) {
       sandboxBlocked: true,
       message:
         'Backend updated. The rebuilt app can’t relaunch automatically ' +
-        '(sandbox helper needs root). Quit and reopen RuyiHermesAgent to finish.'
+        '（沙箱辅助程序需要 root 权限）。请退出并重新打开如意助手以完成更新。'
     }
   }
 
@@ -3030,7 +3033,7 @@ async function applyUpdatesPosixInApp(opts: any) {
   if (!rebuiltApp || !targetApp) {
     emitUpdateProgress({
       stage: 'done',
-      message: 'Backend updated. Restart RuyiHermesAgent to load the new version.',
+      message: '后端已更新。请重启如意助手以加载新版本。',
       percent: 100
     })
 
@@ -3069,7 +3072,7 @@ fi
   } catch (err) {
     emitUpdateProgress({
       stage: 'done',
-      message: 'Backend + app updated. Restart RuyiHermesAgent to load the new version.',
+      message: '后端与应用均已更新。请重启如意助手以加载新版本。',
       percent: 100
     })
     rememberLog(`[updates] could not write swap script: ${err.message}; rebuilt app at ${rebuiltApp}`)
@@ -3529,7 +3532,7 @@ function resolveHermesBackend(backendArgs) {
   //    is a recoverable state the GUI can drive through.
   return {
     kind: 'bootstrap-needed',
-    label: 'RuyiHermesAgent runtime is not installed yet; bootstrap required',
+    label: '如意助手运行时尚未安装，需要执行初始化安装',
     command: null,
     args: backendArgs,
     bootstrap: true,
@@ -3564,7 +3567,7 @@ async function ensureRuntime(backend) {
 
     if (await handOffWindowsBootstrapRecovery('bootstrap-needed')) {
       const handoffError: Error & { isBootstrapFailure?: boolean; bootstrapHandedOff?: boolean } = new Error(
-        'RuyiHermesAgent recovery was handed off to RuyiHermesAgent Setup. The desktop will restart when recovery completes.'
+        '如意助手恢复任务已交给安装程序。恢复完成后桌面端会自动重启。'
       )
 
       handoffError.isBootstrapFailure = true
@@ -3621,7 +3624,7 @@ async function ensureRuntime(backend) {
     bootstrapAbortController = null
 
     if (bootstrapResult.cancelled) {
-      const cancelledError = new Error('RuyiHermesAgent installation was cancelled.') as any
+      const cancelledError = new Error('如意助手安装已取消。') as any
       cancelledError.isBootstrapFailure = true
       cancelledError.bootstrapCancelled = true
       bootstrapFailure = cancelledError
@@ -3630,7 +3633,7 @@ async function ensureRuntime(backend) {
 
     if (!bootstrapResult.ok) {
       const bootstrapError = new Error(
-        `RuyiHermesAgent setup failed${bootstrapResult.failedStage ? ` at stage '${bootstrapResult.failedStage}'` : ''}: ` +
+        `如意助手安装失败${bootstrapResult.failedStage ? `，失败阶段：'${bootstrapResult.failedStage}'` : ''}：` +
           `${bootstrapResult.error || 'unknown error'}. ` +
           `Check ${path.join(HERMES_HOME, 'logs', 'desktop.log')} for the full transcript.`
       ) as any
@@ -3659,7 +3662,7 @@ async function ensureRuntime(backend) {
   // attests they ran successfully).
   if (!isHermesSourceRoot(ACTIVE_HERMES_ROOT)) {
     throw new Error(
-      `RuyiHermesAgent runtime at ${ACTIVE_HERMES_ROOT} is missing or incomplete. ` +
+      `${ACTIVE_HERMES_ROOT} 下的如意助手运行时缺失或不完整。` +
         'Reinstall via the desktop installer or scripts/install.ps1.'
     )
   }
@@ -3672,10 +3675,10 @@ async function ensureRuntime(backend) {
   // here via an external `hermes` on PATH, this check still helps.
   if (IS_WINDOWS && !findGitBash()) {
     throw new Error(
-      'Git for Windows is required for RuyiHermesAgent on Windows (provides Git Bash, ' +
+      '在 Windows 上运行如意助手需要 Git for Windows（用于提供 Git Bash，' +
         "which the agent's terminal tool uses). Install it from " +
         'https://git-scm.com/download/win or run `winget install -e --id Git.Git`, ' +
-        'then relaunch RuyiHermesAgent.'
+        '然后重新启动如意助手。'
     )
   }
 
@@ -6335,17 +6338,17 @@ async function startHermes() {
   }
 
   connectionPromise = (async () => {
-    await advanceBootProgress('backend.resolve', 'Resolving RuyiHermesAgent backend', 8)
+    await advanceBootProgress('backend.resolve', '正在解析如意助手后端', 8)
     // Resolve for the desktop's primary profile so a per-profile remote
     // override on the active profile is honored (falls back to env / global).
     const remote = await resolveRemoteBackend(primaryProfileKey())
 
     if (remote) {
-      await advanceBootProgress('backend.remote', `Connecting to remote RuyiHermesAgent backend at ${remote.baseUrl}`, 24)
+      await advanceBootProgress('backend.remote', `正在连接远程如意助手后端：${remote.baseUrl}`, 24)
       await waitForHermes(remote.baseUrl, remote.token)
       updateBootProgress({
         phase: 'backend.ready',
-        message: 'Remote RuyiHermesAgent backend is ready',
+        message: '远程如意助手后端已就绪',
         progress: 94,
         running: true,
         error: null
@@ -6385,7 +6388,7 @@ async function startHermes() {
       backendArgs.unshift('--profile', activeProfile)
     }
 
-    await advanceBootProgress('backend.runtime', 'Resolving RuyiHermesAgent runtime', 28)
+    await advanceBootProgress('backend.runtime', '正在解析如意助手运行时', 28)
     const backend = await ensureRuntime(resolveHermesBackend(backendArgs))
     // Route old runtimes (no `serve`) through the legacy `dashboard --no-open`.
     backend.args = getBackendArgsForRuntime(backend)
@@ -6393,7 +6396,7 @@ async function startHermes() {
     const webDist = resolveWebDist()
     const readyFile = backend.readyFile ? makeDashboardReadyFile() : null
 
-    await advanceBootProgress('backend.spawn', `Starting RuyiHermesAgent backend via ${backend.label}`, 84)
+    await advanceBootProgress('backend.spawn', `正在通过 ${backend.label} 启动如意助手后端`, 84)
     rememberLog(`Starting Hermes backend via ${backend.label}`)
 
     hermesProcess = spawn(
@@ -6440,7 +6443,7 @@ async function startHermes() {
       updateBootProgress(
         {
           error: error.message,
-          message: `RuyiHermesAgent backend failed to start: ${error.message}`,
+          message: `如意助手后端启动失败：${error.message}`,
           phase: 'backend.error',
           running: false
         },
@@ -6458,7 +6461,7 @@ async function startHermes() {
       sendBackendExit({ code, signal })
 
       if (!backendReady) {
-        const message = `RuyiHermesAgent backend exited before it became ready (${signal || code}).`
+        const message = `如意助手后端在就绪前退出（${signal || code}）。`
         updateBootProgress(
           {
             error: message,
@@ -6470,13 +6473,13 @@ async function startHermes() {
         )
         rejectBackendStart?.(
           new Error(
-            `RuyiHermesAgent backend exited before it became ready (${signal || code}). Log: ${DESKTOP_LOG_PATH}\n${recentHermesLog()}`
+            `如意助手后端在就绪前退出（${signal || code}）。日志：${DESKTOP_LOG_PATH}\n${recentHermesLog()}`
           )
         )
       }
     })
 
-    await advanceBootProgress('backend.port', 'Waiting for RuyiHermesAgent backend to launch', 86)
+    await advanceBootProgress('backend.port', '正在等待如意助手后端启动', 86)
 
     // Discover the ephemeral port the child bound to
     const port = await Promise.race([
@@ -6489,7 +6492,7 @@ async function startHermes() {
     }
 
     const baseUrl = `http://127.0.0.1:${port}`
-    await advanceBootProgress('backend.wait', 'Waiting for RuyiHermesAgent backend to become ready', 90)
+    await advanceBootProgress('backend.wait', '正在等待如意助手后端就绪', 90)
     await Promise.race([waitForHermes(baseUrl, token), backendStartFailed])
     backendReady = true
     backendStartFailure = null
@@ -6503,7 +6506,7 @@ async function startHermes() {
 
     updateBootProgress({
       phase: 'backend.ready',
-      message: 'RuyiHermesAgent backend is ready. Finalizing desktop startup',
+      message: '如意助手后端已就绪，正在完成桌面端启动',
       progress: 94,
       running: true,
       error: null
@@ -8315,7 +8318,7 @@ async function runDesktopUninstall(mode) {
     return {
       ok: false,
       error: 'portable-build',
-      message: 'Exit RuyiHermesAgent, then delete the portable executable and its adjacent data folder.'
+      message: '请退出如意助手，然后删除便携版可执行文件及其相邻的 data 文件夹。'
     }
   }
 
@@ -8333,7 +8336,7 @@ async function runDesktopUninstall(mode) {
     return {
       ok: false,
       error: 'agent-missing',
-      message: `Can't run the uninstaller: no RuyiHermesAgent runtime venv at ${VENV_ROOT}.`
+      message: `无法运行卸载程序：${VENV_ROOT} 下没有如意助手运行时虚拟环境。`
     }
   }
 

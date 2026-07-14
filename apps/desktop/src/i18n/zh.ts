@@ -650,6 +650,7 @@ export const zh: Translations = {
       heading: 'Hermes Desktop',
       version: value => `版本 ${value}`,
       versionUnavailable: '版本不可用',
+      upstreamAttribution: '如意助手基于 Nous Research 开源项目 Hermes Agent 进行二次开发。',
       updates: '更新',
       checkNow: '立即检查',
       checking: '检查中…',

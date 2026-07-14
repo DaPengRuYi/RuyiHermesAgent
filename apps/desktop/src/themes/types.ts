@@ -37,6 +37,8 @@ export interface DesktopThemeColors {
   midground?: string
   /** Auto-derived from `midground` luminance when omitted. */
   midgroundForeground?: string
+  /** Restrained decorative highlight; never used for primary actions. */
+  warm?: string
   /** Composer outline / focus color. Falls back to `midground`. */
   composerRing?: string
   destructive: string

@@ -196,7 +196,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
     '--theme-secondary': c.secondary,
     '--theme-accent-soft': c.accent,
     '--theme-midground': midground,
-    '--theme-warm': c.primary,
+    '--theme-warm': c.warm ?? c.primary,
     '--theme-background-seed': c.background,
     '--theme-sidebar-seed': c.sidebarBackground ?? c.background,
     '--theme-card-seed': c.card,

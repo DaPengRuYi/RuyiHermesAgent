@@ -91,7 +91,7 @@ def build_top_level_parser():
     """
     parser = argparse.ArgumentParser(
         prog="hermes",
-        description="Hermes Agent - AI assistant with tool-calling capabilities",
+        description="如意助手 - 支持工具调用的 AI 智能助手",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
     )
@@ -263,7 +263,7 @@ def build_top_level_parser():
     chat_parser = subparsers.add_parser(
         "chat",
         help="Interactive chat with the agent",
-        description="Start an interactive chat session with Hermes Agent",
+        description="启动与如意助手的交互式对话",
     )
     chat_parser.add_argument(
         "-q", "--query", help="Single query (non-interactive mode)"

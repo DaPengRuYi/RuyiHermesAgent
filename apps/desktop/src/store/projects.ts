@@ -221,7 +221,7 @@ async function gatewayRequest<T>(method: string, params: Record<string, unknown>
   }
 
   if (!gateway) {
-    throw new Error('RuyiHermesAgent gateway is not connected')
+    throw new Error('如意助手网关未连接')
   }
 
   return gateway.request<T>(method, params)

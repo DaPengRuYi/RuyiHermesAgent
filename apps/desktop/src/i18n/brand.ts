@@ -1,9 +1,9 @@
 import type { Locale, Translations } from './types'
 
-export const PRODUCT_NAME = 'RuyiHermesAgent'
+export const PRODUCT_NAME = '如意助手'
 export const PRODUCT_NAME_ZH = '如意助手'
-export const PRODUCT_DESKTOP_NAME = 'RuyiHermesAgent Desktop'
-export const PRODUCT_DESKTOP_NAME_ZH = '如意助手桌面端'
+export const PRODUCT_DESKTOP_NAME = '如意助手'
+export const PRODUCT_DESKTOP_NAME_ZH = '如意助手'
 
 function productName(locale: Locale): string {
   return locale === 'zh' || locale === 'zh-hant' ? PRODUCT_NAME_ZH : PRODUCT_NAME

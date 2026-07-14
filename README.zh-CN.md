@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
+  <img src="assets/banner.png" alt="如意助手" width="100%">
 </p>
 
-# Hermes Agent ☤
+# 如意助手 ☤
+
+> **品牌与上游归属：**如意助手基于 [Nous Research](https://nousresearch.com) 开源项目 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 进行二次开发。为保持升级与已有用户数据兼容，命令行仍为 `hermes`，Python 包仍为 `hermes-agent`，`.hermes`、`HERMES_*` 与 `hermes://` 等技术标识保持不变。
 
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>

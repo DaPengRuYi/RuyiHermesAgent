@@ -157,7 +157,7 @@ export const StreamStallIndicator: FC = () => {
     <StatusRow
       className="mt-1.5"
       data-slot="aui_stream-stall"
-      label={compacting ? COMPACTION_LABEL : 'RuyiHermesAgent is thinking'}
+      label={compacting ? COMPACTION_LABEL : '如意助手正在思考'}
     >
       <span aria-hidden="true" className="dither inline-block size-3 rounded-[2px] text-midground/80 animate-pulse" />
       {compacting && <CompactionHint />}
