@@ -4,13 +4,31 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import { cachedScriptPath, installedAgentInstallScript, resolveInstallScript, runBootstrap } from './bootstrap-runner'
+import {
+  cachedScriptPath,
+  DEFAULT_REPOSITORY,
+  installedAgentInstallScript,
+  rawInstallScriptUrl,
+  repositoryFromInstallStamp,
+  resolveInstallScript,
+  runBootstrap
+} from './bootstrap-runner'
 
 const SCRIPT_NAME = process.platform === 'win32' ? 'install.ps1' : 'install.sh'
 
 function mkTmpHome() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-bootstrap-test-'))
 }
+
+test('install-script source follows the stamped fork while hermes CLI naming stays unrelated', () => {
+  const commit = 'a'.repeat(40)
+  assert.equal(repositoryFromInstallStamp({ repository: 'DaPengRuYi/RuyiHermesAgent' }), DEFAULT_REPOSITORY)
+  assert.equal(repositoryFromInstallStamp({ repository: 'invalid slug' }), DEFAULT_REPOSITORY)
+  assert.equal(
+    rawInstallScriptUrl(DEFAULT_REPOSITORY, commit, 'install.ps1'),
+    `https://raw.githubusercontent.com/DaPengRuYi/RuyiHermesAgent/${commit}/scripts/install.ps1`
+  )
+})
 
 test('runBootstrap bails immediately when the signal is already aborted', async () => {
   const controller = new AbortController()
@@ -74,6 +92,19 @@ test('resolveInstallScript prefers a cached script without touching the network'
 
     assert.equal(result.source, 'cache')
     assert.equal(result.path, cached)
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('resolveInstallScript isolates cached scripts by repository', async () => {
+  const home = mkTmpHome()
+
+  try {
+    const commit = 'b'.repeat(40)
+    const forkCache = cachedScriptPath(home, commit, 'DaPengRuYi/RuyiHermesAgent')
+    const upstreamCache = cachedScriptPath(home, commit, 'NousResearch/hermes-agent')
+    assert.notEqual(forkCache, upstreamCache)
   } finally {
     fs.rmSync(home, { recursive: true, force: true })
   }

@@ -52,6 +52,48 @@ def _make_slow_drain(seconds: float):
     return _slow
 
 
+def test_desktop_warmup_finishes_before_cron_starts():
+    """Desktop startup must not import gateway and cron graphs concurrently."""
+    calls: list[tuple[str, object]] = []
+    stop_event = threading.Event()
+
+    with (
+        patch.object(
+            web_server_mod,
+            "_warm_gateway_module",
+            side_effect=lambda: calls.append(("warm", None)),
+        ),
+        patch.object(
+            web_server_mod,
+            "_start_desktop_cron_ticker",
+            side_effect=lambda event, interval=60: calls.append(
+                ("cron", (event, interval))
+            ),
+        ),
+    ):
+        web_server_mod._warm_gateway_then_start_desktop_cron(
+            stop_event, interval=7
+        )
+
+    assert calls == [("warm", None), ("cron", (stop_event, 7))]
+
+
+def test_ready_probe_is_fast_and_authenticated():
+    """The desktop handshake endpoint must avoid status/config imports."""
+    from fastapi.testclient import TestClient
+
+    with TestClient(web_server_mod.app, raise_server_exceptions=False) as client:
+        unauthorized = client.get("/api/ready")
+        ready = client.get(
+            "/api/ready",
+            headers={"X-Hermes-Session-Token": web_server_mod._SESSION_TOKEN},
+        )
+
+    assert unauthorized.status_code == 401
+    assert ready.status_code == 200
+    assert ready.json()["ready"] is True
+
+
 # ---------------------------------------------------------------------------
 # Test 1 — _lifespan fire-and-forget does not block the event loop
 # ---------------------------------------------------------------------------

@@ -36,18 +36,41 @@ def _make_desktop_tree(tmp_path: Path) -> Path:
     return root
 
 
-def _make_packaged_executable(root: Path, monkeypatch, platform: str = "darwin") -> Path:
+def _make_packaged_executable(
+    root: Path, monkeypatch, platform: str = "darwin", *, legacy: bool = False
+) -> Path:
     monkeypatch.setattr(cli_main.sys, "platform", platform)
     desktop_dir = root / "apps" / "desktop"
     if platform == "darwin":
-        exe = desktop_dir / "release" / "mac-arm64" / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
+        app_name, exe_name = ("Hermes.app", "Hermes") if legacy else ("RuyiHermesAgent.app", "RuyiHermesAgent")
+        exe = desktop_dir / "release" / "mac-arm64" / app_name / "Contents" / "MacOS" / exe_name
     elif platform == "win32":
-        exe = desktop_dir / "release" / "win-unpacked" / "Hermes.exe"
+        exe = desktop_dir / "release" / "win-unpacked" / ("Hermes.exe" if legacy else "RuyiHermesAgent.exe")
     else:
-        exe = desktop_dir / "release" / "linux-unpacked" / "hermes"
-    exe.parent.mkdir(parents=True)
+        exe = desktop_dir / "release" / "linux-unpacked" / ("hermes" if legacy else "RuyiHermesAgent")
+    exe.parent.mkdir(parents=True, exist_ok=True)
     exe.write_text("", encoding="utf-8")
     return exe
+
+
+@pytest.mark.parametrize("platform", ["darwin", "win32", "linux"])
+def test_packaged_executable_prefers_ruyi_name_over_newer_legacy_build(
+    tmp_path, monkeypatch, platform
+):
+    root = _make_desktop_tree(tmp_path)
+    preferred = _make_packaged_executable(root, monkeypatch, platform=platform)
+    legacy = _make_packaged_executable(root, monkeypatch, platform=platform, legacy=True)
+    legacy.touch()
+
+    assert cli_main._desktop_packaged_executable(root / "apps" / "desktop") == preferred
+
+
+@pytest.mark.parametrize("platform", ["darwin", "win32", "linux"])
+def test_packaged_executable_falls_back_to_legacy_name(tmp_path, monkeypatch, platform):
+    root = _make_desktop_tree(tmp_path)
+    legacy = _make_packaged_executable(root, monkeypatch, platform=platform, legacy=True)
+
+    assert cli_main._desktop_packaged_executable(root / "apps" / "desktop") == legacy
 
 
 def test_gui_installs_packages_and_launches_desktop_app(tmp_path, monkeypatch):
@@ -113,7 +136,7 @@ def test_gui_exits_when_npm_missing(tmp_path, monkeypatch, capsys):
     root = _make_desktop_tree(tmp_path)
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
 
-    with patch("hermes_cli.main.shutil.which", return_value=None), \
+    with patch("hermes_constants.find_node_executable", return_value=None), \
          pytest.raises(SystemExit) as exc:
         cli_main.cmd_gui(_ns())
 
@@ -266,7 +289,7 @@ def test_gui_source_mode_uses_renderer_build_and_electron(tmp_path, monkeypatch)
     build_ok = subprocess.CompletedProcess(["npm", "run", "build"], 0)
     launch_ok = subprocess.CompletedProcess(["npm", "exec", "--", "electron", "."], 0)
 
-    with patch("hermes_cli.main.shutil.which", return_value="/usr/bin/npm"), \
+    with patch("hermes_constants.find_node_executable", return_value="/usr/bin/npm"), \
          patch("hermes_cli.main._run_npm_install_deterministic", return_value=install_ok), \
          patch("hermes_cli.main._desktop_build_needed", return_value=True), \
          patch("hermes_cli.main._write_desktop_build_stamp"), \
@@ -931,7 +954,7 @@ def test_stop_desktop_build_lock_terminates_only_release_procs(tmp_path, monkeyp
     desktop_dir = tmp_path / "apps" / "desktop"
     release = desktop_dir / "release" / "win-unpacked"
     release.mkdir(parents=True)
-    locker_exe = release / "Hermes.exe"
+    locker_exe = release / "RuyiHermesAgent.exe"
     locker_exe.write_text("", encoding="utf-8")
     other_exe = tmp_path / "elsewhere" / "Hermes.exe"
     other_exe.parent.mkdir(parents=True)

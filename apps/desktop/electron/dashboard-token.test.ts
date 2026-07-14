@@ -10,6 +10,7 @@ import test from 'node:test'
 
 import {
   adoptServedDashboardToken,
+  backendUsesHeadlessServe,
   dashboardIndexUrl,
   extractInjectedDashboardToken,
   fetchPublicText,
@@ -35,6 +36,16 @@ test('extractInjectedDashboardToken returns null for missing or malformed values
 test('dashboardIndexUrl preserves dashboard path prefixes', () => {
   assert.equal(dashboardIndexUrl('http://127.0.0.1:9120'), 'http://127.0.0.1:9120/')
   assert.equal(dashboardIndexUrl('https://host.example/hermes/'), 'https://host.example/hermes/')
+})
+
+test('backendUsesHeadlessServe distinguishes serve from the legacy dashboard fallback', () => {
+  assert.equal(backendUsesHeadlessServe(['serve', '--host', '127.0.0.1', '--port', '0']), true)
+  assert.equal(
+    backendUsesHeadlessServe(['-m', 'hermes_cli.main', '--profile', 'work', 'serve', '--host', '127.0.0.1']),
+    true
+  )
+  assert.equal(backendUsesHeadlessServe(['dashboard', '--no-open', '--host', '127.0.0.1']), false)
+  assert.equal(backendUsesHeadlessServe(undefined), false)
 })
 
 test('resolveServedDashboardToken uses the served token and logs when it differs', async () => {
@@ -115,6 +126,31 @@ test('adoptServedDashboardToken adopts drift from a live child', async () => {
   })
 
   assert.equal(token, 'served-token')
+})
+
+test('adoptServedDashboardToken skips the missing SPA token endpoint for headless serve', async () => {
+  const token = await adoptServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
+    backendArgs: ['serve', '--host', '127.0.0.1', '--port', '0'],
+    childAlive: () => true,
+    fetchText: async () => {
+      throw new Error('headless serve must not request the dashboard index')
+    },
+    rememberLog: () => {
+      throw new Error('the expected headless 404 must not be logged')
+    }
+  })
+
+  assert.equal(token, 'spawn-token')
+})
+
+test('adoptServedDashboardToken keeps SPA token discovery for the legacy dashboard fallback', async () => {
+  const token = await adoptServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
+    backendArgs: ['dashboard', '--no-open', '--host', '127.0.0.1', '--port', '0'],
+    childAlive: () => true,
+    fetchText: async () => '<script>window.__HERMES_SESSION_TOKEN__="legacy-token";</script>'
+  })
+
+  assert.equal(token, 'legacy-token')
 })
 
 test('adoptServedDashboardToken refuses a foreign token when our child is dead', async () => {

@@ -15,9 +15,14 @@
 
 use anyhow::{anyhow, Context, Result};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 use tokio::io::AsyncWriteExt;
 
 use crate::paths;
+
+const DOWNLOAD_CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+const DOWNLOAD_TOTAL_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_INSTALL_SCRIPT_BYTES: u64 = 5 * 1024 * 1024;
 
 /// Identity of the install.ps1 we'll execute. Used by both the manifest
 /// fetch and the per-stage runs.
@@ -29,6 +34,7 @@ pub struct ResolvedScript {
     /// what makes the repo stage clone the exact tested SHA.
     pub commit: Option<String>,
     pub branch: Option<String>,
+    pub repository: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,7 +87,9 @@ pub async fn resolve(
 ) -> Result<ResolvedScript> {
     // 1. Dev shortcut.
     if let Ok(repo_root) = std::env::var("HERMES_SETUP_DEV_REPO_ROOT") {
-        let candidate = PathBuf::from(repo_root).join("scripts").join(kind.filename());
+        let candidate = PathBuf::from(repo_root)
+            .join("scripts")
+            .join(kind.filename());
         if candidate.exists() {
             emit_log(&format!(
                 "[bootstrap] dev mode — using local {} at {}",
@@ -93,6 +101,7 @@ pub async fn resolve(
                 source: ScriptSource::DevCheckout,
                 commit: pin.commit.clone(),
                 branch: pin.branch.clone(),
+                repository: pin.repository.clone(),
             });
         }
     }
@@ -115,8 +124,16 @@ pub async fn resolve(
         }
     };
 
-    let cached = cached_path(kind, &commit_or_ref);
-    if cached.exists() {
+    if !is_valid_repository(&pin.repository) {
+        return Err(anyhow!(
+            "invalid GitHub repository slug `{}`; expected owner/repo",
+            pin.repository
+        ));
+    }
+
+    let cached = cached_path(kind, &pin.repository, &commit_or_ref);
+    let immutable_commit = pin.commit.as_deref().is_some_and(is_valid_commit);
+    if immutable_commit && cached.exists() {
         emit_log(&format!(
             "[bootstrap] using cached {} for {}",
             kind.filename(),
@@ -127,6 +144,7 @@ pub async fn resolve(
             source: ScriptSource::Cached,
             commit: pin.commit.clone(),
             branch: pin.branch.clone(),
+            repository: pin.repository.clone(),
         });
     }
 
@@ -136,7 +154,7 @@ pub async fn resolve(
         truncate_ref(&commit_or_ref)
     ));
 
-    download(kind, &commit_or_ref, &cached).await?;
+    download(kind, &pin.repository, &commit_or_ref, &cached).await?;
 
     emit_log(&format!("[bootstrap] cached to {}", cached.display()));
 
@@ -145,17 +163,23 @@ pub async fn resolve(
         source: ScriptSource::Downloaded,
         commit: pin.commit.clone(),
         branch: pin.branch.clone(),
+        repository: pin.repository.clone(),
     })
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Pin {
     pub commit: Option<String>,
     pub branch: Option<String>,
+    pub repository: String,
 }
 
-fn cached_path(kind: ScriptKind, commit_or_ref: &str) -> PathBuf {
-    let safe = sanitize_ref(commit_or_ref);
+fn cached_path(kind: ScriptKind, repository: &str, commit_or_ref: &str) -> PathBuf {
+    let safe = format!(
+        "{}-{}",
+        sanitize_ref(repository),
+        sanitize_ref(commit_or_ref)
+    );
     let filename = match kind {
         ScriptKind::Ps1 => format!("install-{safe}.ps1"),
         ScriptKind::Sh => format!("install-{safe}.sh"),
@@ -187,17 +211,17 @@ fn truncate_ref(s: &str) -> &str {
 
 /// Downloads to `dest_path` via reqwest with rustls. Atomically renames
 /// `dest_path.tmp` → `dest_path` so partial writes don't poison the cache.
-async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
-    let url = format!(
-        "https://raw.githubusercontent.com/NousResearch/hermes-agent/{}/scripts/{}",
-        commit_or_ref,
-        kind.filename()
-    );
+async fn download(
+    kind: ScriptKind,
+    repository: &str,
+    commit_or_ref: &str,
+    dest_path: &Path,
+) -> Result<()> {
+    let url = raw_script_url(repository, commit_or_ref, kind)?;
 
     if let Some(parent) = dest_path.parent() {
-        std::fs::create_dir_all(parent).with_context(|| {
-            format!("creating bootstrap-cache parent dir {}", parent.display())
-        })?;
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("creating bootstrap-cache parent dir {}", parent.display()))?;
     }
 
     let tmp_path = dest_path.with_extension({
@@ -208,7 +232,12 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
         format!("{ext}.tmp")
     });
 
-    let response = reqwest::Client::new()
+    let client = reqwest::Client::builder()
+        .connect_timeout(DOWNLOAD_CONNECT_TIMEOUT)
+        .timeout(DOWNLOAD_TOTAL_TIMEOUT)
+        .build()
+        .context("building install-script HTTP client")?;
+    let response = client
         .get(&url)
         .header("User-Agent", "hermes-setup/0.0.1")
         .send()
@@ -224,10 +253,30 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
         ));
     }
 
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_INSTALL_SCRIPT_BYTES)
+    {
+        return Err(anyhow!(
+            "Failed to download {}: response exceeded {} bytes from {}",
+            kind.filename(),
+            MAX_INSTALL_SCRIPT_BYTES,
+            url
+        ));
+    }
+
     let bytes = response
         .bytes()
         .await
         .with_context(|| format!("reading body of {url}"))?;
+    if bytes.len() as u64 > MAX_INSTALL_SCRIPT_BYTES {
+        return Err(anyhow!(
+            "Failed to download {}: response exceeded {} bytes from {}",
+            kind.filename(),
+            MAX_INSTALL_SCRIPT_BYTES,
+            url
+        ));
+    }
 
     let mut file = tokio::fs::File::create(&tmp_path)
         .await
@@ -240,15 +289,33 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
 
     tokio::fs::rename(&tmp_path, dest_path)
         .await
-        .with_context(|| {
-            format!(
-                "renaming {} → {}",
-                tmp_path.display(),
-                dest_path.display()
-            )
-        })?;
+        .with_context(|| format!("renaming {} → {}", tmp_path.display(), dest_path.display()))?;
 
     Ok(())
+}
+
+fn is_valid_repository(value: &str) -> bool {
+    let mut parts = value.split('/');
+    let valid_part = |part: &str| {
+        !part.is_empty()
+            && part
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    };
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some(owner), Some(repo), None) => valid_part(owner) && valid_part(repo),
+        _ => false,
+    }
+}
+
+fn raw_script_url(repository: &str, commit_or_ref: &str, kind: ScriptKind) -> Result<String> {
+    if !is_valid_repository(repository) {
+        return Err(anyhow!("invalid GitHub repository slug `{repository}`"));
+    }
+    Ok(format!(
+        "https://raw.githubusercontent.com/{repository}/{commit_or_ref}/scripts/{}",
+        kind.filename()
+    ))
 }
 
 #[cfg(test)]
@@ -269,5 +336,22 @@ mod tests {
         assert_eq!(sanitize_ref("bb/gui"), "bb_gui");
         assert_eq!(sanitize_ref("main"), "main");
         assert_eq!(sanitize_ref("release/1.2.3"), "release_1.2.3");
+    }
+
+    #[test]
+    fn repository_slug_and_raw_url_target_the_ruyi_fork() {
+        assert!(is_valid_repository("DaPengRuYi/RuyiHermesAgent"));
+        assert!(!is_valid_repository(
+            "https://github.com/DaPengRuYi/RuyiHermesAgent"
+        ));
+        assert_eq!(
+            raw_script_url(
+                "DaPengRuYi/RuyiHermesAgent",
+                "02d26981d3d4ad50e142399b8476f59ad5953ff0",
+                ScriptKind::Ps1
+            )
+            .unwrap(),
+            "https://raw.githubusercontent.com/DaPengRuYi/RuyiHermesAgent/02d26981d3d4ad50e142399b8476f59ad5953ff0/scripts/install.ps1"
+        );
     }
 }

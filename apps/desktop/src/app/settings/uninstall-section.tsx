@@ -21,22 +21,22 @@ const OPTIONS: ModeOption[] = [
   {
     mode: 'gui',
     title: 'Uninstall Chat GUI only',
-    description: 'Remove this desktop app. The Hermes agent, your config, and chats all stay.',
+    description: '仅移除桌面应用。如意助手运行时、配置和聊天记录都会保留。',
     consequence: 'the desktop Chat GUI (this app and its data)',
     needsAgent: false
   },
   {
     mode: 'lite',
     title: 'Uninstall GUI + agent, keep my data',
-    description: 'Remove the app and the Hermes agent, but keep config, chats, and secrets for a future reinstall.',
-    consequence: 'the Chat GUI and the Hermes agent (config, chats, and secrets are kept)',
+    description: '移除应用和如意助手运行时，但保留配置、聊天记录和密钥，便于以后重新安装。',
+    consequence: '如意助手桌面应用和运行时（保留配置、聊天记录和密钥）',
     needsAgent: true
   },
   {
     mode: 'full',
     title: 'Uninstall everything',
     description: 'Remove the app, the agent, and all user data — config, chats, scheduled jobs, secrets, logs.',
-    consequence: 'EVERYTHING — the Chat GUI, the Hermes agent, and all of your config, chats, secrets, and logs',
+    consequence: '全部内容——如意助手、运行时，以及所有配置、聊天记录、密钥和日志',
     // full removes the agent (and user data), so it's an agent-removing option:
     // hide it on a lite client with no local agent, same as lite. A lite client
     // connecting to a remote backend has no local agent OR local user data the
@@ -152,7 +152,7 @@ export function UninstallSection() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">Uninstall Hermes</p>
+            <p className="text-sm font-medium">卸载如意助手</p>
             <p className="text-xs text-muted-foreground">
               Choose how much to remove. The app closes to finish the job; reopen the installer any time to come back.
             </p>

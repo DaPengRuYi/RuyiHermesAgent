@@ -15,6 +15,10 @@
     "install:web": "npm install --workspace web",
     "install:tui": "npm install --workspace ui-tui",
     "install:desktop": "npm install --workspace apps/desktop",
+    "desktop:check": "npm run typecheck --workspace apps/desktop && npm run test:desktop:platforms --workspace apps/desktop && npm run test:ui:packaging --workspace apps/desktop && npm run test:packaging --workspace apps/desktop",
+    "desktop:package:win": "npm run desktop:check && npm run verify:install-source --workspace apps/desktop && cross-env HERMES_REQUIRE_CLEAN_BUILD=1 npm run dist:win:nsis --workspace apps/desktop && npm run test:desktop:bundle --workspace apps/desktop && npm run test:desktop:install:win --workspace apps/desktop",
+    "desktop:preflight:portable:win": "node apps/desktop/scripts/package-windows-portable.mjs --preflight-only",
+    "desktop:package:portable:win": "node apps/desktop/scripts/package-windows-portable.mjs",
     "audit:root": "npm audit --workspaces=false",
     "audit:web": "npm audit --workspace web",
     "audit:tui": "npm audit --workspace ui-tui",
@@ -24,13 +28,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NousResearch/Hermes-Agent.git"
+    "url": "git+https://github.com/DaPengRuYi/RuyiHermesAgent.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/NousResearch/Hermes-Agent/issues"
+    "url": "https://github.com/DaPengRuYi/RuyiHermesAgent/issues"
   },
-  "homepage": "https://github.com/NousResearch/Hermes-Agent#readme",
+  "homepage": "https://github.com/DaPengRuYi/RuyiHermesAgent#readme",
   "dependencies": {
     "@streamdown/math": "^1.0.2",
     "agent-browser": "^0.26.0"

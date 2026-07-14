@@ -120,9 +120,26 @@ export function stageNodePty({ platform = process.platform, arch = process.arch 
   } else {
     console.warn(
       `[stage-native-deps] no prebuild found at prebuilds/${platform}-${arch} for node-pty. ` +
-        `If build/Release/* above is also empty, this target will fail at runtime. ` +
+        `Checking build/Release as the local-build fallback. ` +
         `Run "npx electron-rebuild -w node-pty" for this target, or check that ` +
         `node-pty's published prebuilds cover ${platform}-${arch}.`
+    )
+  }
+
+  const stagedNativeCandidates = [
+    join(destRoot, 'prebuilds', `${platform}-${arch}`),
+    join(destRoot, 'build', 'Release')
+  ]
+  const hasNativePayload = stagedNativeCandidates.some(dir => {
+    if (!existsSync(dir)) return false
+    return readdirSync(dir, { recursive: true, withFileTypes: true }).some(
+      entry => entry.isFile() && entry.name.endsWith('.node')
+    )
+  })
+  if (!hasNativePayload) {
+    throw new Error(
+      `[stage-native-deps] node-pty has no .node payload for ${platform}-${arch}; ` +
+        'refusing to create an installer that will fail when its terminal opens'
     )
   }
 

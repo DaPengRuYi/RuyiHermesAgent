@@ -53,6 +53,17 @@ function dashboardIndexUrl(baseUrl) {
   return `${String(baseUrl || '').replace(/\/+$/, '')}/`
 }
 
+/**
+ * `hermes serve` deliberately exposes no SPA, so requesting `/` after its
+ * authenticated `/api/ready` probe can only produce the expected headless 404.
+ * Older runtimes are rewritten to `dashboard --no-open`; those still serve an
+ * index page whose injected token may differ from the spawn token, so preserve
+ * the legacy discovery path for that argv.
+ */
+function backendUsesHeadlessServe(backendArgs) {
+  return Array.isArray(backendArgs) && backendArgs.includes('serve')
+}
+
 async function resolveServedDashboardToken(baseUrl, fallbackToken, options: any = {}) {
   const fetchText = options.fetchText || fetchPublicText
 
@@ -85,7 +96,15 @@ function isForeignBackendToken({ servedToken, spawnToken, childAlive }) {
  * failing loudly on a foreign backend. `childAlive` is a thunk so liveness is
  * sampled after the fetch, not before.
  */
-async function adoptServedDashboardToken(baseUrl, spawnToken, { childAlive, label = 'Hermes backend', ...options }) {
+async function adoptServedDashboardToken(
+  baseUrl,
+  spawnToken,
+  { backendArgs, childAlive, label = 'Hermes backend', ...options }
+) {
+  if (backendUsesHeadlessServe(backendArgs)) {
+    return spawnToken
+  }
+
   const servedToken = await resolveServedDashboardToken(baseUrl, spawnToken, options).catch(error => {
     options.rememberLog?.(`[boot] could not read served dashboard token (${label}): ${error.message}`)
 
@@ -103,6 +122,7 @@ async function adoptServedDashboardToken(baseUrl, spawnToken, { childAlive, labe
 
 export {
   adoptServedDashboardToken,
+  backendUsesHeadlessServe,
   dashboardIndexUrl,
   DEFAULT_TOKEN_FETCH_TIMEOUT_MS,
   extractInjectedDashboardToken,

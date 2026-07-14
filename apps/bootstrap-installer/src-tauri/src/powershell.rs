@@ -11,7 +11,7 @@ use std::path::Path;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
-use tokio::sync::mpsc;
+use tokio::sync::watch;
 
 /// Hooks the caller installs to receive output.
 pub struct StreamSink {
@@ -29,8 +29,9 @@ pub struct ScriptResult {
     pub killed: bool,
 }
 
-/// Cancellation signal — `cancel_tx.send(()).await` aborts the running script.
-pub type CancelRx = mpsc::Receiver<()>;
+/// Cloneable cancellation signal. A `true` value remains visible to every
+/// subsequent stage, so cancellation is not lost after the first child exits.
+pub type CancelRx = watch::Receiver<bool>;
 
 /// Spawns install.ps1 / install.sh with the given args and streams output.
 ///
@@ -70,9 +71,13 @@ pub async fn run_script(
         cmd.creation_flags(0x0800_0000);
     }
 
-    let mut child: Child = cmd
-        .spawn()
-        .with_context(|| format!("spawning {} via {}", script_path.display(), interpreter_label()))?;
+    let mut child: Child = cmd.spawn().with_context(|| {
+        format!(
+            "spawning {} via {}",
+            script_path.display(),
+            interpreter_label()
+        )
+    })?;
 
     let stdout = child.stdout.take().expect("stdout was piped");
     let stderr = child.stderr.take().expect("stderr was piped");
@@ -154,7 +159,10 @@ pub async fn run_script(
     })
 }
 
-fn stable_script_cwd<'a>(script_path: &'a Path, hermes_home_override: Option<&'a str>) -> Option<&'a Path> {
+fn stable_script_cwd<'a>(
+    script_path: &'a Path,
+    hermes_home_override: Option<&'a str>,
+) -> Option<&'a Path> {
     if let Some(home) = hermes_home_override {
         let path = Path::new(home);
         if path.is_dir() {
@@ -167,7 +175,15 @@ fn stable_script_cwd<'a>(script_path: &'a Path, hermes_home_override: Option<&'a
 async fn recv_cancel(rx: &mut Option<CancelRx>) {
     match rx {
         Some(r) => {
-            let _ = r.recv().await;
+            if *r.borrow() {
+                return;
+            }
+            while r.changed().await.is_ok() {
+                if *r.borrow() {
+                    return;
+                }
+            }
+            std::future::pending::<()>().await;
         }
         None => std::future::pending::<()>().await,
     }

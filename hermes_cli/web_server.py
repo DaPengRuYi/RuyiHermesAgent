@@ -161,6 +161,21 @@ def _warm_gateway_module() -> None:
         pass
 
 
+def _warm_gateway_then_start_desktop_cron(
+    stop_event: "threading.Event", interval: int = 60
+) -> None:
+    """Warm gateway imports before starting the desktop cron ticker.
+
+    Both paths import overlapping gateway/config modules.  Starting them in
+    separate threads can deadlock Python's per-module import locks on a cold
+    Windows checkout, after uvicorn has announced its port but before the
+    event loop can answer even a liveness probe.  Keep the work off the event
+    loop, but serialize the two import graphs in one worker thread.
+    """
+    _warm_gateway_module()
+    _start_desktop_cron_ticker(stop_event, interval=interval)
+
+
 def _resolve_restart_drain_timeout() -> float:
     try:
         from hermes_cli.gateway import _get_restart_drain_timeout
@@ -187,8 +202,6 @@ async def _lifespan(app: "FastAPI"):
     # and Defender real-time scans that can stall the event loop for 15-30s.
     # Running in an executor means the cost is paid in a worker thread while
     # the server socket is already open and accepting probes.
-    asyncio.get_event_loop().run_in_executor(None, _warm_gateway_module)
-
     # Desktop-spawned backends (HERMES_DESKTOP=1) fire cron jobs themselves,
     # since the app has no gateway running the scheduler. Server `hermes
     # dashboard` is unaffected — it relies on its own gateway.
@@ -197,12 +210,14 @@ async def _lifespan(app: "FastAPI"):
     if os.getenv("HERMES_DESKTOP") == "1":
         cron_stop = threading.Event()
         cron_thread = threading.Thread(
-            target=_start_desktop_cron_ticker,
+            target=_warm_gateway_then_start_desktop_cron,
             args=(cron_stop,),
             daemon=True,
-            name="desktop-cron-ticker",
+            name="desktop-gateway-warmup-and-cron",
         )
         cron_thread.start()
+    else:
+        asyncio.get_event_loop().run_in_executor(None, _warm_gateway_module)
 
     # Reap idle/dead keep-alive PTY sessions in the background (30-min TTL).
     pty_reaper_task = asyncio.create_task(run_reaper(PTY_REGISTRY))
@@ -2437,6 +2452,12 @@ def _collect_profile_gateway_topology() -> Dict[str, Any]:
         mode = "none"
 
     return {"profiles": profile_names, "gateway_mode": mode, "gateways": gateways}
+
+
+@app.get("/api/ready")
+async def get_ready():
+    """Authenticated, dependency-free readiness probe for desktop startup."""
+    return {"ready": True, "version": __version__}
 
 
 @app.get("/api/status")

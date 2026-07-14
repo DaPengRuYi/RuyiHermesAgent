@@ -26,6 +26,8 @@ export*
 __pycache__/model_tools.cpython-310.pyc
 __pycache__/web_tools.cpython-310.pyc
 logs/
+# Local root-level diagnostic logs are machine-specific troubleshooting output.
+/*.log
 data/
 .pytest_cache/
 test_durations.json
@@ -158,6 +160,10 @@ docs/superpowers/*
 # logs, and per-session caches are never artifacts of the codebase.
 .hermes/
 
+# Local CodeGraph index. It is reproducible machine state and can exceed
+# hundreds of MB; keep the repository rule pointer, not the generated database.
+.codegraph/
+
 # Desktop/bootstrap install marker written into the managed checkout root by the
 # bootstrap installer. It is Hermes-managed runtime state, never a code change —
 # ignore it so `hermes update`'s `git stash push --include-untracked` does not
@@ -183,6 +189,18 @@ RELEASE_v*.md
 # Desktop demo-run scratch output (hermes writes demo/*.txt during recorded
 # walkthroughs). Throwaway artifacts, never part of the app.
 apps/desktop/demo/
+
+# TypeScript source-tree emit produced by accidental `tsc -b` / `tsc` runs.
+# Production bundles belong in apps/desktop/dist; source siblings are never
+# release inputs and should not make the worktree dirty.
+/apps/desktop/src/**/*.js
+/apps/shared/src/**/*.js
+
+# Local PPT 08 production/QA scratch files. Reusable workspace templates stay
+# tracked; generated renders and one-off transformation scripts stay local.
+/workspace/*ppt08*.py
+/workspace/ppt08_*.png
+/workspace/ppt08_*_render*/
 
 # PR infographics are rendered locally and embedded in PR descriptions via the
 # image-provider (fal.media) URL — they are NEVER committed to the repo. The

@@ -19,7 +19,7 @@ use std::time::Instant;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::watch;
 
 use crate::events::{BootstrapEvent, LogStream, Manifest, StageState};
 use crate::install_script::{self, Pin, ScriptKind, ScriptSource};
@@ -38,6 +38,9 @@ pub struct StartBootstrapArgs {
     pub commit: Option<String>,
     /// Optional override for the branch pin. Defaults to `BUILD_PIN_BRANCH`.
     pub branch: Option<String>,
+    /// GitHub owner/repo that owns the pinned source. Defaults to the origin
+    /// baked into this installer at build time.
+    pub repository: Option<String>,
     /// Include Stage-Desktop (build apps/desktop) in the manifest. The
     /// signed bootstrap installer passes true; the deprecated Electron-side
     /// bootstrap-runner passes false to avoid building-while-running.
@@ -64,7 +67,7 @@ pub struct BootstrapStatus {
 /// the cancellation channel and the most recent terminal status so the
 /// frontend can re-query after a window refresh.
 pub struct BootstrapHandle {
-    pub cancel_tx: mpsc::Sender<()>,
+    pub cancel_tx: watch::Sender<bool>,
     pub started_at: Instant,
     pub status: BootstrapStatus,
 }
@@ -82,7 +85,7 @@ pub async fn start_bootstrap(
         }
     }
 
-    let (cancel_tx, cancel_rx) = mpsc::channel::<()>(1);
+    let (cancel_tx, cancel_rx) = watch::channel(false);
     let handle = BootstrapHandle {
         cancel_tx,
         started_at: Instant::now(),
@@ -99,8 +102,6 @@ pub async fn start_bootstrap(
     let app_for_task = app.clone();
     let state_for_task = state.inner().clone();
     let args_for_task = args;
-    let cancel_rx = Arc::new(Mutex::new(Some(cancel_rx)));
-
     tokio::spawn(async move {
         let result = run_bootstrap(app_for_task.clone(), args_for_task, cancel_rx).await;
 
@@ -130,7 +131,7 @@ pub async fn start_bootstrap(
 pub async fn cancel_bootstrap(state: State<'_, Arc<AppState>>) -> Result<(), String> {
     let guard = state.bootstrap.lock().await;
     if let Some(h) = guard.as_ref() {
-        let _ = h.cancel_tx.try_send(());
+        let _ = h.cancel_tx.send(true);
     }
     Ok(())
 }
@@ -156,31 +157,32 @@ pub async fn get_bootstrap_status(
     })
 }
 
-/// Spawn the locally-built Hermes desktop binary, then close the installer
+/// Spawn the locally-built RuyiHermesAgent desktop binary, then close the installer
 /// window. Caller resolves the binary path from `install_root`.
 ///
 /// Returns Err with a human-readable message if the binary doesn't exist
 /// (e.g. when Stage-Desktop was skipped) so the frontend can present
 /// actionable failure UI rather than silently doing nothing.
 #[tauri::command]
-pub async fn launch_hermes_desktop(
-    app: AppHandle,
-    install_root: String,
-) -> Result<(), String> {
+pub async fn launch_hermes_desktop(app: AppHandle, install_root: String) -> Result<(), String> {
     let install_root = PathBuf::from(install_root);
     let exe_path = resolve_hermes_desktop_exe(&install_root).ok_or_else(|| {
         format!(
-            "Couldn't find a built Hermes desktop at {}. The desktop build step \
+            "Couldn't find a built RuyiHermesAgent desktop at {}. The desktop build step \
              may have been skipped or failed. Run `hermes desktop` from a \
              terminal to build and launch it.",
-            install_root.join("apps").join("desktop").join("release").display()
+            install_root
+                .join("apps")
+                .join("desktop")
+                .join("release")
+                .display()
         )
     })?;
 
-    tracing::info!(?exe_path, "launching Hermes desktop");
+    tracing::info!(?exe_path, "launching RuyiHermesAgent desktop");
 
     // Detach from us — the installer is about to exit. On macOS launch the
-    // bundle through LaunchServices instead of exec'ing Contents/MacOS/Hermes
+    // bundle through LaunchServices instead of exec'ing its inner binary
     // directly; this matches user double-click/open behavior and avoids cwd /
     // quarantine oddities after a self-update rebuild.
     let mut cmd = desktop_launch_command(&exe_path, &install_root);
@@ -191,12 +193,8 @@ pub async fn launch_hermes_desktop(
         cmd.creation_flags(0x0000_0008);
     }
 
-    cmd.spawn().map_err(|e| {
-        format!(
-            "failed to launch {}: {e}",
-            exe_path.display()
-        )
-    })?;
+    cmd.spawn()
+        .map_err(|e| format!("failed to launch {}: {e}", exe_path.display()))?;
 
     // Give Windows ~150ms to actually start the new process before we exit.
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
@@ -214,16 +212,31 @@ pub(crate) fn resolve_hermes_desktop_exe(install_root: &std::path::Path) -> Opti
     let release_dir = install_root.join("apps").join("desktop").join("release");
     let candidates: &[(&str, &str)] = if cfg!(target_os = "windows") {
         &[
+            ("win-unpacked", "RuyiHermesAgent.exe"),
+            ("win-arm64-unpacked", "RuyiHermesAgent.exe"),
+            ("win-unpacked", "ruyi-agent.exe"),
+            ("win-arm64-unpacked", "ruyi-agent.exe"),
             ("win-unpacked", "Hermes.exe"),
             ("win-arm64-unpacked", "Hermes.exe"),
         ]
     } else if cfg!(target_os = "macos") {
         &[
+            ("mac/RuyiHermesAgent.app/Contents/MacOS", "RuyiHermesAgent"),
+            (
+                "mac-arm64/RuyiHermesAgent.app/Contents/MacOS",
+                "RuyiHermesAgent",
+            ),
+            ("mac/Ruyi Agent.app/Contents/MacOS", "ruyi-agent"),
+            ("mac-arm64/Ruyi Agent.app/Contents/MacOS", "ruyi-agent"),
             ("mac/Hermes.app/Contents/MacOS", "Hermes"),
             ("mac-arm64/Hermes.app/Contents/MacOS", "Hermes"),
         ]
     } else {
-        &[("linux-unpacked", "hermes")]
+        &[
+            ("linux-unpacked", "RuyiHermesAgent"),
+            ("linux-unpacked", "ruyi-agent"),
+            ("linux-unpacked", "hermes"),
+        ]
     };
     for (subdir, exe) in candidates {
         let p = release_dir.join(subdir).join(exe);
@@ -238,7 +251,7 @@ pub(crate) fn resolve_hermes_desktop_app(install_root: &std::path::Path) -> Opti
     let exe = resolve_hermes_desktop_exe(install_root)?;
     #[cfg(target_os = "macos")]
     {
-        // .../Hermes.app/Contents/MacOS/Hermes -> .../Hermes.app
+        // .../<product>.app/Contents/MacOS/<binary> -> .../<product>.app
         let app = exe.parent()?.parent()?.parent()?.to_path_buf();
         if app.extension().and_then(|e| e.to_str()) == Some("app") && app.is_dir() {
             return Some(app);
@@ -254,7 +267,7 @@ pub(crate) fn resolve_hermes_desktop_app(install_root: &std::path::Path) -> Opti
 
 /// True when a prior install completed (bootstrap-complete marker present) AND a
 /// launchable desktop app exists on disk. Used by the installer's launcher fast
-/// path so a bare re-open just opens Hermes instead of re-running setup.
+/// path so a bare re-open just opens RuyiHermesAgent instead of re-running setup.
 pub(crate) fn hermes_is_installed(install_root: &std::path::Path) -> bool {
     install_root.join(".hermes-bootstrap-complete").exists()
         && resolve_hermes_desktop_exe(install_root).is_some()
@@ -265,7 +278,10 @@ pub(crate) fn hermes_is_installed(install_root: &std::path::Path) -> bool {
 /// installer UI.
 pub(crate) fn spawn_installed_desktop(install_root: &std::path::Path) -> std::io::Result<()> {
     let exe = resolve_hermes_desktop_exe(install_root).ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "no built Hermes desktop app")
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "no built RuyiHermesAgent desktop app",
+        )
     })?;
     let mut cmd = desktop_launch_command_std(&exe, install_root);
     #[cfg(target_os = "windows")]
@@ -343,13 +359,21 @@ fn desktop_launch_command_std(
 async fn run_bootstrap(
     app: AppHandle,
     args: StartBootstrapArgs,
-    cancel_rx_holder: Arc<Mutex<Option<mpsc::Receiver<()>>>>,
+    cancel_rx: watch::Receiver<bool>,
 ) -> Result<String> {
     let kind = ScriptKind::for_current_os();
 
     let pin = Pin {
-        commit: args.commit.or_else(|| option_env_string("BUILD_PIN_COMMIT")),
-        branch: args.branch.or_else(|| option_env_string("BUILD_PIN_BRANCH")),
+        commit: args
+            .commit
+            .or_else(|| option_env_string("BUILD_PIN_COMMIT")),
+        branch: args
+            .branch
+            .or_else(|| option_env_string("BUILD_PIN_BRANCH")),
+        repository: args
+            .repository
+            .or_else(|| option_env_string("BUILD_REPOSITORY"))
+            .unwrap_or_else(|| "DaPengRuYi/RuyiHermesAgent".to_string()),
     };
 
     tracing::info!(
@@ -422,7 +446,7 @@ async fn run_bootstrap(
         &script.path,
         &manifest_args_full,
         args.hermes_home.as_deref(),
-        None,
+        Some(cancel_rx.clone()),
         Some("__manifest__".to_string()),
     )
     .await?;
@@ -443,20 +467,21 @@ async fn run_bootstrap(
         return Err(anyhow!(err));
     }
 
-    let manifest: Manifest = powershell::parse_manifest(&manifest_result.stdout).ok_or_else(|| {
-        let err = format!(
-            "install.ps1 -Manifest produced no parseable JSON payload\n{}",
-            truncate(&manifest_result.stdout, 4000)
-        );
-        emit_event(
-            &app,
-            BootstrapEvent::Failed {
-                stage: None,
-                error: err.clone(),
-            },
-        );
-        anyhow!(err)
-    })?;
+    let manifest: Manifest =
+        powershell::parse_manifest(&manifest_result.stdout).ok_or_else(|| {
+            let err = format!(
+                "install.ps1 -Manifest produced no parseable JSON payload\n{}",
+                truncate(&manifest_result.stdout, 4000)
+            );
+            emit_event(
+                &app,
+                BootstrapEvent::Failed {
+                    stage: None,
+                    error: err.clone(),
+                },
+            );
+            anyhow!(err)
+        })?;
 
     emit_event(
         &app,
@@ -485,7 +510,7 @@ async fn run_bootstrap(
             continue;
         }
 
-        if cancellation_signalled(&cancel_rx_holder).await {
+        if cancellation_signalled(&cancel_rx) {
             let err = "bootstrap cancelled by user".to_string();
             emit_event(
                 &app,
@@ -520,16 +545,12 @@ async fn run_bootstrap(
             stage_args.push("-IncludeDesktop".to_string());
         }
 
-        // Each stage gets its own cancel receiver because tokio::select!
-        // in run_script consumes it. Take/return through the Arc<Mutex>.
-        let local_cancel_rx = cancel_rx_holder.lock().await.take();
-
         let stage_result = run_install_script(
             &app,
             &script.path,
             &stage_args,
             args.hermes_home.as_deref(),
-            local_cancel_rx,
+            Some(cancel_rx.clone()),
             Some(stage.name.clone()),
         )
         .await?;
@@ -644,13 +665,28 @@ async fn run_bootstrap(
         .unwrap_or_else(|| crate::paths::hermes_home().to_string_lossy().into_owned());
     let install_root = PathBuf::from(&hermes_home).join("hermes-agent");
 
+    if let Err(err) = validate_install_postconditions(&install_root, args.include_desktop) {
+        let message = format!("bootstrap stages finished but install verification failed: {err}");
+        emit_event(
+            &app,
+            BootstrapEvent::Failed {
+                stage: None,
+                error: message.clone(),
+            },
+        );
+        return Err(anyhow!(message));
+    }
+
     // Copy ourselves to HERMES_HOME/hermes-setup.exe so the desktop app can
     // re-invoke us with `--update` and shortcuts have a stable target. This is
     // a one-shot install concern; an `--update` re-invocation no-ops because
     // we're already running from that path. Best-effort — a failure here must
     // not fail an otherwise-successful install.
     if let Err(err) = crate::paths::copy_self_to_hermes_home() {
-        tracing::warn!(?err, "failed to copy installer into HERMES_HOME (non-fatal)");
+        tracing::warn!(
+            ?err,
+            "failed to copy installer into HERMES_HOME (non-fatal)"
+        );
         emit_log(&format!(
             "[bootstrap] warning: could not stage updater binary: {err}"
         ));
@@ -670,13 +706,40 @@ async fn run_bootstrap(
     Ok(install_root.to_string_lossy().into_owned())
 }
 
-async fn cancellation_signalled(holder: &Arc<Mutex<Option<mpsc::Receiver<()>>>>) -> bool {
-    let mut guard = holder.lock().await;
-    if let Some(rx) = guard.as_mut() {
-        rx.try_recv().is_ok()
-    } else {
-        false
+fn validate_install_postconditions(
+    install_root: &std::path::Path,
+    include_desktop: bool,
+) -> Result<()> {
+    let marker = install_root.join(".hermes-bootstrap-complete");
+    if !marker.is_file() {
+        return Err(anyhow!("missing completion marker {}", marker.display()));
     }
+
+    let cli = if cfg!(target_os = "windows") {
+        install_root.join("venv").join("Scripts").join("hermes.exe")
+    } else {
+        install_root.join("venv").join("bin").join("hermes")
+    };
+    if !cli.is_file() {
+        return Err(anyhow!("missing hermes CLI entry point {}", cli.display()));
+    }
+
+    if include_desktop && resolve_hermes_desktop_exe(install_root).is_none() {
+        return Err(anyhow!(
+            "desktop was requested but no RuyiHermesAgent executable exists under {}",
+            install_root
+                .join("apps")
+                .join("desktop")
+                .join("release")
+                .display()
+        ));
+    }
+
+    Ok(())
+}
+
+fn cancellation_signalled(rx: &watch::Receiver<bool>) -> bool {
+    *rx.borrow()
 }
 
 async fn run_install_script(
@@ -684,7 +747,7 @@ async fn run_install_script(
     script_path: &std::path::Path,
     args: &[String],
     hermes_home_override: Option<&str>,
-    cancel_rx: Option<mpsc::Receiver<()>>,
+    cancel_rx: Option<powershell::CancelRx>,
     stage_name: Option<String>,
 ) -> Result<powershell::ScriptResult> {
     let app_for_stdout = app.clone();
@@ -744,7 +807,7 @@ async fn run_install_script(
 }
 
 fn build_pin_args(script: &install_script::ResolvedScript) -> Vec<String> {
-    let mut out = Vec::new();
+    let mut out = vec!["-RepoSlug".to_string(), script.repository.clone()];
     if let Some(c) = &script.commit {
         out.push("-Commit".to_string());
         out.push(c.clone());
@@ -821,8 +884,8 @@ fn truncate(s: &str, max: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     use std::path::Path;
+    use std::path::PathBuf;
 
     fn unique_tmp_dir(tag: &str) -> PathBuf {
         let base = std::env::temp_dir().join(format!(
@@ -844,12 +907,38 @@ mod tests {
         if cfg!(target_os = "macos") {
             let macos_dir = release
                 .join("mac-arm64")
+                .join("RuyiHermesAgent.app")
+                .join("Contents")
+                .join("MacOS");
+            std::fs::create_dir_all(&macos_dir).unwrap();
+            std::fs::write(macos_dir.join("RuyiHermesAgent"), b"#!/bin/sh\n").unwrap();
+            macos_dir.parent().unwrap().parent().unwrap().to_path_buf() // .../RuyiHermesAgent.app
+        } else if cfg!(target_os = "windows") {
+            let dir = release.join("win-unpacked");
+            std::fs::create_dir_all(&dir).unwrap();
+            let exe = dir.join("RuyiHermesAgent.exe");
+            std::fs::write(&exe, b"stub").unwrap();
+            exe
+        } else {
+            let dir = release.join("linux-unpacked");
+            std::fs::create_dir_all(&dir).unwrap();
+            let exe = dir.join("RuyiHermesAgent");
+            std::fs::write(&exe, b"stub").unwrap();
+            exe
+        }
+    }
+
+    fn make_legacy_release_tree(install_root: &Path) -> PathBuf {
+        let release = install_root.join("apps").join("desktop").join("release");
+        if cfg!(target_os = "macos") {
+            let macos_dir = release
+                .join("mac-arm64")
                 .join("Hermes.app")
                 .join("Contents")
                 .join("MacOS");
             std::fs::create_dir_all(&macos_dir).unwrap();
             std::fs::write(macos_dir.join("Hermes"), b"#!/bin/sh\n").unwrap();
-            macos_dir.parent().unwrap().parent().unwrap().to_path_buf() // .../Hermes.app
+            macos_dir.parent().unwrap().parent().unwrap().to_path_buf()
         } else if cfg!(target_os = "windows") {
             let dir = release.join("win-unpacked");
             std::fs::create_dir_all(&dir).unwrap();
@@ -867,7 +956,7 @@ mod tests {
 
     // The relaunch / install target is derived from the rebuilt desktop app.
     // On macOS this MUST resolve to the .app bundle (what `open` relaunches and
-    // what the updater ditto's over /Applications/Hermes.app). A regression in
+    // what the updater ditto's over /Applications/RuyiHermesAgent.app). A regression in
     // this derivation breaks the post-update auto-relaunch, so guard it.
     #[test]
     fn resolve_hermes_desktop_app_finds_built_bundle() {
@@ -894,6 +983,25 @@ mod tests {
     }
 
     #[test]
+    fn resolve_hermes_desktop_app_falls_back_to_legacy_name() {
+        let root = unique_tmp_dir("app-legacy");
+        let expected = make_legacy_release_tree(&root);
+
+        assert_eq!(resolve_hermes_desktop_app(&root), Some(expected));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn resolve_hermes_desktop_app_prefers_ruyi_name() {
+        let root = unique_tmp_dir("app-priority");
+        let _legacy = make_legacy_release_tree(&root);
+        let expected = make_release_tree(&root);
+
+        assert_eq!(resolve_hermes_desktop_app(&root), Some(expected));
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn resolve_hermes_desktop_app_is_none_without_a_build() {
         let root = unique_tmp_dir("app-none");
         // No release tree created.
@@ -901,6 +1009,30 @@ mod tests {
             resolve_hermes_desktop_app(&root).is_none(),
             "no resolved app when nothing has been built"
         );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn completed_install_requires_marker_cli_and_requested_desktop() {
+        let root = unique_tmp_dir("postconditions");
+        std::fs::create_dir_all(&root).unwrap();
+
+        assert!(validate_install_postconditions(&root, false).is_err());
+        std::fs::write(root.join(".hermes-bootstrap-complete"), b"{}").unwrap();
+        assert!(validate_install_postconditions(&root, false).is_err());
+
+        let cli = if cfg!(target_os = "windows") {
+            root.join("venv").join("Scripts").join("hermes.exe")
+        } else {
+            root.join("venv").join("bin").join("hermes")
+        };
+        std::fs::create_dir_all(cli.parent().unwrap()).unwrap();
+        std::fs::write(&cli, b"stub").unwrap();
+        assert!(validate_install_postconditions(&root, false).is_ok());
+        assert!(validate_install_postconditions(&root, true).is_err());
+
+        make_release_tree(&root);
+        assert!(validate_install_postconditions(&root, true).is_ok());
         let _ = std::fs::remove_dir_all(&root);
     }
 }

@@ -33,6 +33,10 @@ fn main() {
 
     let commit = resolve_commit_pin();
     let branch = resolve_branch_pin();
+    let repository = resolve_repository();
+
+    println!("cargo:rustc-env=BUILD_REPOSITORY={repository}");
+    println!("cargo:warning=hermes-bootstrap: source repository {repository}");
 
     if let Some(c) = &commit {
         println!("cargo:rustc-env=BUILD_PIN_COMMIT={c}");
@@ -81,6 +85,7 @@ fn main() {
     }
     println!("cargo:rerun-if-env-changed=HERMES_BUILD_PIN_COMMIT");
     println!("cargo:rerun-if-env-changed=HERMES_BUILD_PIN_BRANCH");
+    println!("cargo:rerun-if-env-changed=HERMES_BUILD_REPOSITORY");
 
     // -----------------------------------------------------------------
     // Tauri windows manifest. See hermes-setup.manifest for rationale —
@@ -166,6 +171,62 @@ fn resolve_branch_pin() -> Option<String> {
     }
 }
 
+fn resolve_repository() -> String {
+    for candidate in [
+        std::env::var("HERMES_BUILD_REPOSITORY").ok(),
+        std::env::var("GITHUB_REPOSITORY").ok(),
+        git_origin_url(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if let Some(slug) = normalize_github_repository(&candidate) {
+            return slug;
+        }
+    }
+
+    // Release builds normally resolve origin. Keep a branded fallback for
+    // source archives that do not include .git metadata.
+    "DaPengRuYi/RuyiHermesAgent".to_string()
+}
+
+fn git_origin_url() -> Option<String> {
+    let out = Command::new("git")
+        .args(["remote", "get-url", "origin"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let value = String::from_utf8(out.stdout).ok()?.trim().to_string();
+    (!value.is_empty()).then_some(value)
+}
+
+fn normalize_github_repository(value: &str) -> Option<String> {
+    let raw = value.trim().trim_end_matches(".git");
+    let slug = if !raw.contains(':') && !raw.contains("github.com/") {
+        raw
+    } else if let Some(rest) = raw.strip_prefix("git@github.com:") {
+        rest
+    } else if let Some((_, rest)) = raw.split_once("github.com/") {
+        rest
+    } else {
+        return None;
+    };
+
+    let mut parts = slug.split('/');
+    let (Some(owner), Some(repo), None) = (parts.next(), parts.next(), parts.next()) else {
+        return None;
+    };
+    let valid = |part: &str| {
+        !part.is_empty()
+            && part
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    };
+    (valid(owner) && valid(repo)).then(|| format!("{owner}/{repo}"))
+}
+
 fn locate_git_dir() -> Option<std::path::PathBuf> {
     let out = Command::new("git")
         .args(["rev-parse", "--git-dir"])
@@ -186,5 +247,27 @@ fn short(commit: &str) -> &str {
         &commit[..12]
     } else {
         commit
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_https_ssh_and_slug_repositories() {
+        assert_eq!(
+            normalize_github_repository("git@github.com:DaPengRuYi/RuyiHermesAgent.git").as_deref(),
+            Some("DaPengRuYi/RuyiHermesAgent")
+        );
+        assert_eq!(
+            normalize_github_repository("https://github.com/DaPengRuYi/RuyiHermesAgent.git")
+                .as_deref(),
+            Some("DaPengRuYi/RuyiHermesAgent")
+        );
+        assert_eq!(
+            normalize_github_repository("DaPengRuYi/RuyiHermesAgent").as_deref(),
+            Some("DaPengRuYi/RuyiHermesAgent")
+        );
     }
 }

@@ -37,6 +37,8 @@ export interface DesktopThemeColors {
   midground?: string
   /** Auto-derived from `midground` luminance when omitted. */
   midgroundForeground?: string
+  /** Restrained decorative highlight; never used for primary actions. */
+  warm?: string
   /** Composer outline / focus color. Falls back to `midground`. */
   composerRing?: string
   destructive: string
@@ -91,7 +93,7 @@ export interface DesktopTheme {
   description: string
   /** Light palette (also reused for dark when `darkColors` is omitted). */
   colors: DesktopThemeColors
-  /** Hand-tuned dark palette. Skins like `nous` ship one. */
+  /** Hand-tuned dark palette. Skins like `ruyi` ship one. */
   darkColors?: DesktopThemeColors
   typography?: Partial<DesktopThemeTypography>
   /** Light-variant terminal ANSI palette (also the fallback for dark). */

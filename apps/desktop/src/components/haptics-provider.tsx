@@ -1,43 +1,55 @@
 import { useStore } from '@nanostores/react'
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useMemo } from 'react'
 import { useWebHaptics } from 'web-haptics/react'
 
-import { registerHapticTrigger } from '@/lib/haptics'
+import { type HapticTrigger, registerHapticTrigger } from '@/lib/haptics'
 import { $hapticsMuted } from '@/store/haptics'
 
-export function HapticsProvider({ children }: { children: ReactNode }) {
-  const muted = useStore($hapticsMuted)
-  const { trigger } = useWebHaptics({ debug: true, showSwitch: false })
+interface HapticsBuildEnv {
+  DEV?: boolean
+  PROD?: boolean
+}
 
-  useEffect(() => {
-    registerHapticTrigger(muted ? null : trigger)
+interface HapticsNavigator {
+  userActivation?: {
+    hasBeenActive?: boolean
+  }
+}
 
-    return () => registerHapticTrigger(null)
-  }, [muted, trigger])
+export function hapticsDebugEnabled(env: HapticsBuildEnv = import.meta.env): boolean {
+  return env.DEV === true && env.PROD !== true
+}
 
-  // web-haptics builds its AudioContext lazily inside the first trigger(), and
-  // the process's first AudioContext pays the CoreAudio spin-up (~850ms stall
-  // in profiles) — which landed on the first streamStart haptic as the first
-  // token painted. Open/close a throwaway context at idle so the real one
-  // connects to an already-warm audio service in single-digit ms.
-  useEffect(() => {
-    if (typeof requestIdleCallback !== 'function' || typeof AudioContext === 'undefined') {
+export function hasUserActivatedHaptics(nav: HapticsNavigator | undefined): boolean {
+  return nav?.userActivation?.hasBeenActive === true
+}
+
+export function createUserActivatedHapticTrigger(
+  trigger: HapticTrigger,
+  getNavigator: () => HapticsNavigator | undefined = () => (typeof navigator === 'undefined' ? undefined : navigator)
+): HapticTrigger {
+  return (input, options) => {
+    // Chromium warns (and ignores navigator.vibrate) until the document has
+    // received a real user gesture. Startup/reconnect events can request a
+    // haptic before that point, so keep them from reaching web-haptics at all.
+    if (!hasUserActivatedHaptics(getNavigator())) {
       return undefined
     }
 
-    const id = requestIdleCallback(
-      () => {
-        try {
-          void new AudioContext().close().catch(() => undefined)
-        } catch {
-          // No audio device (headless CI) — nothing to warm.
-        }
-      },
-      { timeout: 2000 }
-    )
+    return trigger(input, options)
+  }
+}
 
-    return () => cancelIdleCallback(id)
-  }, [])
+export function HapticsProvider({ children }: { children: ReactNode }) {
+  const muted = useStore($hapticsMuted)
+  const { trigger } = useWebHaptics({ debug: hapticsDebugEnabled(), showSwitch: false })
+  const activatedTrigger = useMemo(() => createUserActivatedHapticTrigger(trigger), [trigger])
+
+  useEffect(() => {
+    registerHapticTrigger(muted ? null : activatedTrigger)
+
+    return () => registerHapticTrigger(null)
+  }, [activatedTrigger, muted])
 
   return <>{children}</>
 }

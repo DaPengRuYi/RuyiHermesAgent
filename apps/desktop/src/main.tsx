@@ -36,7 +36,7 @@ if (new URLSearchParams(window.location.search).get('win') === 'overlay') {
     <StrictMode>
       <ErrorBoundary label="root">
         <QueryClientProvider client={queryClient}>
-          <I18nProvider>
+          <I18nProvider initialLocale="zh">
             <ThemeProvider>
               <HapticsProvider>
                 <HashRouter>

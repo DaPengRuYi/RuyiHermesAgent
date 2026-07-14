@@ -102,6 +102,7 @@ export function AboutSettings() {
           <p className="mt-1 text-xs text-muted-foreground">
             {version?.appVersion ? a.version(version.appVersion) : a.versionUnavailable}
           </p>
+          <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">{a.upstreamAttribution}</p>
         </div>
       </div>
 
@@ -176,7 +177,7 @@ export function AboutSettings() {
           title={a.automaticUpdates}
         />
 
-        <UninstallSection />
+        {!version?.portable && <UninstallSection />}
       </div>
     </SettingsContent>
   )

@@ -72,7 +72,7 @@ def test_gui_is_installed_true_when_built(tmp_path, monkeypatch):
     # Make sure packaged-app + userdata probes don't false-positive on the box
     # running the test.
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "nope")
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [tmp_path / "nope"])
     assert gu.gui_is_installed(hermes_home) is True
 
 
@@ -80,7 +80,7 @@ def test_gui_is_installed_false_when_nothing(tmp_path, monkeypatch):
     hermes_home = tmp_path / ".hermes"
     hermes_home.mkdir()
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "nope")
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [tmp_path / "nope"])
     assert gu.gui_is_installed(hermes_home) is False
 
 
@@ -93,7 +93,7 @@ def test_uninstall_gui_removes_only_gui_artifacts(tmp_path, monkeypatch):
 
     # Isolate the packaged-app + userdata probes from the test machine.
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "userdata-none")
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [tmp_path / "userdata-none"])
 
     removed = gu.uninstall_gui(hermes_home)
     removed_names = {p.name for p in removed}
@@ -125,7 +125,7 @@ def test_uninstall_gui_removes_userdata(tmp_path, monkeypatch):
     (userdata / "connection.json").write_text("{}")
 
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: userdata)
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [userdata])
 
     gu.uninstall_gui(hermes_home)
     assert not userdata.exists()
@@ -138,7 +138,7 @@ def test_uninstall_gui_keeps_userdata_when_requested(tmp_path, monkeypatch):
     userdata.mkdir()
 
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: userdata)
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [userdata])
 
     gu.uninstall_gui(hermes_home, remove_userdata=False)
     assert userdata.exists()
@@ -147,11 +147,11 @@ def test_uninstall_gui_keeps_userdata_when_requested(tmp_path, monkeypatch):
 def test_uninstall_gui_removes_packaged_bundle(tmp_path, monkeypatch):
     hermes_home = tmp_path / ".hermes"
     _make_agent(hermes_home)
-    bundle = tmp_path / "Hermes.app"
+    bundle = tmp_path / "RuyiHermesAgent.app"
     (bundle / "Contents").mkdir(parents=True)
 
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [bundle])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "none")
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [tmp_path / "none"])
 
     removed = gu.uninstall_gui(hermes_home)
     assert not bundle.exists()
@@ -163,7 +163,7 @@ def test_gui_install_summary_shape(tmp_path, monkeypatch):
     _make_agent(hermes_home)
     _make_gui_build(hermes_home)
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "none")
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [tmp_path / "none"])
 
     summary = gu.gui_install_summary(hermes_home)
     # JSON-serializable primitives the desktop UI gates on.
@@ -176,16 +176,16 @@ def test_gui_install_summary_shape(tmp_path, monkeypatch):
 
 
 def test_userdata_dir_per_platform(monkeypatch):
-    """userData path matches Electron's app.getPath('userData') for "Hermes"."""
+    """Fresh installs use Electron's RuyiHermesAgent ``userData`` directory."""
     home = Path("/home/tester")
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
 
     monkeypatch.setattr(gu.sys, "platform", "darwin")
-    assert gu.desktop_userdata_dir() == home / "Library" / "Application Support" / "Hermes"
+    assert gu.desktop_userdata_dir() == home / "Library" / "Application Support" / "RuyiHermesAgent"
 
     monkeypatch.setattr(gu.sys, "platform", "linux")
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
-    assert gu.desktop_userdata_dir() == home / ".config" / "Hermes"
+    assert gu.desktop_userdata_dir() == home / ".config" / "RuyiHermesAgent"
 
 
 def test_userdata_dir_windows(monkeypatch):
@@ -193,7 +193,38 @@ def test_userdata_dir_windows(monkeypatch):
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
     monkeypatch.setattr(gu.sys, "platform", "win32")
     monkeypatch.setenv("APPDATA", r"C:\Users\tester\AppData\Roaming")
-    assert gu.desktop_userdata_dir() == Path(r"C:\Users\tester\AppData\Roaming") / "Hermes"
+    assert gu.desktop_userdata_dir() == Path(r"C:\Users\tester\AppData\Roaming") / "RuyiHermesAgent"
+
+
+def test_userdata_dir_prefers_new_name_then_falls_back_to_legacy(tmp_path, monkeypatch):
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    monkeypatch.setattr(gu.sys, "platform", "darwin")
+    base = tmp_path / "Library" / "Application Support"
+    legacy = base / "Hermes"
+    legacy.mkdir(parents=True)
+
+    assert gu.desktop_userdata_dir() == legacy
+
+    current = base / "RuyiHermesAgent"
+    current.mkdir()
+    assert gu.desktop_userdata_dir() == current
+
+
+def test_uninstall_gui_removes_current_and_legacy_userdata(tmp_path, monkeypatch):
+    hermes_home = tmp_path / ".hermes"
+    _make_agent(hermes_home)
+    current = tmp_path / "RuyiHermesAgent"
+    legacy = tmp_path / "Hermes"
+    current.mkdir()
+    legacy.mkdir()
+
+    monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [current, legacy])
+
+    removed = gu.uninstall_gui(hermes_home)
+    assert not current.exists()
+    assert not legacy.exists()
+    assert current in removed and legacy in removed
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX symlink semantics")
@@ -251,7 +282,7 @@ def test_run_uninstall_yes_keep_data_is_non_interactive(tmp_path, monkeypatch):
 
     from hermes_cli import gui_uninstall as gu_mod
     monkeypatch.setattr(gu_mod, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu_mod, "desktop_userdata_dir", lambda: tmp_path / "none")
+    monkeypatch.setattr(gu_mod, "desktop_userdata_dirs", lambda: [tmp_path / "none"])
 
     uninstall.run_uninstall(_Args(yes=True, full=False))
 
@@ -284,7 +315,7 @@ def test_run_uninstall_yes_full_wipes_home(tmp_path, monkeypatch):
 
     from hermes_cli import gui_uninstall as gu_mod
     monkeypatch.setattr(gu_mod, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu_mod, "desktop_userdata_dir", lambda: tmp_path / "none")
+    monkeypatch.setattr(gu_mod, "desktop_userdata_dirs", lambda: [tmp_path / "none"])
 
     uninstall.run_uninstall(_Args(yes=True, full=True))
 
@@ -311,7 +342,7 @@ def test_uninstall_module_main_gui_mode(tmp_path, monkeypatch):
     monkeypatch.setattr(uninstall, "get_hermes_home", lambda: hermes_home)
     from hermes_cli import gui_uninstall as gu_mod
     monkeypatch.setattr(gu_mod, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu_mod, "desktop_userdata_dir", lambda: tmp_path / "none")
+    monkeypatch.setattr(gu_mod, "desktop_userdata_dirs", lambda: [tmp_path / "none"])
     monkeypatch.setattr(gu_mod, "get_hermes_home", lambda: hermes_home)
     monkeypatch.setattr("builtins.input", lambda *a, **k: pytest.fail("prompted in module main"))
 

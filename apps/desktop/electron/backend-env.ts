@@ -66,7 +66,11 @@ function buildDesktopBackendPath({
   pathModule = pathModuleForPlatform(platform)
 }: any = {}) {
   const delimiter = delimiterForPlatform(platform)
-  const hermesNodeBin = hermesHome ? pathModule.join(hermesHome, 'node', 'bin') : null
+  // install.ps1 places node.exe directly in HERMES_HOME\node, while the
+  // POSIX installer uses HERMES_HOME/node/bin.
+  const hermesNodeBin = hermesHome
+    ? pathModule.join(hermesHome, 'node', ...(platform === 'win32' ? [] : ['bin']))
+    : null
   const venvBin = venvRoot ? pathModule.join(venvRoot, platform === 'win32' ? 'Scripts' : 'bin') : null
   const saneEntries = platform === 'win32' ? [] : POSIX_SANE_PATH_ENTRIES
 

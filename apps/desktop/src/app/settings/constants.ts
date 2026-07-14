@@ -41,7 +41,7 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
   {
     prefix: 'NOUS_',
     name: 'Nous Portal',
-    description: 'Hosted Hermes & Nous-trained models',
+    description: '如意助手可用的托管模型与 Nous 训练模型',
     docsUrl: 'https://portal.nousresearch.com',
     priority: 0
   },
@@ -435,10 +435,10 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
     personality: 'Default assistant style for new sessions.',
     showReasoning: 'Show reasoning sections when the backend provides them.'
   },
-  timezone: 'Used when Hermes needs local time context. Blank uses the system timezone.',
+  timezone: '如意助手需要本地时间上下文时使用；留空则使用系统时区。',
   agent: {
     imageInputMode: 'Controls how image attachments are sent to the model.',
-    maxTurns: 'Upper bound for tool-calling turns before Hermes stops a run.'
+    maxTurns: '如意助手停止单次运行前允许的工具调用轮数上限。'
   },
   terminal: {
     cwd: 'Default project folder for tool and terminal work.',
@@ -452,9 +452,9 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   codeExecution: {
     mode: 'How strictly code execution is scoped to the current project.'
   },
-  fileReadMaxChars: 'Maximum characters Hermes can read from one file request.',
+  fileReadMaxChars: '如意助手单次文件读取请求可读取的最大字符数。',
   approvals: {
-    mode: 'How Hermes handles commands that need explicit approval.',
+    mode: '如意助手如何处理需要明确批准的命令。',
     timeout: 'How long approval prompts wait before timing out.'
   },
   security: {
@@ -494,7 +494,7 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   },
   updates: {
     nonInteractiveLocalChanges:
-      'When Hermes updates itself from the app (no terminal prompt), keep local source edits (stash) or throw them away (discard). Terminal updates always ask.'
+      '如意助手从应用内更新时（没有终端提示），可保留本地源码修改（stash）或丢弃修改（discard）。终端更新始终会询问。'
   }
 })
 

@@ -2,13 +2,16 @@ import { useCallback } from 'react'
 
 import { useTheme } from './context'
 
-// Retired skin names land on the canonical Nous skin so old muscle memory works.
+// Retired/upstream skin names land on the canonical Ruyi skin so existing
+// preferences and old slash-command muscle memory keep working.
 const ALIASES: Record<string, string> = {
   ares: 'ember',
-  default: 'nous',
-  gold: 'nous',
-  hermes: 'nous',
-  'nous-light': 'nous'
+  default: 'ruyi',
+  gold: 'ruyi',
+  hermes: 'ruyi',
+  nous: 'ruyi',
+  'nous-light': 'ruyi',
+  'ruyi-blue': 'ruyi'
 }
 
 export function useSkinCommand() {

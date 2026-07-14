@@ -36,7 +36,7 @@ Usage:
     hermes honcho migrate                  # Step-by-step migration guide: OpenClaw native → Hermes + Honcho
     hermes version             Show version
     hermes update              Update to latest version
-    hermes uninstall           Uninstall Hermes Agent
+    hermes uninstall           卸载如意助手
     hermes acp                 Run as an ACP server for editor integration
     hermes sessions browse     Interactive session picker with search
 
@@ -244,7 +244,7 @@ def _read_openai_version_fast() -> str | None:
 def _print_fast_version_info() -> None:
     from hermes_cli import __release_date__, __version__
 
-    print(f"Hermes Agent v{__version__} ({__release_date__})")
+    print(f"如意助手 v{__version__} ({__release_date__})")
     print(f"Install directory: {PROJECT_ROOT}")
 
     print(f"Python: {sys.version.split()[0]}")
@@ -2671,14 +2671,14 @@ def cmd_whatsapp(args):
             print("    2. Send a message to the bot's WhatsApp number")
             print("    3. The agent will reply automatically")
             print()
-            print("  Tip: Agent responses are prefixed with '⚕ Hermes Agent'")
+            print("  提示：助手回复会带有“⚕ 如意助手”前缀")
         else:
             print("  Next steps:")
             print("    1. Start the gateway:  hermes gateway")
             print("    2. Open WhatsApp → Message Yourself")
             print("    3. Type a message — the agent will reply")
             print()
-            print("  Tip: Agent responses are prefixed with '⚕ Hermes Agent'")
+            print("  提示：助手回复会带有“⚕ 如意助手”前缀")
             print("  so you can tell them apart from your own messages.")
         print()
         print("  Or install as a service: hermes gateway install")
@@ -5115,28 +5115,43 @@ def _write_desktop_build_stamp(project_root: Path, *, source_mode: bool) -> None
 
 
 def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
-    """Return the current platform's unpacked Electron app executable."""
+    """Return the current platform's unpacked Electron app executable.
+
+    Prefer the RuyiHermesAgent product names emitted by current desktop builds, but
+    retain the pre-rebrand Hermes names so existing checkouts keep launching
+    during migration. Within one naming generation, prefer the newest build.
+    """
     release_dir = desktop_dir / "release"
     if sys.platform == "darwin":
-        candidates = list(release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes"))
+        candidate_groups = [
+            list(release_dir.glob("mac*/RuyiHermesAgent.app/Contents/MacOS/RuyiHermesAgent")),
+            list(release_dir.glob("mac*/Ruyi Agent.app/Contents/MacOS/ruyi-agent")),
+            list(release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes")),
+        ]
     elif sys.platform == "win32":
-        candidates = [
-            release_dir / "win-unpacked" / "Hermes.exe",
-            release_dir / "win-ia32-unpacked" / "Hermes.exe",
-            release_dir / "win-arm64-unpacked" / "Hermes.exe",
+        unpacked_dirs = ("win-unpacked", "win-ia32-unpacked", "win-arm64-unpacked")
+        candidate_groups = [
+            [release_dir / subdir / "RuyiHermesAgent.exe" for subdir in unpacked_dirs],
+            [release_dir / subdir / "ruyi-agent.exe" for subdir in unpacked_dirs],
+            [release_dir / subdir / "Hermes.exe" for subdir in unpacked_dirs],
         ]
     else:
-        candidates = [
-            release_dir / "linux-unpacked" / "hermes",
-            release_dir / "linux-unpacked" / "Hermes",
-            release_dir / "linux-arm64-unpacked" / "hermes",
-            release_dir / "linux-arm64-unpacked" / "Hermes",
+        unpacked_dirs = ("linux-unpacked", "linux-arm64-unpacked")
+        candidate_groups = [
+            [release_dir / subdir / "RuyiHermesAgent" for subdir in unpacked_dirs],
+            [release_dir / subdir / "ruyi-agent" for subdir in unpacked_dirs],
+            [
+                release_dir / subdir / executable
+                for subdir in unpacked_dirs
+                for executable in ("hermes", "Hermes")
+            ],
         ]
 
-    existing = [p for p in candidates if p.exists()]
-    if not existing:
-        return None
-    return max(existing, key=lambda p: p.stat().st_mtime)
+    for candidates in candidate_groups:
+        existing = [p for p in candidates if p.exists()]
+        if existing:
+            return max(existing, key=lambda p: p.stat().st_mtime)
+    return None
 
 
 def _electron_download_cache_dirs() -> list[Path]:
@@ -5348,17 +5363,17 @@ def _stop_desktop_processes_locking_build(desktop_dir: Path) -> list[int]:
     """Terminate any running desktop app executing from this build's ``release``
     dir so a rebuild can replace its (otherwise locked) executable.
 
-    On Windows a running ``Hermes.exe`` keeps an exclusive lock on
-    ``release/win-unpacked/Hermes.exe``. electron-builder's pack then can't
-    delete the stale binary and dies with ``remove …\\Hermes.exe: Access is
-    denied`` / ``ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`` (before-pack hits the same
-    EPERM cleaning the dir). The retry path repeats the failure because the lock
-    is still held. POSIX lets you unlink a running binary, so this is a no-op
-    off-Windows.
+    On Windows a running ``RuyiHermesAgent.exe`` (or a legacy ``Hermes.exe``) keeps
+    an exclusive lock on its unpacked executable. electron-builder's pack then
+    cannot delete the stale binary and fails with ``Access is denied`` /
+    ``ERR_ELECTRON_BUILDER_CANNOT_EXECUTE``. The retry path repeats the failure
+    because the lock is still held. POSIX lets you unlink a running binary, so
+    this is a no-op off-Windows.
 
     Scope is deliberately narrow: only processes whose executable lives *inside*
     this desktop's ``release`` tree are stopped — a packaged install elsewhere or
-    an unrelated "Hermes" process is never touched. Best-effort: never raises.
+    an unrelated RuyiHermesAgent or Hermes process is never touched. Best-effort:
+    never raises.
     Returns the PIDs we asked to stop.
     """
     if sys.platform != "win32":
@@ -5423,7 +5438,7 @@ def _desktop_macos_relaunchable_fixup(desktop_dir: Path) -> None:
     An ad-hoc-signed .app has no stable Designated Requirement (no Team ID), so
     when the self-updater rebuilds the bundle in place with a fresh build (a new,
     different cdhash) Gatekeeper/LaunchServices treats the changed code as
-    tampering and macOS reports "Hermes is damaged and can't be opened." The
+    tampering and macOS reports "RuyiHermesAgent is damaged and can't be opened." The
     bundle also inherits the com.apple.quarantine flag from the downloaded
     installer process chain. Both make the relaunch fail.
 
@@ -5440,7 +5455,7 @@ def _desktop_macos_relaunchable_fixup(desktop_dir: Path) -> None:
     exe = _desktop_packaged_executable(desktop_dir)
     if exe is None:
         return
-    # exe = .../Hermes.app/Contents/MacOS/Hermes  ->  app bundle = .../Hermes.app
+    # exe = .../<product>.app/Contents/MacOS/<binary> -> app bundle
     app = exe.parents[2]
     if not str(app).endswith(".app") or not app.is_dir():
         return
@@ -5529,7 +5544,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sandbox = packaged_executable.parent / "chrome-sandbox"
     if not sandbox.exists():
-        print(f"✗ Hermes Desktop is missing Electron's Linux sandbox helper: {sandbox}")
+        print(f"✗ 如意助手缺少 Electron Linux 沙箱辅助程序：{sandbox}")
         return False
 
     # Reject symlinks — chown/chmod must not follow an attacker-controlled
@@ -5549,7 +5564,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sudo = shutil.which("sudo")
     if not sudo:
-        print("✗ Hermes Desktop requires sudo to configure Electron's Linux sandbox helper.")
+        print("✗ 如意助手需要 sudo 权限来配置 Electron Linux 沙箱辅助程序。")
         return False
 
     print("→ Configuring Electron Linux sandbox helper (sudo required)...")
@@ -5706,7 +5721,8 @@ def cmd_gui(args: argparse.Namespace):
                       "(CSC_IDENTITY_AUTO_DISCOVERY=false)")
             if not source_mode:
                 # A running desktop instance launched from release/win-unpacked
-                # holds Hermes.exe locked on Windows, so the pack can't replace
+                # holds RuyiHermesAgent.exe (or legacy Hermes.exe) locked on Windows,
+                # so the pack can't replace
                 # it ("Access is denied" / ERR_ELECTRON_BUILDER_CANNOT_EXECUTE).
                 # Stop it first so the rebuild — including the installer's
                 # headless --update rebuild — succeeds instead of failing cryptically.
@@ -5737,8 +5753,8 @@ def cmd_gui(args: argparse.Namespace):
                     print("  ⚠ Desktop build failed; refreshed the Electron download and retrying once...")
                     for p in purged:
                         print(f"    - {p}")
-                    # The purge can't remove a win-unpacked tree whose Hermes.exe
-                    # is still locked by a running instance; stop it before retry.
+                    # The purge can't remove a win-unpacked tree whose desktop
+                    # executable is still locked; stop it before retry.
                     _stop_desktop_processes_locking_build(desktop_dir)
                     build_result = subprocess.run([npm, "run", build_script], cwd=desktop_dir, env=env, check=False)
             if (
@@ -5761,15 +5777,15 @@ def cmd_gui(args: argparse.Namespace):
                 print("✗ Desktop GUI build failed")
                 print(f"  Run manually:  cd apps/desktop && npm run {build_script}")
                 if sys.platform == "win32":
-                    print("  If this says \"Access is denied\" on Hermes.exe, close any")
-                    print("  running Hermes desktop window and retry.")
+                    print("  If this says \"Access is denied\" on RuyiHermesAgent.exe")
+                    print("  (or legacy Hermes.exe), close any RuyiHermesAgent window and retry.")
                 print("  If the log shows Electron download retries, rebuild via a mirror:")
                 print("    ELECTRON_MIRROR=<mirror-base-url> hermes desktop --force-build")
                 sys.exit(build_result.returncode or 1)
             packaged_executable = _desktop_packaged_executable(desktop_dir)
             if not source_mode:
                 # Locally-built apps are ad-hoc signed; make them relaunchable after
-                # an in-place self-update (otherwise macOS reports "Hermes is
+                # an in-place self-update (otherwise macOS reports "RuyiHermesAgent is
                 # damaged"). No-op on non-macOS and on real-identity builds.
                 _desktop_macos_relaunchable_fixup(desktop_dir)
 
@@ -5797,7 +5813,7 @@ def cmd_gui(args: argparse.Namespace):
         return
 
     if source_mode:
-        print("→ Launching Hermes Desktop from source build...")
+        print("→ 正在从源码构建启动如意助手桌面端…")
         launch_result = subprocess.run([npm, "exec", "--", "electron", "."], cwd=desktop_dir, env=env, check=False)
         sys.exit(launch_result.returncode)
 
@@ -5815,7 +5831,7 @@ def cmd_gui(args: argparse.Namespace):
             sys.exit(1)
 
     launch_command.extend(config_electron_flags)
-    print(f"→ Launching packaged Hermes Desktop: {' '.join(launch_command)}")
+    print(f"→ 正在启动已打包的如意助手桌面端：{' '.join(launch_command)}")
     launch_result = subprocess.run(launch_command, cwd=desktop_dir, env=env, check=False)
     sys.exit(launch_result.returncode)
 
@@ -9443,7 +9459,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             logger.debug("Could not read updates.non_interactive_local_changes: %s", exc)
             discard_local_changes = False
 
-    print("⚕ Updating Hermes Agent...")
+    print("⚕ 正在更新如意助手…")
     print()
 
     # On Windows, abort early if another hermes.exe is holding the venv shim

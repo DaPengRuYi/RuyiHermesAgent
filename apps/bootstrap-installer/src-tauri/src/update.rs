@@ -1,9 +1,9 @@
 //! Update orchestration.
 //!
-//! Driven when the installer is launched as `Hermes-Setup.exe --update` (see
+//! Driven when the installer is launched as `RuyiHermesAgent-Setup.exe --update` (see
 //! `AppMode` in lib.rs). The desktop app hands off to us — it exits, then we:
 //!
-//!   1. wait for the old Hermes desktop process to fully exit (so both the
+//!   1. wait for the old RuyiHermesAgent desktop process to fully exit (so both the
 //!      venv shim and packaged app.asar are free; otherwise `hermes update`
 //!      or repair bootstrap can race locked files),
 //!   2. run `hermes update --yes --gateway` (Python/repo update; this does NOT
@@ -45,6 +45,12 @@ const UPDATE_EXIT_CONCURRENT: i32 = 2;
 /// install tree before giving up and letting `hermes update`'s own guard decide.
 const DESKTOP_EXIT_WAIT: Duration = Duration::from_secs(20);
 const DESKTOP_EXIT_POLL: Duration = Duration::from_millis(500);
+
+/// User-facing desktop image plus the legacy pre-rebrand image. The backend
+/// venv shim is still named `hermes.exe`, so both names remain intentional.
+#[cfg(any(test, target_os = "windows"))]
+const WINDOWS_DESKTOP_PROCESS_IMAGES: [&str; 3] =
+    ["RuyiHermesAgent.exe", "ruyi-agent.exe", "hermes.exe"];
 
 /// Guards against concurrent update runs. The frontend kicks `startUpdate()`
 /// from a mount effect, which can fire more than once (React strict-mode
@@ -164,7 +170,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
 
     let hermes = resolve_hermes(&install_root).ok_or_else(|| {
         let msg = format!(
-            "Could not find the hermes CLI under {}. Is Hermes installed? \
+            "Could not find the hermes CLI under {}. Is RuyiHermesAgent installed? \
              Re-run the installer to repair the install.",
             install_root.display()
         );
@@ -222,8 +228,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         &format!("[update] updating against branch {update_branch}"),
     );
     let child_env = update_child_env(&install_root);
-    let mut update_args: Vec<String> =
-        vec!["update".into(), "--yes".into(), "--gateway".into()];
+    let mut update_args: Vec<String> = vec!["update".into(), "--yes".into(), "--gateway".into()];
     // --force skips `hermes update`'s Windows running-exe guard (which would
     // `sys.exit(2)` and dead-end the handoff). By contract the desktop has
     // already exited and waited for the install locks to clear before launching
@@ -292,9 +297,10 @@ async fn run_update(app: AppHandle) -> Result<()> {
             emit_stage(&app, "update", StageState::Succeeded, Some(update_ms), None);
         }
         Some(code) if code == UPDATE_EXIT_CONCURRENT => {
-            let msg = "Hermes is still running. Close all Hermes windows and try \
+            let msg =
+                "RuyiHermesAgent is still running. Close all RuyiHermesAgent windows and try \
                        the update again."
-                .to_string();
+                    .to_string();
             emit_stage(
                 &app,
                 "update",
@@ -405,7 +411,13 @@ async fn run_update(app: AppHandle) -> Result<()> {
         );
         return Err(anyhow!(msg));
     }
-    emit_stage(&app, "rebuild", StageState::Succeeded, Some(rebuild_ms), None);
+    emit_stage(
+        &app,
+        "rebuild",
+        StageState::Succeeded,
+        Some(rebuild_ms),
+        None,
+    );
 
     let launch_target = if let Some(target_app) = target_app {
         let started = Instant::now();
@@ -459,11 +471,16 @@ async fn run_update(app: AppHandle) -> Result<()> {
                 &app,
                 None,
                 LogStream::Stderr,
-                &format!("[update] could not auto-launch desktop: {err}. Launch Hermes manually."),
+                &format!(
+                    "[update] could not auto-launch desktop: {err}. Launch RuyiHermesAgent manually."
+                ),
             );
         }
-    } else if let Err(err) =
-        crate::bootstrap::launch_hermes_desktop(app.clone(), install_root.to_string_lossy().into_owned()).await
+    } else if let Err(err) = crate::bootstrap::launch_hermes_desktop(
+        app.clone(),
+        install_root.to_string_lossy().into_owned(),
+    )
+    .await
     {
         // Launch failed: don't hard-fail the update (it succeeded); surface a
         // log line so the success screen can still tell the user to launch
@@ -472,7 +489,9 @@ async fn run_update(app: AppHandle) -> Result<()> {
             &app,
             None,
             LogStream::Stdout,
-            &format!("[update] could not auto-launch desktop: {err}. Launch Hermes manually."),
+            &format!(
+                "[update] could not auto-launch desktop: {err}. Launch RuyiHermesAgent manually."
+            ),
         );
     }
 
@@ -486,7 +505,12 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
     let lock_targets = install_lock_probe_paths(install_root);
     let deadline = Instant::now() + DESKTOP_EXIT_WAIT;
 
-    emit_log(app, Some(stage), LogStream::Stdout, "[handoff] waiting for Hermes to exit…");
+    emit_log(
+        app,
+        Some(stage),
+        LogStream::Stdout,
+        "[handoff] waiting for RuyiHermesAgent to exit…",
+    );
 
     loop {
         let locked = locked_paths(&lock_targets);
@@ -507,7 +531,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
                 Some(stage),
                 LogStream::Stdout,
                 &format!(
-                    "[handoff] Hermes still holding install files ({}); force-killing stragglers…",
+                    "[handoff] RuyiHermesAgent still holding install files ({}); force-killing stragglers…",
                     format_locked_paths(&locked)
                 ),
             );
@@ -548,16 +572,59 @@ fn desktop_app_payload_paths(install_root: &Path) -> Vec<PathBuf> {
     let release = install_root.join("apps").join("desktop").join("release");
     if cfg!(target_os = "windows") {
         vec![
-            release.join("win-unpacked").join("resources").join("app.asar"),
-            release.join("win-arm64-unpacked").join("resources").join("app.asar"),
+            release
+                .join("win-unpacked")
+                .join("resources")
+                .join("app.asar"),
+            release
+                .join("win-arm64-unpacked")
+                .join("resources")
+                .join("app.asar"),
         ]
     } else if cfg!(target_os = "macos") {
         vec![
-            release.join("mac").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
-            release.join("mac-arm64").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
+            release
+                .join("mac")
+                .join("RuyiHermesAgent.app")
+                .join("Contents")
+                .join("Resources")
+                .join("app.asar"),
+            release
+                .join("mac-arm64")
+                .join("RuyiHermesAgent.app")
+                .join("Contents")
+                .join("Resources")
+                .join("app.asar"),
+            release
+                .join("mac")
+                .join("Ruyi Agent.app")
+                .join("Contents")
+                .join("Resources")
+                .join("app.asar"),
+            release
+                .join("mac-arm64")
+                .join("Ruyi Agent.app")
+                .join("Contents")
+                .join("Resources")
+                .join("app.asar"),
+            release
+                .join("mac")
+                .join("Hermes.app")
+                .join("Contents")
+                .join("Resources")
+                .join("app.asar"),
+            release
+                .join("mac-arm64")
+                .join("Hermes.app")
+                .join("Contents")
+                .join("Resources")
+                .join("app.asar"),
         ]
     } else {
-        vec![release.join("linux-unpacked").join("resources").join("app.asar")]
+        vec![release
+            .join("linux-unpacked")
+            .join("resources")
+            .join("app.asar")]
     }
 }
 
@@ -566,10 +633,15 @@ fn locked_paths(paths: &[PathBuf]) -> Vec<PathBuf> {
 }
 
 fn format_locked_paths(paths: &[PathBuf]) -> String {
-    paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ")
+    paths
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
-/// Force-kill any `hermes.exe` other than this process. Windows-only; a no-op
+/// Force-kill any RuyiHermesAgent or legacy `hermes.exe` process other than this
+/// process. Windows-only; a no-op
 /// elsewhere (POSIX has no mandatory-lock contention). We can't selectively
 /// target "the backend" by PID here — the desktop already exited and we never
 /// knew its children — so we kill the whole `hermes.exe` image tree via
@@ -591,18 +663,13 @@ fn force_kill_other_hermes() {
     {
         let my_pid = std::process::id();
         // /FI excludes our own PID; /T kills the tree; /F forces.
-        let _ = std::process::Command::new("taskkill")
-            .args([
-                "/F",
-                "/T",
-                "/IM",
-                "hermes.exe",
-                "/FI",
-                &format!("PID ne {my_pid}"),
-            ])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status();
+        for image in WINDOWS_DESKTOP_PROCESS_IMAGES {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/IM", image, "/FI", &format!("PID ne {my_pid}")])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status();
+        }
     }
 }
 
@@ -614,7 +681,11 @@ fn is_locked(path: &Path) -> bool {
     if !path.exists() {
         return false;
     }
-    match std::fs::OpenOptions::new().read(true).write(true).open(path) {
+    match std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+    {
         Ok(_) => false,
         Err(_) => true,
     }
@@ -687,7 +758,10 @@ async fn run_streamed(
         emit_log(app, stage_owned.as_deref(), LogStream::Stderr, &l);
     }
 
-    let status = child.wait().await.map_err(|e| anyhow!("waiting for child: {e}"))?;
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| anyhow!("waiting for child: {e}"))?;
     Ok(CmdResult {
         exit_code: status.code(),
     })
@@ -714,9 +788,17 @@ fn resolve_hermes(install_root: &Path) -> Option<PathBuf> {
         return Some(shim);
     }
     // PATH fallback. which-style probe via env, kept dependency-free.
-    let exe = if cfg!(target_os = "windows") { "hermes.exe" } else { "hermes" };
+    let exe = if cfg!(target_os = "windows") {
+        "hermes.exe"
+    } else {
+        "hermes"
+    };
     if let Ok(path) = std::env::var("PATH") {
-        let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
+        let sep = if cfg!(target_os = "windows") {
+            ';'
+        } else {
+            ':'
+        };
         for dir in path.split(sep) {
             let cand = Path::new(dir).join(exe);
             if cand.exists() {
@@ -808,12 +890,17 @@ async fn install_macos_app_update(
         ));
     }
 
-    let rebuilt_app = crate::bootstrap::resolve_hermes_desktop_app(install_root).ok_or_else(|| {
-        anyhow!(
-            "desktop rebuild succeeded but no Hermes.app was found under {}",
-            install_root.join("apps").join("desktop").join("release").display()
-        )
-    })?;
+    let rebuilt_app =
+        crate::bootstrap::resolve_hermes_desktop_app(install_root).ok_or_else(|| {
+            anyhow!(
+                "desktop rebuild succeeded but no RuyiHermesAgent desktop app was found under {}",
+                install_root
+                    .join("apps")
+                    .join("desktop")
+                    .join("release")
+                    .display()
+            )
+        })?;
 
     let same = match (rebuilt_app.canonicalize(), target_app.canonicalize()) {
         (Ok(a), Ok(b)) => a == b,
@@ -911,7 +998,10 @@ async fn swap_in_new_bundle(tmp: &Path, target: &Path, old: &Path) -> Result<()>
             let _ = tokio::fs::rename(old, target).await;
         }
         remove_dir_if_exists(tmp).await;
-        return Err(anyhow!("installing updated app at {}: {err}", target.display()));
+        return Err(anyhow!(
+            "installing updated app at {}: {err}",
+            target.display()
+        ));
     }
     remove_dir_if_exists(old).await;
     Ok(())
@@ -1056,7 +1146,9 @@ mod tests {
             "venv shim remains part of the update lock probe"
         );
         assert!(
-            probes.iter().any(|p| p.ends_with(Path::new("resources/app.asar"))),
+            probes
+                .iter()
+                .any(|p| p.ends_with(Path::new("resources/app.asar"))),
             "packaged app.asar must be probed so repair/re-clone waits for the old desktop to exit"
         );
     }
@@ -1156,8 +1248,14 @@ mod tests {
 
     #[test]
     fn rebuild_retries_only_on_failure() {
-        assert!(!rebuild_needs_retry(Some(0)), "a clean rebuild must not retry");
-        assert!(rebuild_needs_retry(Some(1)), "a failed rebuild retries once");
+        assert!(
+            !rebuild_needs_retry(Some(0)),
+            "a clean rebuild must not retry"
+        );
+        assert!(
+            rebuild_needs_retry(Some(1)),
+            "a failed rebuild retries once"
+        );
         assert!(
             rebuild_needs_retry(None),
             "a killed/signalled rebuild (no exit code) retries once"
@@ -1167,10 +1265,30 @@ mod tests {
     #[test]
     fn parses_only_app_targets() {
         assert_eq!(
-            target_app_from_args(["--update", "--target-app", "/Applications/Hermes.app"]),
-            Some(PathBuf::from("/Applications/Hermes.app"))
+            target_app_from_args([
+                "--update",
+                "--target-app",
+                "/Applications/RuyiHermesAgent.app"
+            ]),
+            Some(PathBuf::from("/Applications/RuyiHermesAgent.app"))
         );
-        assert_eq!(target_app_from_args(["--target-app", "/tmp/not-an-app"]), None);
+        assert_eq!(
+            target_app_from_args(["--update", "--target-app", "/Applications/Hermes.app"]),
+            Some(PathBuf::from("/Applications/Hermes.app")),
+            "legacy app targets remain valid during migration"
+        );
+        assert_eq!(
+            target_app_from_args(["--target-app", "/tmp/not-an-app"]),
+            None
+        );
+    }
+
+    #[test]
+    fn windows_force_kill_targets_new_and_legacy_images() {
+        assert_eq!(
+            WINDOWS_DESKTOP_PROCESS_IMAGES,
+            ["RuyiHermesAgent.exe", "ruyi-agent.exe", "hermes.exe"]
+        );
     }
 
     // Helpers for the swap tests: make a throwaway dir tree we can rename.
@@ -1195,9 +1313,9 @@ mod tests {
     #[tokio::test]
     async fn swap_installs_new_bundle_and_cleans_up() {
         let base = unique_tmp_dir("ok");
-        let target = base.join("Hermes.app");
-        let tmp = base.join("Hermes.app.hermes-update-new");
-        let old = base.join("Hermes.app.hermes-update-old");
+        let target = base.join("RuyiHermesAgent.app");
+        let tmp = base.join("RuyiHermesAgent.app.hermes-update-new");
+        let old = base.join("RuyiHermesAgent.app.hermes-update-old");
         write_marker(&target, "OLD");
         write_marker(&tmp, "NEW");
 
@@ -1225,16 +1343,22 @@ mod tests {
         //  - `old` is a NON-EMPTY dir  -> rename(target, old) fails
         //  - `tmp` does not exist       -> rename(tmp, target) fails
         let base = unique_tmp_dir("fail");
-        let target = base.join("Hermes.app");
-        let tmp = base.join("Hermes.app.hermes-update-new"); // intentionally absent
-        let old = base.join("Hermes.app.hermes-update-old");
+        let target = base.join("RuyiHermesAgent.app");
+        let tmp = base.join("RuyiHermesAgent.app.hermes-update-new"); // intentionally absent
+        let old = base.join("RuyiHermesAgent.app.hermes-update-old");
         write_marker(&target, "OLD");
         write_marker(&old, "OCCUPIED"); // non-empty => rename(target,old) fails
 
         let result = swap_in_new_bundle(&tmp, &target, &old).await;
 
-        assert!(result.is_err(), "swap should fail when neither move can complete");
-        assert!(target.exists(), "original app must NOT be deleted on failure");
+        assert!(
+            result.is_err(),
+            "swap should fail when neither move can complete"
+        );
+        assert!(
+            target.exists(),
+            "original app must NOT be deleted on failure"
+        );
         assert_eq!(
             std::fs::read_to_string(target.join("marker.txt")).unwrap(),
             "OLD",
@@ -1248,20 +1372,26 @@ mod tests {
         // Move-aside succeeds but installing the staged bundle fails (tmp
         // absent). The original must be rolled back from `old` to `target`.
         let base = unique_tmp_dir("rollback");
-        let target = base.join("Hermes.app");
-        let tmp = base.join("Hermes.app.hermes-update-new"); // absent
-        let old = base.join("Hermes.app.hermes-update-old");
+        let target = base.join("RuyiHermesAgent.app");
+        let tmp = base.join("RuyiHermesAgent.app.hermes-update-new"); // absent
+        let old = base.join("RuyiHermesAgent.app.hermes-update-old");
         write_marker(&target, "OLD");
 
         let result = swap_in_new_bundle(&tmp, &target, &old).await;
 
         assert!(result.is_err());
-        assert!(target.exists(), "original must be restored after failed install");
+        assert!(
+            target.exists(),
+            "original must be restored after failed install"
+        );
         assert_eq!(
             std::fs::read_to_string(target.join("marker.txt")).unwrap(),
             "OLD"
         );
-        assert!(!old.exists(), "backup should be rolled back, not left behind");
+        assert!(
+            !old.exists(),
+            "backup should be rolled back, not left behind"
+        );
         let _ = std::fs::remove_dir_all(&base);
     }
 }
