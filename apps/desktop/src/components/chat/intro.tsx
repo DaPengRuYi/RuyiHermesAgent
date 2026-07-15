@@ -20,6 +20,11 @@ export type IntroProps = {
 
 const NEUTRAL_PERSONALITIES = new Set(['', 'default', 'none', 'neutral'])
 
+const DEFAULT_RUYI_COPY: IntroCopy = {
+  headline: '如意助手',
+  body: '我是您最忠实的管家，最聪明的AI助手。祝您吉祥如意，万事如意！'
+}
+
 const FALLBACK_COPY: IntroCopy[] = [
   {
     headline: 'What are we moving today?',
@@ -105,13 +110,9 @@ function parseIntroCopy(raw: string): Record<string, IntroCopy[]> {
 
 const INTRO_COPY_BY_PERSONALITY = parseIntroCopy(introCopyJsonl)
 
-function neutralCopy(): IntroCopy[] {
-  return INTRO_COPY_BY_PERSONALITY.none || INTRO_COPY_BY_PERSONALITY.default || FALLBACK_COPY
-}
-
 function fallbackCopyForPersonality(personalityKey: string): IntroCopy[] {
   if (NEUTRAL_PERSONALITIES.has(personalityKey)) {
-    return neutralCopy()
+    return [DEFAULT_RUYI_COPY]
   }
 
   const label = titleize(personalityKey)
@@ -144,14 +145,16 @@ function pickCopy(copies: IntroCopy[], seed = 0): IntroCopy {
   return copies[Math.abs(seed) % copies.length] || FALLBACK_COPY[0]
 }
 
-const WORDMARK = '如意 AGENT'
+const WORDMARK = '如意助手'
 
 function resolveCopy(personality?: string, seed?: number): IntroCopy {
   const personalityKey = normalizeKey(personality)
 
-  const copies = NEUTRAL_PERSONALITIES.has(personalityKey)
-    ? INTRO_COPY_BY_PERSONALITY[personalityKey] || neutralCopy()
-    : INTRO_COPY_BY_PERSONALITY[personalityKey] || fallbackCopyForPersonality(personalityKey)
+  if (NEUTRAL_PERSONALITIES.has(personalityKey)) {
+    return DEFAULT_RUYI_COPY
+  }
+
+  const copies = INTRO_COPY_BY_PERSONALITY[personalityKey] || fallbackCopyForPersonality(personalityKey)
 
   return pickCopy(copies, seed)
 }
@@ -177,7 +180,7 @@ export function Intro({ personality, seed }: IntroProps) {
           <span aria-hidden="true">{WORDMARK}</span>
         </p>
 
-        <p className="m-0 text-center leading-normal tracking-tight">{copy.body}</p>
+        <p className="m-0 text-center text-lg leading-relaxed tracking-tight">{copy.body}</p>
       </div>
     </div>
   )

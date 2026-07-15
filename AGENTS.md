@@ -8,6 +8,10 @@ Instructions for AI coding assistants and developers working on the hermes-agent
 
 - The canonical integration and push branch for this RuyiHermesAgent line is
   `dev`.
+- This repository is private. For RuyiHermesAgent version packaging, "release"
+  means producing and validating the local delivery artifact only. Do not
+  create or upload a GitHub Release, and do not create or push a release tag,
+  unless Afra explicitly overrides this rule in the current task.
 - The `dev` HEAD established by the 2026-07-13 RuyiHermesAgent portable-release
   commit is the reference point for the fixed release baseline.
 - Branches under `version/*` are fixed release snapshots. Do not proactively
